@@ -1,0 +1,69 @@
+# Auto-generated file -- DO NOT EDIT!!!!!
+
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+=head1 NAME
+
+Lucy::Index::LexiconReader - Read Lexicon data.
+
+=head1 SYNOPSIS
+
+    my $lex_reader = $seg_reader->obtain("Lucy::Index::LexiconReader");
+    my $lexicon    = $lex_reader->lexicon( field => 'title' );
+
+
+
+=head1 DESCRIPTION
+
+LexiconReader reads term dictionary information.
+
+
+
+=head1 ABSTRACT METHODS
+
+=head2 lexicon( I<[labeled params]> )
+
+Return a new Lexicon for the given C<< field >>.  Will return
+undef if either the field is not indexed, or if no documents contain a
+value for the field.
+
+=over
+
+=item *
+
+B<field> - Field name.
+
+=item *
+
+B<term> - Pre-locate the Lexicon to this term.
+
+=back
+
+=head2 doc_freq( I<[labeled params]> )
+
+Return the number of documents where the specified term is present.
+
+
+
+
+
+=head1 INHERITANCE
+
+Lucy::Index::LexiconReader isa L<Lucy::Index::DataReader> isa L<Lucy::Object::Obj>.
+
+
+=cut
+

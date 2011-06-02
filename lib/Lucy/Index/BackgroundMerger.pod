@@ -1,0 +1,100 @@
+# Auto-generated file -- DO NOT EDIT!!!!!
+
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+=head1 NAME
+
+Lucy::Index::BackgroundMerger - Consolidate index segments in the background.
+
+=head1 SYNOPSIS
+
+    my $bg_merger = Lucy::Index::BackgroundMerger->new(
+        index  => '/path/to/index',
+    );
+    $bg_merger->commit;
+
+
+
+=head1 DESCRIPTION
+
+Adding documents to an index is usually fast, but every once in a while the
+index must be compacted and an update takes substantially longer to
+complete.  See L<Lucy::Docs::Cookbook::FastUpdates> for how to use
+this class to control worst-case index update performance.
+
+As with L<Indexer|Lucy::Index::Indexer>, see
+L<Lucy::Docs::FileLocking> if your index is on a shared volume.
+
+=head1 CONSTRUCTORS
+
+=head2 new( I<[labeled params]> )
+
+    my $bg_merger = Lucy::Index::BackgroundMerger->new(
+        index   => '/path/to/index',    # required
+        manager => $manager             # default: created internally
+    );
+
+Open a new BackgroundMerger.
+
+=over
+
+=item *
+
+B<index> - Either a string filepath or a Folder.
+
+=item *
+
+B<manager> - An IndexManager.  If not supplied, an IndexManager with
+a 10-second write lock timeout will be created.
+
+=back
+
+
+
+
+
+=head1 METHODS
+
+=head2 commit()
+
+Commit any changes made to the index.  Until this is called, none of
+the changes made during an indexing session are permanent.
+
+Calls prepare_commit() implicitly if it has not already been called.
+
+=head2 prepare_commit()
+
+Perform the expensive setup for commit() in advance, so that commit()
+completes quickly.
+
+Towards the end of prepare_commit(), the BackgroundMerger attempts to
+re-acquire the write lock, which is then held until commit() finishes
+and releases it.
+
+=head2 optimize()
+
+Optimize the index for search-time performance.  This may take a
+while, as it can involve rewriting large amounts of data.
+
+
+
+=head1 INHERITANCE
+
+Lucy::Index::BackgroundMerger isa L<Lucy::Object::Obj>.
+
+
+=cut
+
