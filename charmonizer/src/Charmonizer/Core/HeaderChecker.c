@@ -24,12 +24,12 @@
 #include <stdlib.h>
 
 typedef struct Header {
-    char        *name;
+    const char  *name;
     chaz_bool_t  exists;
 } Header;
 
 /* "hello_world.c" without the hello or the world. */
-static char test_code[] = "int main() { return 0; }\n";
+static const char test_code[] = "int main() { return 0; }\n";
 
 /* Keep a sorted, dynamically-sized array of names of all headers we've
  * checked for so far.
@@ -60,7 +60,7 @@ static void
 S_maybe_add_to_cache(const char *header_name, chaz_bool_t exists);
 
 void
-HeadCheck_init() {
+HeadCheck_init(void) {
     Header *null_header = (Header*)malloc(sizeof(Header));
 
     /* Create terminating record for the dynamic array of Header objects. */
@@ -79,7 +79,7 @@ HeadCheck_check_header(const char *header_name) {
     Header **header_ptr;
 
     /* Fake up a key to feed to bsearch; see if the header's already there. */
-    key.name = (char*)header_name;
+    key.name = header_name;
     key.exists = false;
     header_ptr = (Header**)bsearch(&fake, header_cache, cache_size,
                                    sizeof(void*), S_compare_headers);
@@ -129,7 +129,7 @@ HeadCheck_check_many_headers(const char **header_names) {
     return success;
 }
 
-static char contains_code[] =
+static const char contains_code[] =
     QUOTE(  #include <stddef.h>                           )
     QUOTE(  %s                                            )
     QUOTE(  int main() { return offsetof(%s, %s); }       );
@@ -152,8 +152,8 @@ HeadCheck_contains_member(const char *struct_name, const char *member,
 
 static int
 S_compare_headers(const void *vptr_a, const void *vptr_b) {
-    Header **const a = (Header**)vptr_a;
-    Header **const b = (Header**)vptr_b;
+    Header *const *const a = (Header*const*)vptr_a;
+    Header *const *const b = (Header*const*)vptr_b;
 
     /* (NULL is "greater than" any string.) */
     if ((*a)->name == NULL)      { return 1; }
@@ -197,7 +197,7 @@ S_maybe_add_to_cache(const char *header_name, chaz_bool_t exists) {
     Header *fake = &key;
 
     /* Fake up a key and bsearch for it. */
-    key.name   = (char*)header_name;
+    key.name   = header_name;
     key.exists = exists;
     header = (Header*)bsearch(&fake, header_cache, cache_size,
                               sizeof(void*), S_compare_headers);

@@ -73,6 +73,18 @@ S_array_of_cfcbase_to_av(CFCBase **things) {
     return retval;
 }
 
+static SV*
+S_sv_eat_c_string(char *string) {
+    if (string) {
+        SV *sv = newSVpvn(string, strlen(string));
+        FREEMEM(string);
+        return sv;
+    }
+    else {
+        return newSV(0);
+    }
+}
+
 MODULE = Clownfish    PACKAGE = Clownfish::CBlock
 
 SV*
@@ -287,6 +299,7 @@ ALIAS:
     tree_to_ladder        = 42
     novel_methods         = 44
     novel_member_vars     = 46
+    privacy_symbol        = 48
 PPCODE:
 {
     START_SET_OR_GET_SWITCH
@@ -401,6 +414,11 @@ PPCODE:
                 FREEMEM(novel);
                 break;
             }
+        case 48: {
+                const char *value = CFCClass_privacy_symbol(self);
+                retval = value ? newSVpvn(value, strlen(value)) : newSV(0);
+            }
+            break;
     END_SET_OR_GET_SWITCH
 }
 
@@ -1556,11 +1574,11 @@ CODE:
 OUTPUT: RETVAL
 
 SV*
-slurp_file(path)
+slurp_text(path)
     const char *path;
 CODE:
     size_t len;
-    char *contents = CFCUtil_slurp_file(path, &len);
+    char *contents = CFCUtil_slurp_text(path, &len);
     RETVAL = newSVpvn(contents, len);
     FREEMEM(contents);
 OUTPUT: RETVAL
@@ -1582,6 +1600,26 @@ PPCODE:
     char *content = SvPV(content_sv, len);
     CFCUtil_write_if_changed(path, content, len);
 
+int
+is_dir(path)
+    const char *path;
+CODE:
+    RETVAL = CFCUtil_is_dir(path);
+OUTPUT: RETVAL
+
+int
+make_dir(dir)
+    const char *dir;
+CODE:
+    RETVAL = CFCUtil_make_dir(dir);
+OUTPUT: RETVAL
+
+int
+make_path(path)
+    const char *path;
+CODE:
+    RETVAL = CFCUtil_make_path(path);
+OUTPUT: RETVAL
 
 MODULE = Clownfish   PACKAGE = Clownfish::Variable
 
@@ -1665,4 +1703,148 @@ PPCODE:
             break;
     END_SET_OR_GET_SWITCH
 }
+
+MODULE = Clownfish   PACKAGE = Clownfish::Binding::Core
+
+SV*
+_new(hierarchy, dest, header, footer)
+    CFCHierarchy *hierarchy;
+    const char   *dest;
+    const char   *header;
+    const char   *footer;
+CODE:
+    CFCBindCore *self = CFCBindCore_new(hierarchy, dest, header, footer);
+    RETVAL = S_cfcbase_to_perlref(self);
+    CFCBase_decref((CFCBase*)self);
+OUTPUT: RETVAL
+
+void
+DESTROY(self);
+    CFCBindCore *self;
+PPCODE:
+    CFCBindCore_destroy(self);
+
+int
+write_all_modified(self, ...)
+    CFCBindCore *self;
+CODE:
+{
+    int modified = 0;
+    if (items > 1 && SvOK(ST(1))) {
+        modified = !!SvIV(ST(1));
+    }
+    RETVAL = CFCBindCore_write_all_modified(self, modified);
+}
+OUTPUT: RETVAL
+
+
+MODULE = Clownfish   PACKAGE = Clownfish::Binding::Core::Function
+
+SV*
+func_declaration(unused, func)
+    SV *unused;
+    CFCFunction *func;
+CODE:
+    RETVAL = S_sv_eat_c_string(CFCBindFunc_func_declaration(func));
+OUTPUT: RETVAL
+
+MODULE = Clownfish   PACKAGE = Clownfish::Binding::Core::Method
+
+SV*
+typedef_dec(unused, meth)
+    SV *unused;
+    CFCMethod *meth;
+CODE:
+    RETVAL = S_sv_eat_c_string(CFCBindMeth_typdef_dec(meth));
+OUTPUT: RETVAL
+
+SV*
+abstract_method_def(unused, meth)
+    SV *unused;
+    CFCMethod *meth;
+CODE:
+    RETVAL = S_sv_eat_c_string(CFCBindMeth_abstract_method_def(meth));
+OUTPUT: RETVAL
+
+SV*
+callback_dec(unused, meth)
+    SV *unused;
+    CFCMethod *meth;
+CODE:
+    RETVAL = S_sv_eat_c_string(CFCBindMeth_callback_dec(meth));
+OUTPUT: RETVAL
+
+SV*
+callback_def(unused, meth)
+    SV *unused;
+    CFCMethod *meth;
+CODE:
+    RETVAL = S_sv_eat_c_string(CFCBindMeth_callback_def(meth));
+OUTPUT: RETVAL
+
+SV*
+_method_def(meth, klass)
+    CFCMethod *meth;
+    CFCClass  *klass;
+CODE:
+    RETVAL = S_sv_eat_c_string(CFCBindMeth_method_def(meth, klass));
+OUTPUT: RETVAL
+
+SV*
+_callback_obj_def(meth, offset)
+    CFCMethod *meth;
+    const char *offset;
+CODE:
+    RETVAL = S_sv_eat_c_string(CFCBindMeth_callback_obj_def(meth, offset));
+OUTPUT: RETVAL
+
+MODULE = Clownfish   PACKAGE = Clownfish::Binding::Core::Aliases
+
+SV*
+c_aliases(...)
+CODE:
+    RETVAL = S_sv_eat_c_string(CFCBindAliases_c_aliases());
+OUTPUT: RETVAL
+
+MODULE = Clownfish   PACKAGE = Clownfish::Binding::Core::Class
+
+SV*
+_new(client)
+    CFCClass *client;
+CODE:
+    CFCBindClass *self = CFCBindClass_new(client);
+    RETVAL = S_cfcbase_to_perlref(self);
+    CFCBase_decref((CFCBase*)self);
+OUTPUT: RETVAL
+
+void
+DESTROY(self)
+    CFCBindClass *self;
+PPCODE:
+    CFCBindClass_destroy(self);
+
+SV*
+to_c(self)
+    CFCBindClass *self;
+CODE:
+    RETVAL = S_sv_eat_c_string(CFCBindClass_to_c(self));
+OUTPUT: RETVAL
+
+SV*
+to_c_header(self)
+    CFCBindClass *self;
+CODE:
+    RETVAL = S_sv_eat_c_string(CFCBindClass_to_c_header(self));
+OUTPUT: RETVAL
+
+MODULE = Clownfish   PACKAGE = Clownfish::Binding::Core::File
+
+void
+_write_h(file, dest, header, footer)
+    CFCFile *file;
+    const char *dest;
+    const char *header;
+    const char *footer;
+PPCODE:
+    CFCBindFile_write_h(file, dest, header, footer);
 

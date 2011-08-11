@@ -21,6 +21,8 @@
 extern "C" {
 #endif
 
+#include <stddef.h>
+
 /** Create an inner Perl object with a refcount of 1.  For use in actual
  * Perl-space, it is necessary to wrap this inner object in an RV.
  */
@@ -43,6 +45,12 @@ CFCUtil_strdup(const char *string);
  */
 char*
 CFCUtil_strndup(const char *string, size_t len);
+
+/** Concatenate a NULL-terminated list of strings onto the first, reallocating
+ * with each argument.
+ */
+char*
+CFCUtil_cat(char *string, ...);
 
 /** Trim whitespace from the beginning and the end of a string.
  */
@@ -95,15 +103,57 @@ CFCUtil_write_file(const char *filename, const char *content, size_t len);
 void
 CFCUtil_write_if_changed(const char *path, const char *content, size_t len);
 
-/* Read an entire file into memory.
+/* Read an entire file (as text) into memory.
  */
 char*
-CFCUtil_slurp_file(const char *file_path, size_t *len_ptr);
+CFCUtil_slurp_text(const char *file_path, size_t *len_ptr);
 
 /* Get the length of a file (may overshoot on text files under DOS).
  */
 long
 CFCUtil_flength(void *file);
+
+/* A string and a char representing the path separator for this OS.
+ */
+#ifdef _WIN32
+  #define CFCUTIL_PATH_SEP "\\"
+  #define CFCUTIL_PATH_SEP_CHAR '\\'
+#else
+  #define CFCUTIL_PATH_SEP "/"
+  #define CFCUTIL_PATH_SEP_CHAR '/'
+#endif
+
+/* Platform-agnostic opendir wrapper.
+ */
+void*
+CFCUtil_opendir(const char *dir);
+
+/* Platform-agnostic readdir wrapper.
+ */
+const char*
+CFCUtil_dirnext(void *dirhandle);
+
+/* Platform-agnostic closedir wrapper.
+ */
+void
+CFCUtil_closedir(void *dirhandle, const char *dir);
+
+/* Returns true if the supplied path is a directory, false otherwise.
+ */
+int
+CFCUtil_is_dir(const char *path);
+
+/* Create the specified directory.  Returns true on success, false on failure.
+ */
+int
+CFCUtil_make_dir(const char *dir);
+
+/* Create the specified path including all subdirectories.  Returns true on
+ * success, false on failure.  Intermediate directories may be left behind on
+ * failure.
+ */
+int
+CFCUtil_make_path(const char *path);
 
 /* Print an error message to stderr and exit.
  */

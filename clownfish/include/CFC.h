@@ -30,3 +30,10 @@
 #include "CFCUtil.h"
 #include "CFCVariable.h"
 
+#include "CFCBindCore.h"
+#include "CFCBindAliases.h"
+#include "CFCBindClass.h"
+#include "CFCBindFile.h"
+#include "CFCBindFunction.h"
+#include "CFCBindMethod.h"
+

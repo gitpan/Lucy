@@ -86,8 +86,7 @@ CFCDumpable_add_dumpables(CFCDumpable *self, CFCClass *klass) {
     (void)self;
 
     if (!CFCClass_has_attribute(klass, "dumpable")) {
-        croak("Class %s isn't dumpable",
-              CFCSymbol_get_class_name((CFCSymbol*)klass));
+        croak("Class %s isn't dumpable", CFCClass_get_class_name(klass));
     }
 
     // Inherit Dump/Load from parent if no novel member vars.
@@ -110,9 +109,9 @@ CFCDumpable_add_dumpables(CFCDumpable *self, CFCClass *klass) {
 static CFCMethod*
 S_make_method_obj(CFCClass *klass, const char *method_name) {
     const char *klass_struct_sym = CFCClass_get_struct_sym(klass);
-    const char *klass_name   = CFCSymbol_get_class_name((CFCSymbol*)klass);
-    const char *klass_cnick  = CFCSymbol_get_class_cnick((CFCSymbol*)klass);
-    CFCParcel  *klass_parcel = CFCSymbol_get_parcel((CFCSymbol*)klass);
+    const char *klass_name   = CFCClass_get_class_name(klass);
+    const char *klass_cnick  = CFCClass_get_cnick(klass);
+    CFCParcel  *klass_parcel = CFCClass_get_parcel(klass);
     CFCParcel  *cf_parcel    = CFCParcel_clownfish_parcel();
 
     CFCType *return_type
@@ -157,7 +156,7 @@ S_add_dump_method(CFCClass *klass) {
     CFCMethod *method = S_make_method_obj(klass, "Dump");
     CFCClass_add_method(klass, method);
     CFCBase_decref((CFCBase*)method);
-    const char *full_func_sym = CFCFunction_full_func_sym((CFCFunction*)method);
+    const char *full_func_sym = CFCMethod_implementing_func_sym(method);
     const char *full_typedef  = CFCMethod_full_typedef(method);
     const char *full_struct   = CFCClass_full_struct_sym(klass);
     const char *vtable_var    = CFCClass_full_vtable_var(klass);
@@ -181,9 +180,8 @@ S_add_dump_method(CFCClass *klass) {
                         + strlen(cnick)
                         + 50;
         char *autocode = (char*)MALLOCATE(amount);
-        int check = sprintf(autocode, pattern, full_func_sym, full_struct,
-                            full_typedef, full_typedef, vtable_var, cnick);
-        if (check < 0) { CFCUtil_die("sprintf failed"); }
+        sprintf(autocode, pattern, full_func_sym, full_struct, full_typedef,
+                full_typedef, vtable_var, cnick);
         CFCClass_append_autocode(klass, autocode);
         FREEMEM(autocode);
         CFCVariable **novel = CFCClass_novel_member_vars(klass);
@@ -206,8 +204,7 @@ S_add_dump_method(CFCClass *klass) {
                         + strlen(full_struct)
                         + 50;
         char *autocode = (char*)MALLOCATE(amount);
-        int check = sprintf(autocode, pattern, full_func_sym, full_struct);
-        if (check < 0) { croak("sprintf failed"); }
+        sprintf(autocode, pattern, full_func_sym, full_struct);
         CFCClass_append_autocode(klass, autocode);
         FREEMEM(autocode);
         CFCVariable **members = CFCClass_member_vars(klass);
@@ -225,7 +222,7 @@ S_add_load_method(CFCClass *klass) {
     CFCMethod *method = S_make_method_obj(klass, "Load");
     CFCClass_add_method(klass, method);
     CFCBase_decref((CFCBase*)method);
-    const char *full_func_sym = CFCFunction_full_func_sym((CFCFunction*)method);
+    const char *full_func_sym = CFCMethod_implementing_func_sym(method);
     const char *full_typedef  = CFCMethod_full_typedef(method);
     const char *full_struct   = CFCClass_full_struct_sym(klass);
     const char *vtable_var    = CFCClass_full_vtable_var(klass);
@@ -250,10 +247,8 @@ S_add_load_method(CFCClass *klass) {
                         + strlen(cnick)
                         + 50;
         char *autocode = (char*)MALLOCATE(amount);
-        int check = sprintf(autocode, pattern, full_func_sym, full_struct,
-                            full_typedef, full_typedef, vtable_var, cnick,
-                            full_struct, full_struct);
-        if (check < 0) { croak("sprintf failed"); }
+        sprintf(autocode, pattern, full_func_sym, full_struct, full_typedef,
+                full_typedef, vtable_var, cnick, full_struct, full_struct);
         CFCClass_append_autocode(klass, autocode);
         FREEMEM(autocode);
         CFCVariable **novel = CFCClass_novel_member_vars(klass);
@@ -279,9 +274,8 @@ S_add_load_method(CFCClass *klass) {
                         + strlen(full_struct) * 3
                         + 50;
         char *autocode = (char*)MALLOCATE(amount);
-        int check = sprintf(autocode, pattern, full_func_sym, full_struct,
-                            full_struct, full_struct);
-        if (check < 0) { croak("sprintf failed"); }
+        sprintf(autocode, pattern, full_func_sym, full_struct, full_struct,
+                full_struct);
         CFCClass_append_autocode(klass, autocode);
         FREEMEM(autocode);
         CFCVariable **members = CFCClass_member_vars(klass);
@@ -299,7 +293,7 @@ S_process_dump_member(CFCClass *klass, CFCVariable *member, char *buf,
                       size_t buf_size) {
     CFCUTIL_NULL_CHECK(member);
     CFCType *type = CFCVariable_get_type(member);
-    const char *name = CFCSymbol_micro_sym((CFCSymbol*)member);
+    const char *name = CFCVariable_micro_sym(member);
     unsigned name_len = (unsigned)strlen(name);
     const char *specifier = CFCType_get_specifier(type);
 
@@ -322,8 +316,7 @@ S_process_dump_member(CFCClass *klass, CFCVariable *member, char *buf,
             croak("Buffer not big enough (%lu < %lu)",
                   (unsigned long)buf_size, (unsigned long)needed);
         }
-        int check = sprintf(buf, pattern, name, name_len, name);
-        if (check < 0) { croak("sprintf failed"); }
+        sprintf(buf, pattern, name, name_len, name);
     }
     else if (CFCType_is_object(type)) {
         char pattern[] =
@@ -336,8 +329,7 @@ S_process_dump_member(CFCClass *klass, CFCVariable *member, char *buf,
             croak("Buffer not big enough (%lu < %lu)",
                   (unsigned long)buf_size, (unsigned long)needed);
         }
-        int check = sprintf(buf, pattern, name, name, name_len, name);
-        if (check < 0) { croak("sprintf failed"); }
+        sprintf(buf, pattern, name, name, name_len, name);
     }
     else {
         croak("Don't know how to dump a %s", CFCType_get_specifier(type));
@@ -352,11 +344,10 @@ S_process_load_member(CFCClass *klass, CFCVariable *member, char *buf,
     CFCUTIL_NULL_CHECK(member);
     CFCType *type = CFCVariable_get_type(member);
     const char *type_str = CFCType_to_c(type);
-    const char *name = CFCSymbol_micro_sym((CFCSymbol*)member);
+    const char *name = CFCVariable_micro_sym(member);
     unsigned name_len = (unsigned)strlen(name);
     char extraction[200];
     const char *specifier = CFCType_get_specifier(type);
-    size_t specifier_len = strlen(specifier);
 
     // Skip the VTable and the refcount/host-object.
     if (strcmp(specifier, "lucy_VTable") == 0
@@ -365,30 +356,20 @@ S_process_load_member(CFCClass *klass, CFCVariable *member, char *buf,
         return;
     }
 
-    if (strlen(type_str) + 100 > sizeof(extraction)) { // play it safe
+    if (2 * strlen(type_str) + 100 > sizeof(extraction)) { // play it safe
         croak("type_str too long: '%s'", type_str);
     }
     if (CFCType_is_integer(type)) {
-        int check = sprintf(extraction, "(%s)Cfish_Obj_To_I64(var)", type_str);
-        if (check < 0) { croak("sprintf failed"); }
+        sprintf(extraction, "(%s)Cfish_Obj_To_I64(var)", type_str);
     }
     else if (CFCType_is_floating(type)) {
-        int check = sprintf(extraction, "(%s)Cfish_Obj_To_F64(var)", type_str);
-        if (check < 0) { croak("sprintf failed"); }
+        sprintf(extraction, "(%s)Cfish_Obj_To_F64(var)", type_str);
     }
     else if (CFCType_is_object(type)) {
-        char vtable_var[50];
-        if (specifier_len > sizeof(vtable_var) - 2) {
-            croak("specifier too long: '%s'", specifier);
-        }
-        size_t i;
-        for (i = 0; i <= specifier_len; i++) {
-            vtable_var[i] = toupper(specifier[i]);
-        }
-        int check = sprintf(extraction,
-                            "(%s*)CFISH_CERTIFY(Cfish_Obj_Load(var, var), %s)",
-                            specifier, vtable_var);
-        if (check < 0) { croak("sprintf failed"); }
+        const char *vtable_var = CFCType_get_vtable_var(type);
+        sprintf(extraction,
+                "(%s*)CFISH_CERTIFY(Cfish_Obj_Load(var, var), %s)",
+                specifier, vtable_var);
     }
     else {
         croak("Don't know how to load %s", specifier);
@@ -407,8 +388,7 @@ S_process_load_member(CFCClass *klass, CFCVariable *member, char *buf,
         croak("Buffer not big enough (%lu < %lu)", (unsigned long)buf_size,
               (unsigned long)needed);
     }
-    int check = sprintf(buf, pattern, name, name_len, name, extraction);
-    if (check < 0) { croak("sprintf failed"); }
+    sprintf(buf, pattern, name, name_len, name, extraction);
 
     CFCClass_append_autocode(klass, buf);
 }

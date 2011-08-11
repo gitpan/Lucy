@@ -25,41 +25,39 @@
 
 /* Temporary files. */
 #define TRY_SOURCE_PATH  "_charmonizer_try.c"
-#define TRY_APP_BASENAME "_charmonizer_try"
+#define TRY_BASENAME     "_charmonizer_try"
 #define TARGET_PATH      "_charmonizer_target"
 
 /* Static vars. */
 static char     *cc_command   = NULL;
 static char     *cc_flags     = NULL;
 static char    **inc_dirs     = NULL;
-static char     *try_app_name = NULL;
+static char     *try_exe_name = NULL;
+static char     *try_obj_name = NULL;
 
 /* Detect a supported compiler, or assume a generic GCC-compatible compiler
  * and hope for the best.  */
 #ifdef __GNUC__
-static char *include_flag      = "-I ";
-static char *object_flag       = "-o ";
-static char *exe_flag          = "-o ";
+static const char *include_flag      = "-I ";
+static const char *object_flag       = "-o ";
+static const char *exe_flag          = "-o ";
 #elif defined(_MSC_VER)
-static char *include_flag      = "/I";
-static char *object_flag       = "/Fo";
-static char *exe_flag          = "/Fe";
+static const char *include_flag      = "/I";
+static const char *object_flag       = "/Fo";
+static const char *exe_flag          = "/Fe";
 #else
-static char *include_flag      = "-I ";
-static char *object_flag       = "-o ";
-static char *exe_flag          = "-o ";
+static const char *include_flag      = "-I ";
+static const char *object_flag       = "-o ";
+static const char *exe_flag          = "-o ";
 #endif
 
-/* Clean up the files associated with CC_capture_output().
- */
 static void
-S_clean_up_try();
-
-static void
-S_do_test_compile();
+S_do_test_compile(void);
 
 void
 CC_init(const char *compiler_command, const char *compiler_flags) {
+    const char *code = "int main() { return 0; }\n";
+
     if (Util_verbosity) { printf("Creating compiler object...\n"); }
 
     /* Assign. */
@@ -72,20 +70,29 @@ CC_init(const char *compiler_command, const char *compiler_flags) {
     /* Add the current directory as an include dir. */
     CC_add_inc_dir(".");
 
-    /* Set the name of the application which we "try" to execute. */
+    /* Set names for the targets which we "try" to compile. */
     {
         const char *exe_ext = OS_exe_ext();
-        size_t len = strlen(TRY_APP_BASENAME) + strlen(exe_ext) + 1;
-        try_app_name = (char*)malloc(len);
-        sprintf(try_app_name, "%s%s", TRY_APP_BASENAME, exe_ext);
+        const char *obj_ext = OS_obj_ext();
+        size_t exe_len = strlen(TRY_BASENAME) + strlen(exe_ext) + 1;
+        size_t obj_len = strlen(TRY_BASENAME) + strlen(obj_ext) + 1;
+        try_exe_name = (char*)malloc(exe_len);
+        try_obj_name = (char*)malloc(obj_len);
+        sprintf(try_exe_name, "%s%s", TRY_BASENAME, exe_ext);
+        sprintf(try_obj_name, "%s%s", TRY_BASENAME, obj_ext);
     }
 
     /* If we can't compile anything, game over. */
-    S_do_test_compile();
+    if (Util_verbosity) {
+        printf("Trying to compile a small test file...\n");
+    }
+    if (!CC_test_compile(code, strlen(code))) {
+        Util_die("Failed to compile a small test file");
+    }
 }
 
 void
-CC_clean_up() {
+CC_clean_up(void) {
     char **dirs;
 
     for (dirs = inc_dirs; *dirs != NULL; dirs++) {
@@ -95,10 +102,13 @@ CC_clean_up() {
 
     free(cc_command);
     free(cc_flags);
+
+    free(try_obj_name);
+    free(try_exe_name);
 }
 
 static char*
-S_inc_dir_string() {
+S_inc_dir_string(void) {
     size_t needed = 0;
     char  *inc_dir_string;
     char **dirs;
@@ -122,6 +132,8 @@ CC_compile_exe(const char *source_path, const char *exe_name,
     const char *exe_ext        = OS_exe_ext();
     size_t   exe_file_buf_size = strlen(exe_name) + strlen(exe_ext) + 1;
     char    *exe_file          = (char*)malloc(exe_file_buf_size);
+    size_t   junk_buf_size     = exe_file_buf_size + 3;
+    char    *junk              = (char*)malloc(junk_buf_size);
     size_t   exe_file_buf_len  = sprintf(exe_file, "%s%s", exe_name, exe_ext);
     char    *inc_dir_string    = S_inc_dir_string();
     size_t   command_max_size  = strlen(cc_command)
@@ -150,6 +162,18 @@ CC_compile_exe(const char *source_path, const char *exe_name,
         system(command);
     }
 
+#ifdef _MSC_VER
+    /* Zap MSVC junk. */
+    /* TODO: Key this off the compiler supplied as argument, not the compiler
+     * used to compile Charmonizer. */
+    sprintf(junk, "%s.obj", exe_name);
+    remove(junk);
+    sprintf(junk, "%s.ilk", exe_name);
+    remove(junk);
+    sprintf(junk, "%s.pdb", exe_name);
+    remove(junk);
+#endif
+
     /* See if compilation was successful.  Remove the source file. */
     result = Util_can_open_file(exe_file);
     if (!Util_remove_and_verify(source_path)) {
@@ -158,6 +182,7 @@ CC_compile_exe(const char *source_path, const char *exe_name,
 
     free(command);
     free(inc_dir_string);
+    free(junk);
     free(exe_file);
     return result;
 }
@@ -210,39 +235,35 @@ CC_compile_obj(const char *source_path, const char *obj_name,
 }
 
 chaz_bool_t
-CC_test_compile(char *source, size_t source_len) {
+CC_test_compile(const char *source, size_t source_len) {
     chaz_bool_t compile_succeeded;
-
-    if (!Util_remove_and_verify(try_app_name)) {
-        Util_die("Failed to delete file '%s'", try_app_name);
+    if (!Util_remove_and_verify(try_obj_name)) {
+        Util_die("Failed to delete file '%s'", try_obj_name);
     }
-
-    compile_succeeded = CC_compile_exe(TRY_SOURCE_PATH, TRY_APP_BASENAME,
+    compile_succeeded = CC_compile_obj(TRY_SOURCE_PATH, TRY_BASENAME,
                                        source, source_len);
-
-    S_clean_up_try();
-
+    remove(try_obj_name);
     return compile_succeeded;
 }
 
 char*
-CC_capture_output(char *source, size_t source_len, size_t *output_len) {
+CC_capture_output(const char *source, size_t source_len, size_t *output_len) {
     char *captured_output = NULL;
     chaz_bool_t compile_succeeded;
 
     /* Clear out previous versions and test to make sure removal worked. */
-    if (!Util_remove_and_verify(try_app_name)) {
-        Util_die("Failed to delete file '%s'", try_app_name);
+    if (!Util_remove_and_verify(try_exe_name)) {
+        Util_die("Failed to delete file '%s'", try_exe_name);
     }
     if (!Util_remove_and_verify(TARGET_PATH)) {
         Util_die("Failed to delete file '%s'", TARGET_PATH);
     }
 
     /* Attempt compilation; if successful, run app and slurp output. */
-    compile_succeeded = CC_compile_exe(TRY_SOURCE_PATH, TRY_APP_BASENAME,
+    compile_succeeded = CC_compile_exe(TRY_SOURCE_PATH, TRY_BASENAME,
                                        source, source_len);
     if (compile_succeeded) {
-        OS_run_local(try_app_name, NULL);
+        OS_run_local(try_exe_name, NULL);
         captured_output = Util_slurp_file(TARGET_PATH, output_len);
     }
     else {
@@ -250,35 +271,11 @@ CC_capture_output(char *source, size_t source_len, size_t *output_len) {
     }
 
     /* Remove all the files we just created. */
-    S_clean_up_try();
+    remove(TRY_SOURCE_PATH);
+    OS_remove_exe(TRY_BASENAME);
+    remove(TARGET_PATH);
 
     return captured_output;
-}
-
-static void
-S_clean_up_try() {
-    remove(TRY_SOURCE_PATH);
-    OS_remove_exe(TRY_APP_BASENAME);
-    remove(TARGET_PATH);
-}
-
-static void
-S_do_test_compile() {
-    char *code = "int main() { return 0; }\n";
-    chaz_bool_t success;
-
-    if (Util_verbosity) {
-        printf("Trying to compile a small test file...\n");
-    }
-
-    /* Attempt compilation. */
-    success = CC_compile_exe("_charm_try.c", "_charm_try",
-                             code, strlen(code));
-    if (!success) { Util_die("Failed to compile a small test file"); }
-
-    /* Clean up. */
-    remove("_charm_try.c");
-    OS_remove_exe("_charm_try");
 }
 
 void

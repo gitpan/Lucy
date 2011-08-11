@@ -161,7 +161,7 @@ FSFH_do_open(FSFileHandle *self, const CharBuf *path, uint32_t flags) {
 bool_t
 FSFH_close(FSFileHandle *self) {
     // On 64-bit systems, cancel the whole-file mapping.
-    if (IS_64_BIT && (self->flags & FH_READ_ONLY)) {
+    if (IS_64_BIT && (self->flags & FH_READ_ONLY) && self->buf != NULL) {
         if (!SI_unmap(self, self->buf, self->len)) { return false; }
         self->buf = NULL;
     }
@@ -175,7 +175,7 @@ FSFH_close(FSFileHandle *self) {
         }
         self->fd  = 0;
     }
-    #ifdef CHY_HAS_WINDOWS_H
+    #if (defined(CHY_HAS_WINDOWS_H) && !defined(CHY_HAS_SYS_MMAN_H))
     if (self->win_fhandle) {
         if (!SI_close_win_handles(self)) { return false; }
     }

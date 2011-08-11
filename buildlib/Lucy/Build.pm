@@ -65,7 +65,7 @@ package Lucy::Build;
 use base qw( Module::Build );
 
 use File::Spec::Functions
-    qw( catdir catfile curdir splitpath updir no_upwards );
+    qw( catdir catfile splitpath updir no_upwards rel2abs );
 use File::Path qw( mkpath rmtree );
 use File::Copy qw( copy move );
 use File::Find qw( find );
@@ -76,52 +76,25 @@ use Fcntl;
 use Carp;
 use Cwd qw( getcwd );
 
-BEGIN { unshift @PATH, curdir() }
+BEGIN { unshift @PATH, rel2abs( getcwd() ) }
 
 sub extra_ccflags {
-    my $self = shift;
-    my $extra_ccflags = defined $ENV{CFLAGS} ? "$ENV{CFLAGS} " : "";
-    my $gcc_version 
-        = $ENV{REAL_GCC_VERSION}
-        || $self->config('gccversion')
-        || undef;
-    if ( defined $gcc_version ) {
-        $gcc_version =~ /^(\d+(\.\d+))/
-            or die "Invalid GCC version: $gcc_version";
-        $gcc_version = $1;
+    my $self      = shift;
+    my $gcc_flags = '-std=gnu99 -D_GNU_SOURCE ';
+    if ( defined $ENV{LUCY_VALGRIND} ) {
+        return "$gcc_flags -fno-inline-functions ";
     }
-
-    if ( defined $ENV{LUCY_DEBUG} ) {
-        if ( defined $gcc_version ) {
-            $extra_ccflags .= "-DLUCY_DEBUG ";
-            $extra_ccflags
-                .= "-DPERL_GCC_PEDANTIC -std=gnu99 -pedantic -Wall ";
-            $extra_ccflags .= "-Wextra " if $gcc_version >= 3.4;    # correct
-            $extra_ccflags .= "-Wno-variadic-macros "
-                if $gcc_version > 3.4;    # at least not on gcc 3.4
-        }
+    elsif ( defined $ENV{LUCY_DEBUG} ) {
+        return "$gcc_flags -DLUCY_DEBUG -pedantic -Wall -Wextra "
+            . "-Wno-variadic-macros ";
     }
-
-    if ( $ENV{LUCY_VALGRIND} and defined $gcc_version ) {
-        $extra_ccflags .= "-fno-inline-functions ";
+    elsif ( $self->config('gccversion') ) {
+        return $gcc_flags;
     }
-
-    # Compile as C++ under MSVC.
-    if ( $self->config('cc') eq 'cl' ) {
-        $extra_ccflags .= '/TP ';
+    elsif ( $self->config('cc') =~ /^cl\b/ ) {
+        # Compile as C++ under MSVC.
+        return '/TP ';
     }
-
-    if ( defined $gcc_version ) {
-        # Tell GCC explicitly to run with maximum options.
-        if ( $extra_ccflags !~ m/-std=/ ) {
-            $extra_ccflags .= "-std=gnu99 ";
-        }
-        if ( $extra_ccflags !~ m/-D_GNU_SOURCE/ ) {
-            $extra_ccflags .= "-D_GNU_SOURCE ";
-        }
-    }
-
-    return $extra_ccflags;
 }
 
 =for Rationale
@@ -136,11 +109,12 @@ locations.
 =cut
 
 my $is_distro_not_devel = -e 'core';
-my $base_dir = $is_distro_not_devel ? curdir() : updir();
+my $base_dir = rel2abs( $is_distro_not_devel ? getcwd() : updir() );
 
-my $CHARMONIZE_EXE_PATH  = 'charmonize' . $Config{_exe};
 my $CHARMONIZER_ORIG_DIR = catdir( $base_dir, 'charmonizer' );
-my $CHARMONIZER_SRC_DIR  = catdir( $CHARMONIZER_ORIG_DIR, 'src' );
+my $CHARMONIZE_EXE_PATH
+    = catfile( $CHARMONIZER_ORIG_DIR, "charmonize$Config{_exe}" );
+my $CHARMONY_PATH = 'charmony.h';
 my $SNOWSTEM_SRC_DIR
     = catdir( $base_dir, qw( modules analysis snowstem source ) );
 my $SNOWSTEM_INC_DIR = catdir( $SNOWSTEM_SRC_DIR, 'include' );
@@ -157,78 +131,69 @@ my $AUTOBIND_PM_PATH = catfile( $LIB_DIR, 'Lucy', 'Autobinding.pm' );
 
 sub new { shift->SUPER::new( recursive_test_files => 1, @_ ) }
 
-# Build the charmonize executable.
-sub ACTION_charmonizer {
-    my $self = shift;
-
-    # Gather .c and .h Charmonizer files.
-    my $charm_source_files
-        = $self->rscan_dir( $CHARMONIZER_SRC_DIR, qr/Charmonizer.+\.[ch]$/ );
-    my $charmonize_c = catfile( $CHARMONIZER_ORIG_DIR, 'charmonize.c' );
-    my @all_source = ( $charmonize_c, @$charm_source_files );
-
-    # Don't compile if we're up to date.
-    return if $self->up_to_date( \@all_source, $CHARMONIZE_EXE_PATH );
-
-    print "Building $CHARMONIZE_EXE_PATH...\n\n";
-
-    my $cbuilder
-        = Lucy::Build::CBuilder->new( config => { cc => $self->config('cc') },
-        );
-
-    my @o_files;
-    for (@all_source) {
-        next unless /\.c$/;
-        next if m#Charmonizer/Test#;
-        my $o_file = $cbuilder->object_file($_);
-        $self->add_to_cleanup($o_file);
-        push @o_files, $o_file;
-
-        next if $self->up_to_date( $_, $o_file );
-
-        $cbuilder->compile(
-            source               => $_,
-            include_dirs         => [$CHARMONIZER_SRC_DIR],
-            extra_compiler_flags => $self->extra_ccflags,
-        );
+sub _run_make {
+    my ( $self, %params ) = @_;
+    my @command           = @{ $params{args} };
+    my $dir               = $params{dir};
+    my $current_directory = getcwd();
+    chdir $dir if $dir;
+    unshift @command, 'CC=' . $self->config('cc');
+    if ( $self->config('cc') =~ /^cl\b/ ) {
+        unshift @command, "-f", "Makefile.MSVC";
     }
+    elsif ( $^O =~ /mswin/i ) {
+        unshift @command, "-f", "Makefile.MinGW";
+    }
+    unshift @command, "$Config{make}";
+    system(@command) and confess("$Config{make} failed");
+    chdir $current_directory if $dir;
+}
 
-    $self->add_to_cleanup($CHARMONIZE_EXE_PATH);
-    my $exe_path = $cbuilder->link_executable(
-        objects  => \@o_files,
-        exe_file => $CHARMONIZE_EXE_PATH,
+# Build the charmonize executable.
+sub ACTION_charmonize {
+    my $self = shift;
+    print "Building $CHARMONIZE_EXE_PATH...\n\n";
+    $self->_run_make(
+        dir  => $CHARMONIZER_ORIG_DIR,
+        args => [],
     );
 }
 
-# Run the charmonizer executable, creating the charmony.h file.
+# Run the charmonize executable, creating the charmony.h file.
 sub ACTION_charmony {
-    my $self          = shift;
-    my $charmony_path = 'charmony.h';
+    my $self = shift;
+    $self->dispatch('charmonize');
+    return if $self->up_to_date( $CHARMONIZE_EXE_PATH, $CHARMONY_PATH );
+    print "\nWriting $CHARMONY_PATH...\n\n";
 
-    $self->dispatch('charmonizer');
-
-    return if $self->up_to_date( $CHARMONIZE_EXE_PATH, $charmony_path );
-    print "\nWriting $charmony_path...\n\n";
-
-    # Clean up after Charmonizer if it doesn't succeed on its own.
+    # Clean up after charmonize if it doesn't succeed on its own.
     $self->add_to_cleanup("_charm*");
-    $self->add_to_cleanup($charmony_path);
+    $self->add_to_cleanup($CHARMONY_PATH);
 
     # Prepare arguments to charmonize.
-    my $cc        = $self->config('cc');
-    my $flags     = $self->config('ccflags') . ' ' . $self->extra_ccflags;
-    my $verbosity = $ENV{DEBUG_CHARM} ? 2 : 1;
+    my $flags = $self->config('ccflags') . ' ' . $self->extra_ccflags;
     $flags =~ s/"/\\"/g;
-
+    my @command = ( $CHARMONIZE_EXE_PATH, $self->config('cc'), $flags );
     if ( $ENV{CHARM_VALGRIND} ) {
-        system(   "valgrind --leak-check=yes ./$CHARMONIZE_EXE_PATH $cc "
-                . "\"$flags\" $verbosity" )
-            and die "Failed to write charmony.h";
+        unshift @command, "valgrind", "--leak-check=yes";
     }
-    else {
-        system("./$CHARMONIZE_EXE_PATH \"$cc\" \"$flags\" $verbosity")
-            and die "Failed to write charmony.h: $!";
-    }
+
+    system(@command) and die "Failed to write $CHARMONY_PATH: $!";
+}
+
+# Build the charmonizer tests.
+sub ACTION_charmonizer_tests {
+    my $self = shift;
+    $self->dispatch('charmony');
+    print "Building Charmonizer Tests...\n\n";
+    my $flags = join( " ",
+        $self->config('ccflags'),
+        $self->extra_ccflags, '-I' . rel2abs( getcwd() ) );
+    $flags =~ s/"/\\"/g;
+    $self->_run_make(
+        dir  => $CHARMONIZER_ORIG_DIR,
+        args => [ "DEFS=$flags", "tests" ],
+    );
 }
 
 sub _compile_clownfish {
@@ -275,7 +240,7 @@ sub _compile_clownfish {
 
 sub ACTION_pod {
     my $self = shift;
-    $self->dispatch("build_clownfish");
+    $self->dispatch("cfc");
     $self->_write_pod(@_);
 }
 
@@ -295,7 +260,7 @@ sub _write_pod {
     }
 }
 
-sub ACTION_build_clownfish {
+sub ACTION_cfc {
     my $self    = shift;
     my $old_dir = getcwd();
     chdir($CLOWNFISH_DIR);
@@ -311,8 +276,8 @@ sub ACTION_build_clownfish {
 sub ACTION_clownfish {
     my $self = shift;
 
-    $self->dispatch('charmony');
-    $self->dispatch('build_clownfish');
+    $self->dispatch('charmonizer_tests');
+    $self->dispatch('cfc');
 
     # Create destination dir, copy xs helper files.
     if ( !-d $AUTOGEN_DIR ) {
@@ -323,6 +288,7 @@ sub ACTION_clownfish {
     my $pm_filepaths  = $self->rscan_dir( $LIB_DIR,         qr/\.pm$/ );
     my $cfh_filepaths = $self->rscan_dir( $CORE_SOURCE_DIR, qr/\.cfh$/ );
 
+    # XXX joes thinks this is dubious
     # Don't bother parsing Clownfish files if everything's up to date.
     return
         if $self->up_to_date(
@@ -511,25 +477,27 @@ sub ACTION_compile_custom_xs {
     my $archdir = catdir( $self->blib, 'arch', 'auto', 'Lucy', );
     mkpath( $archdir, 0, 0777 ) unless -d $archdir;
     my @include_dirs = (
-        curdir(), $CORE_SOURCE_DIR, $AUTOGEN_DIR, $XS_SOURCE_DIR,
-        $CHARMONIZER_SRC_DIR, $SNOWSTEM_INC_DIR
+        getcwd(), $CORE_SOURCE_DIR, $AUTOGEN_DIR, $XS_SOURCE_DIR,
+        $SNOWSTEM_INC_DIR
     );
     my @objects;
 
     # Compile C source files.
     my $c_files = [];
-    push @$c_files, @{ $self->rscan_dir( $CORE_SOURCE_DIR,     qr/\.c$/ ) };
-    push @$c_files, @{ $self->rscan_dir( $XS_SOURCE_DIR,       qr/\.c$/ ) };
-    push @$c_files, @{ $self->rscan_dir( $CHARMONIZER_SRC_DIR, qr/\.c$/ ) };
-    push @$c_files, @{ $self->rscan_dir( $AUTOGEN_DIR,         qr/\.c$/ ) };
-    push @$c_files, @{ $self->rscan_dir( $SNOWSTEM_SRC_DIR,    qr/\.c$/ ) };
-    push @$c_files, @{ $self->rscan_dir( $SNOWSTOP_SRC_DIR,    qr/\.c$/ ) };
+    push @$c_files, @{ $self->rscan_dir( $CORE_SOURCE_DIR,  qr/\.c$/ ) };
+    push @$c_files, @{ $self->rscan_dir( $XS_SOURCE_DIR,    qr/\.c$/ ) };
+    push @$c_files, @{ $self->rscan_dir( $AUTOGEN_DIR,      qr/\.c$/ ) };
+    push @$c_files, @{ $self->rscan_dir( $SNOWSTEM_SRC_DIR, qr/\.c$/ ) };
+    push @$c_files, @{ $self->rscan_dir( $SNOWSTOP_SRC_DIR, qr/\.c$/ ) };
     for my $c_file (@$c_files) {
-        my $o_file = $c_file;
-        $o_file =~ s/\.c/$Config{_o}/;
+        my $o_file   = $c_file;
+        my $ccs_file = $c_file;
+        $o_file   =~ s/\.c/$Config{_o}/;
+        $ccs_file =~ s/\.c/.ccs/;
         push @objects, $o_file;
         next if $self->up_to_date( $c_file, $o_file );
         $self->add_to_cleanup($o_file);
+        $self->add_to_cleanup($ccs_file);
         $cbuilder->compile(
             source               => $c_file,
             extra_compiler_flags => $self->extra_ccflags,
@@ -588,13 +556,27 @@ sub ACTION_compile_custom_xs {
         utime( (time) x 2, $bs_file );    # touch
     }
 
+    # Clean up after CBuilder under MSVC.
+    $self->add_to_cleanup('compilet*');
+    $self->add_to_cleanup('*.ccs');
+    $self->add_to_cleanup( catfile( 'lib', 'Lucy.ccs' ) );
+    $self->add_to_cleanup( catfile( 'lib', 'Lucy.def' ) );
+    $self->add_to_cleanup( catfile( 'lib', 'Lucy_def.old' ) );
+    $self->add_to_cleanup( catfile( 'lib', 'Lucy.exp' ) );
+    $self->add_to_cleanup( catfile( 'lib', 'Lucy.lib' ) );
+    $self->add_to_cleanup( catfile( 'lib', 'Lucy.lds' ) );
+    $self->add_to_cleanup( catfile( 'lib', 'Lucy.base' ) );
+
     # .o => .(a|bundle)
     my $lib_file = catfile( $archdir, "Lucy.$Config{dlext}" );
     if ( !$self->up_to_date( [ @objects, $AUTOGEN_DIR ], $lib_file ) ) {
+        # TODO: use Charmonizer to determine whether pthreads are userland.
+        my $link_flags = $Config{osname} =~ /openbsd/i ? '-pthread ' : '';
         $cbuilder->link(
-            module_name => 'Lucy',
-            objects     => \@objects,
-            lib_file    => $lib_file,
+            module_name        => 'Lucy',
+            objects            => \@objects,
+            lib_file           => $lib_file,
+            extra_linker_flags => $link_flags,
         );
     }
 }
@@ -661,6 +643,7 @@ sub ACTION_dist {
         README
     );
     print "Copying files...\n";
+
     for my $item (@items_to_copy) {
         confess("'$item' already exists") if -e $item;
         system("cp -R ../$item $item");
@@ -674,8 +657,8 @@ sub ACTION_dist {
     # Clean up.
     print "Removing copied files...\n";
     rmtree($_) for @items_to_copy;
-    unlink("META.yml"); 
-    move("MANIFEST.bak", "MANIFEST") or die "move() failed: $!";
+    unlink("META.yml");
+    move( "MANIFEST.bak", "MANIFEST" ) or die "move() failed: $!";
 }
 
 # Generate a list of files for PAUSE, search.cpan.org, etc to ignore.
@@ -736,6 +719,7 @@ sub ACTION_clean {
         system("$^X $CLOWNFISH_BUILD clean")
             and die "Clownfish clean failed";
     }
+    $self->_run_make( dir => $CHARMONIZER_ORIG_DIR, args => ['clean'] );
     $self->SUPER::ACTION_clean;
 }
 
@@ -745,6 +729,7 @@ sub ACTION_realclean {
         system("$^X $CLOWNFISH_BUILD realclean")
             and die "Clownfish realclean failed";
     }
+
     $self->SUPER::ACTION_realclean;
 }
 

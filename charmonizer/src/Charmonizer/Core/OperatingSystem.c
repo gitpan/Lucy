@@ -28,13 +28,13 @@
 static char dev_null[20] = "";
 
 #ifdef _WIN32
-static char *exe_ext = ".exe";
-static char *obj_ext = ".obj";
-static char *local_command_start = ".\\";
+static const char *exe_ext = ".exe";
+static const char *obj_ext = ".obj";
+static const char *local_command_start = ".\\";
 #else
-static char *exe_ext = "";
-static char *obj_ext = "";
-static char *local_command_start = "./";
+static const char *exe_ext = "";
+static const char *obj_ext = "";
+static const char *local_command_start = "./";
 #endif
 
 static void
@@ -44,13 +44,13 @@ S_probe_dev_null(void);
  * to dev_null.
  */
 static void
-S_build_charm_run();
+S_build_charm_run(void);
 
 static chaz_bool_t charm_run_initialized = false;
 static chaz_bool_t charm_run_ok = false;
 
 void
-OS_init() {
+OS_init(void) {
     if (Util_verbosity) {
         printf("Initializing Charmonizer/Core/OperatingSystem...\n");
     }
@@ -68,7 +68,7 @@ S_probe_dev_null(void) {
     strcpy(dev_null, "nul");
 #else
     {
-        char *const options[] = {
+        const char *const options[] = {
             "/dev/null",
             "/dev/nul",
             NULL
@@ -109,7 +109,7 @@ OS_dev_null(void) {
     return dev_null;
 }
 
-static char charm_run_code[] =
+static const char charm_run_code[] =
     QUOTE(  #include <stdio.h>                                           )
     QUOTE(  #include <stdlib.h>                                          )
     QUOTE(  #include <string.h>                                          )
@@ -142,9 +142,8 @@ static char charm_run_code[] =
     QUOTE(  }                                                            );
 
 static void
-S_build_charm_run() {
+S_build_charm_run(void) {
     chaz_bool_t compile_succeeded = false;
-    const char *dev_null = OS_dev_null();
     size_t needed = sizeof(charm_run_code)
                     + strlen(dev_null)
                     + strlen(dev_null)
@@ -164,7 +163,7 @@ S_build_charm_run() {
 }
 
 void
-OS_remove_exe(char *name) {
+OS_remove_exe(const char *name) {
     char *exe_name = (char*)malloc(strlen(name) + strlen(exe_ext) + 1);
     sprintf(exe_name, "%s%s", name, exe_ext);
     remove(exe_name);
@@ -172,7 +171,7 @@ OS_remove_exe(char *name) {
 }
 
 void
-OS_remove_obj(char *name) {
+OS_remove_obj(const char *name) {
     char *obj_name = (char*)malloc(strlen(name) + strlen(obj_ext) + 1);
     sprintf(obj_name, "%s%s", name, obj_ext);
     remove(obj_name);
@@ -180,7 +179,7 @@ OS_remove_obj(char *name) {
 }
 
 int
-OS_run_local(char *arg1, ...) {
+OS_run_local(const char *arg1, ...) {
     va_list  args;
     size_t   len     = strlen(local_command_start) + strlen(arg1);
     char    *command = (char*)malloc(len + 1);
@@ -206,18 +205,25 @@ OS_run_local(char *arg1, ...) {
 int
 OS_run_quietly(const char *command) {
     int retval = 1;
-
+#ifdef _WIN32
+    char pattern[] = "%s > NUL 2> NUL";
+    size_t size = sizeof(pattern) + strlen(command) + 10;
+    char *quiet_command = (char*)malloc(size);
+    sprintf(quiet_command, pattern, command);
+    retval = system(quiet_command);
+    free(quiet_command);
+#else
     if (!charm_run_initialized) {
         charm_run_initialized = true;
         S_build_charm_run();
     }
-
     if (!charm_run_ok) {
         retval = system(command);
     }
     else {
         retval = OS_run_local("_charm_run ", command, NULL);
     }
+#endif
 
     return retval;
 }

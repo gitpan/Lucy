@@ -32,7 +32,7 @@ static chaz_bool_t stat_available = false;
 
 /* Lazily compile _charm_stat. */
 static void
-S_init();
+S_init(void);
 
 void
 Stat_stat(const char *filepath, Stat *target) {
@@ -67,7 +67,7 @@ Stat_stat(const char *filepath, Stat *target) {
 }
 
 /* Source code for the _charm_stat utility. */
-static char charm_stat_code[] =
+static const char charm_stat_code[] =
     QUOTE(  #include <stdio.h>                                     )
     QUOTE(  #include <sys/stat.h>                                  )
     QUOTE(  int main(int argc, char **argv) {                      )
@@ -81,7 +81,7 @@ static char charm_stat_code[] =
     QUOTE(  }                                                      );
 
 static void
-S_init() {
+S_init(void) {
     /* Only try this once. */
     initialized = true;
     if (Util_verbosity) {
@@ -97,5 +97,8 @@ S_init() {
     remove("_charm_stat.c");
 }
 
-
+void
+Stat_clean_up(void) {
+    OS_remove_exe("_charm_stat");
+}
 

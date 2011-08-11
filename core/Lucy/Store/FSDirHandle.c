@@ -58,8 +58,146 @@ SI_is_updir(const char *name, size_t len) {
     }
 }
 
+/********************************** Windows ********************************/
+#if (defined(CHY_HAS_WINDOWS_H) && !defined(__CYGWIN__))
+
+#include <windows.h>
+
+FSDirHandle*
+FSDH_do_open(FSDirHandle *self, const CharBuf *dir) {
+    size_t  dir_path_size = CB_Get_Size(dir);
+    char   *dir_path_ptr  = (char*)CB_Get_Ptr8(dir);
+    char    search_string[MAX_PATH + 1];
+    char   *path_ptr = search_string;
+
+    DH_init((DirHandle*)self, dir);
+    self->sys_dir_entry    = MALLOCATE(sizeof(WIN32_FIND_DATA));
+    self->sys_dirhandle    = INVALID_HANDLE_VALUE;
+    self->saved_error      = NULL;
+
+    if (dir_path_size >= MAX_PATH - 2) {
+        // Deal with Windows ceiling on file path lengths.
+        Err_set_error(Err_new(CB_newf("Directory path is too long: %o",
+                                      dir)));
+        LUCY_DECREF(self);
+        return NULL;
+    }
+
+    // Append trailing wildcard so Windows lists dir contents rather than just
+    // the dir name itself.
+    memcpy(path_ptr, dir_path_ptr, dir_path_size);
+    memcpy(path_ptr + dir_path_size, "\\*\0", 3);
+
+    self->sys_dirhandle
+        = FindFirstFile(search_string, (WIN32_FIND_DATA*)self->sys_dir_entry);
+    if (INVALID_HANDLE_VALUE == self->sys_dirhandle) {
+        // Directory inaccessible or doesn't exist.
+        Err_set_error(Err_new(CB_newf("Failed to open dir '%o'", dir)));
+        LUCY_DECREF(self);
+        return NULL;
+    }
+    else {
+        // Compensate for the fact that FindFirstFile has already returned the
+        // first entry but DirHandle's API requires that you call Next() to
+        // start the iterator.
+        self->delayed_iter = true;
+    }
+
+    return self;
+}
+
+bool_t
+FSDH_entry_is_dir(FSDirHandle *self) {
+    WIN32_FIND_DATA *find_data = (WIN32_FIND_DATA*)self->sys_dir_entry;
+    if (find_data) {
+        if ((find_data->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool_t
+FSDH_entry_is_symlink(FSDirHandle *self) {
+    WIN32_FIND_DATA *find_data = (WIN32_FIND_DATA*)self->sys_dir_entry;
+    if (find_data) {
+        if ((find_data->dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool_t
+FSDH_close(FSDirHandle *self) {
+    if (self->sys_dirhandle && self->sys_dirhandle != INVALID_HANDLE_VALUE) {
+        HANDLE dirhandle = (HANDLE)self->sys_dirhandle;
+        self->sys_dirhandle = NULL;
+        if (dirhandle != INVALID_HANDLE_VALUE && !FindClose(dirhandle)) {
+            if (!self->saved_error) {
+                char *win_error = Err_win_error();
+                self->saved_error
+                    = Err_new(CB_newf("Error while closing directory: %s",
+                                      win_error));
+                FREEMEM(win_error);
+            }
+        }
+    }
+    if (self->sys_dir_entry) {
+        FREEMEM(self->sys_dir_entry);
+        self->sys_dir_entry = NULL;
+    }
+
+    // If we encountered an error condition previously, report it now.
+    if (self->saved_error) {
+        Err_set_error((Err*)LUCY_INCREF(self->saved_error));
+        return false;
+    }
+    else {
+        return true;
+    }
+}
+
+bool_t
+FSDH_next(FSDirHandle *self) {
+    HANDLE           dirhandle = (HANDLE)self->sys_dirhandle;
+    WIN32_FIND_DATA *find_data = (WIN32_FIND_DATA*)self->sys_dir_entry;
+
+    // Attempt to move forward or absorb cached iter.
+    if (!dirhandle || dirhandle == INVALID_HANDLE_VALUE) {
+        return false;
+    }
+    else if (self->delayed_iter) {
+        self->delayed_iter = false;
+    }
+    else if ((FindNextFile(dirhandle, find_data) == 0)) {
+        // Iterator exhausted.  Verify that no errors were encountered.
+        CB_Set_Size(self->entry, 0);
+        if (GetLastError() != ERROR_NO_MORE_FILES) {
+            char *win_error = Err_win_error();
+            self->saved_error
+                = Err_new(CB_newf("Error while traversing directory: %s",
+                                  win_error));
+            FREEMEM(win_error);
+        }
+        return false;
+    }
+
+    // Process the results of the iteration.
+    {
+        size_t len = strlen(find_data->cFileName);
+        if (SI_is_updir(find_data->cFileName, len)) {
+            return FSDH_Next(self);
+        }
+        else {
+            CB_Mimic_Str(self->entry, find_data->cFileName, len);
+            return true;
+        }
+    }
+}
+
 /********************************** UNIXEN *********************************/
-#if (defined(CHY_HAS_DIRENT_H) && !defined(CHY_HAS_WINDOWS_H))
+#elif defined(CHY_HAS_DIRENT_H)
 
 #include <dirent.h>
 
@@ -172,144 +310,6 @@ FSDH_close(FSDirHandle *self) {
         }
     }
     return true;
-}
-
-/********************************** Windows ********************************/
-#elif defined(CHY_HAS_WINDOWS_H)
-
-#include <windows.h>
-
-FSDirHandle*
-FSDH_do_open(FSDirHandle *self, const CharBuf *dir) {
-    size_t  dir_path_size = CB_Get_Size(dir);
-    char   *dir_path_ptr  = (char*)CB_Get_Ptr8(dir);
-    char    search_string[MAX_PATH + 1];
-    char   *path_ptr = search_string;
-
-    DH_init((DirHandle*)self, dir);
-    self->sys_dir_entry    = MALLOCATE(sizeof(WIN32_FIND_DATA));
-    self->sys_dirhandle    = INVALID_HANDLE_VALUE;
-    self->saved_error      = NULL;
-
-    if (dir_path_size >= MAX_PATH - 2) {
-        // Deal with Windows ceiling on file path lengths.
-        Err_set_error(Err_new(CB_newf("Directory path is too long: %o",
-                                      dir)));
-        DECREF(self);
-        return NULL;
-    }
-
-    // Append trailing wildcard so Windows lists dir contents rather than just
-    // the dir name itself.
-    memcpy(path_ptr, dir_path_ptr, dir_path_size);
-    memcpy(path_ptr + dir_path_size, "\\*\0", 3);
-
-    self->sys_dirhandle
-        = FindFirstFile(search_string, (WIN32_FIND_DATA*)self->sys_dir_entry);
-    if (INVALID_HANDLE_VALUE == self->sys_dirhandle) {
-        // Directory inaccessible or doesn't exist.
-        Err_set_error(Err_new(CB_newf("Failed to open dir '%o'", dir)));
-        DECREF(self);
-        return NULL;
-    }
-    else {
-        // Compensate for the fact that FindFirstFile has already returned the
-        // first entry but DirHandle's API requires that you call Next() to
-        // start the iterator.
-        self->delayed_iter = true;
-    }
-
-    return self;
-}
-
-bool_t
-FSDH_entry_is_dir(FSDirHandle *self) {
-    WIN32_FIND_DATA *find_data = (WIN32_FIND_DATA*)self->sys_dir_entry;
-    if (find_data) {
-        if ((find_data->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool_t
-FSDH_entry_is_symlink(FSDirHandle *self) {
-    WIN32_FIND_DATA *find_data = (WIN32_FIND_DATA*)self->sys_dir_entry;
-    if (find_data) {
-        if ((find_data->dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool_t
-FSDH_close(FSDirHandle *self) {
-    if (self->sys_dirhandle && self->sys_dirhandle != INVALID_HANDLE_VALUE) {
-        HANDLE dirhandle = (HANDLE)self->sys_dirhandle;
-        self->sys_dirhandle = NULL;
-        if (dirhandle != INVALID_HANDLE_VALUE && !FindClose(dirhandle)) {
-            if (!self->saved_error) {
-                char *win_error = Err_win_error();
-                self->saved_error
-                    = Err_new(CB_newf("Error while closing directory: %s",
-                                      win_error));
-                FREEMEM(win_error);
-            }
-        }
-    }
-    if (self->sys_dir_entry) {
-        FREEMEM(self->sys_dir_entry);
-        self->sys_dir_entry = NULL;
-    }
-
-    // If we encountered an error condition previously, report it now.
-    if (self->saved_error) {
-        Err_set_error((Err*)INCREF(self->saved_error));
-        return false;
-    }
-    else {
-        return true;
-    }
-}
-
-bool_t
-FSDH_next(FSDirHandle *self) {
-    HANDLE           dirhandle = (HANDLE)self->sys_dirhandle;
-    WIN32_FIND_DATA *find_data = (WIN32_FIND_DATA*)self->sys_dir_entry;
-
-    // Attempt to move forward or absorb cached iter.
-    if (!dirhandle || dirhandle == INVALID_HANDLE_VALUE) {
-        return false;
-    }
-    else if (self->delayed_iter) {
-        self->delayed_iter = false;
-    }
-    else if ((FindNextFile(dirhandle, find_data) == 0)) {
-        // Iterator exhausted.  Verify that no errors were encountered.
-        CB_Set_Size(self->entry, 0);
-        if (GetLastError() != ERROR_NO_MORE_FILES) {
-            char *win_error = Err_win_error();
-            self->saved_error
-                = Err_new(CB_newf("Error while traversing directory: %s",
-                                  win_error));
-            FREEMEM(win_error);
-        }
-        return false;
-    }
-
-    // Process the results of the iteration.
-    {
-        size_t len = strlen(find_data->cFileName);
-        if (SI_is_updir(find_data->cFileName, len)) {
-            return FSDH_Next(self);
-        }
-        else {
-            CB_Mimic_Str(self->entry, find_data->cFileName, len);
-            return true;
-        }
-    }
 }
 
 #else

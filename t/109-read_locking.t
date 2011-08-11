@@ -33,6 +33,7 @@ use base qw( FastIndexManager );
 sub recycle { [] }
 
 package main;
+use Scalar::Util qw( blessed );
 
 use Lucy::Test::TestUtils qw( create_index );
 use Lucy::Util::IndexFileNames qw( latest_snapshot );
@@ -80,8 +81,9 @@ SKIP: {
             manager => FastIndexManager->new( host => 'me' ),
         );
     };
-    like( $@, qr/deletion/,
-        "IndexReader dies if it can't get deletion lock" );
+    ok( blessed($@) && $@->isa("Lucy::Store::LockErr"),
+        "IndexReader dies if it can't get deletion lock"
+    );
 }
 $folder->delete('locks/deletion.lock') or die "Can't delete 'deletion.lock'";
 

@@ -10,7 +10,7 @@ build_requires:
   Parse::RecDescent: 1.94
 configure_requires:
   Module::Build: 0.36
-generated_by: 'Module::Build version 0.3603'
+generated_by: 'Module::Build version 0.3607'
 keywords:
   - search
   - lucy
@@ -32,6 +32,9 @@ no_index:
     - buildlib/Lucy/Redacted.pm
     - buildlib/Lucy/Test/TestUtils.pm
     - buildlib/Lucy/Test/USConSchema.pm
+    - charmonizer/Makefile
+    - charmonizer/Makefile.MSVC
+    - charmonizer/Makefile.MinGW
     - charmonizer/README
     - charmonizer/charmonize.c
     - charmonizer/src/Charmonizer/Core/Compiler.c
@@ -73,8 +76,6 @@ no_index:
     - charmonizer/src/Charmonizer/Probe/VariadicMacros.h
     - charmonizer/src/Charmonizer/Test.c
     - charmonizer/src/Charmonizer/Test.h
-    - charmonizer/src/Charmonizer/Test/AllTests.c
-    - charmonizer/src/Charmonizer/Test/AllTests.h
     - charmonizer/src/Charmonizer/Test/TestDirManip.c
     - charmonizer/src/Charmonizer/Test/TestFuncMacro.c
     - charmonizer/src/Charmonizer/Test/TestHeaders.c
@@ -118,6 +119,18 @@ no_index:
     - clownfish/lib/Clownfish/Variable.pm
     - clownfish/src/CFCBase.c
     - clownfish/src/CFCBase.h
+    - clownfish/src/CFCBindAliases.c
+    - clownfish/src/CFCBindAliases.h
+    - clownfish/src/CFCBindClass.c
+    - clownfish/src/CFCBindClass.h
+    - clownfish/src/CFCBindCore.c
+    - clownfish/src/CFCBindCore.h
+    - clownfish/src/CFCBindFile.c
+    - clownfish/src/CFCBindFile.h
+    - clownfish/src/CFCBindFunction.c
+    - clownfish/src/CFCBindFunction.h
+    - clownfish/src/CFCBindMethod.c
+    - clownfish/src/CFCBindMethod.h
     - clownfish/src/CFCCBlock.c
     - clownfish/src/CFCCBlock.h
     - clownfish/src/CFCClass.c
@@ -637,7 +650,10 @@ no_index:
     - devel/benchmarks/indexers/BenchmarkingIndexer.pm
     - devel/benchmarks/indexers/LuceneIndexer.java
     - devel/benchmarks/indexers/lucy_indexer.plx
+    - devel/bin/format_changes_entry.pl
+    - devel/bin/gen_charmonizer_makefiles.pl
     - devel/bin/lucytidy.pl
+    - devel/bin/release_commands.pl
     - devel/bin/smoke.pl
     - devel/bin/update_version
     - devel/bin/valgrind_triggers.pl
@@ -1085,7 +1101,7 @@ no_index:
 provides:
   Lucy:
     file: lib/Lucy.pm
-    version: 0.001000
+    version: 0.002000
   Lucy::Analysis::Analyzer:
     file: lib/Lucy/Analysis/Analyzer.pm
   Lucy::Analysis::CaseFolder:
@@ -1334,6 +1350,8 @@ provides:
     file: lib/Lucy/Store/RAMFolder.pm
   Lucy::Test:
     file: lib/Lucy/Test.pm
+  Lucy::Test::TestCharmonizer:
+    file: lib/Lucy/Test.pm
   Lucy::Test::Util::BBSortEx:
     file: lib/Lucy/Test/Util/BBSortEx.pm
   Lucy::Util::Debug:
@@ -1381,4 +1399,4 @@ requires:
   perl: v5.8.3
 resources:
   license: http://apache.org/licenses/LICENSE-2.0
-version: v0.1.0
+version: v0.2.0

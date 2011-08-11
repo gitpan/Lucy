@@ -17,7 +17,7 @@
 #include "Lucy/Util/ProcessID.h"
 
 /********************************* WINDOWS ********************************/
-#if (defined(CHY_HAS_WINDOWS_H) && defined(CHY_HAS_PROCESS_H))
+#if (defined(CHY_HAS_WINDOWS_H) && defined(CHY_HAS_PROCESS_H) && !defined(__CYGWIN__))
 
 #include <Windows.h>
 #include <process.h>
@@ -46,6 +46,7 @@ lucy_PID_active(int pid) {
     // Can't find any trace of the process, so return false.
     return false;
 }
+
 
 /********************************* UNIXEN *********************************/
 #elif (defined(CHY_HAS_UNISTD_H) && defined(CHY_HAS_SIGNAL_H))

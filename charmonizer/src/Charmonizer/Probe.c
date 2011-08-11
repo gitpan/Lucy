@@ -26,15 +26,25 @@
 #include "Charmonizer/Core/Util.h"
 #include "Charmonizer/Core/Compiler.h"
 #include "Charmonizer/Core/OperatingSystem.h"
+#include "Charmonizer/Core/Stat.h"
 
 /* Write the "_charm.h" file used by every probe.
  */
 static void
-S_write_charm_h();
+S_write_charm_h(void);
+
+static void
+S_remove_charm_h(void);
 
 void
 Probe_init(const char *cc_command, const char *cc_flags,
            const char *charmony_start) {
+    /* Proces CHARM_VERBOSITY environment variable. */
+    const char *verbosity_env = getenv("CHARM_VERBOSITY");
+    if (verbosity_env && strlen(verbosity_env)) {
+        Util_verbosity = strtol(verbosity_env, NULL, 10);
+    }
+
     /* Dispatch other initializers. */
     OS_init();
     CC_init(cc_command, cc_flags);
@@ -47,21 +57,18 @@ Probe_init(const char *cc_command, const char *cc_flags,
 }
 
 void
-Probe_clean_up() {
+Probe_clean_up(void) {
     if (Util_verbosity) { printf("Cleaning up...\n"); }
 
     /* Dispatch various clean up routines. */
+    S_remove_charm_h();
     ConfWriter_clean_up();
+    Stat_clean_up();
+    Dir_clean_up();
     CC_clean_up();
     OS_clean_up();
-    Dir_clean_up();
 
     if (Util_verbosity) { printf("Cleanup complete.\n"); }
-}
-
-void
-Probe_set_verbosity(int level) {
-    Util_verbosity = level;
 }
 
 FILE*
@@ -69,7 +76,7 @@ Probe_get_charmony_fh(void) {
     return ConfWriter_get_charmony_fh();
 }
 
-static char charm_h_code[] =
+static const char charm_h_code[] =
     QUOTE(  #ifndef CHARM_H                                                  )
     QUOTE(  #define CHARM_H 1                                                )
     QUOTE(  #include <stdio.h>                                               )
@@ -77,8 +84,12 @@ static char charm_h_code[] =
     QUOTE(  #endif                                                           );
 
 static void
-S_write_charm_h() {
+S_write_charm_h(void) {
     Util_write_file("_charm.h", charm_h_code);
 }
 
+static void
+S_remove_charm_h(void) {
+    remove("_charm.h");
+}
 

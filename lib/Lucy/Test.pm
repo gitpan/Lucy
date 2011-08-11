@@ -20,6 +20,20 @@ use Lucy;
 # that we simulate large indexes by performing a lot of PostingPool flushes.
 Lucy::Index::PostingListWriter::set_default_mem_thresh(0x1000);
 
+package Lucy::Test::TestCharmonizer;
+use Config;
+use File::Spec::Functions qw( catfile updir );
+
+sub run_tests {
+    my $name = ucfirst shift;
+    $name =~ s/_([a-z])/\u$1/g;
+    my $path = catfile( 'charmonizer', "Test$name$Config{_exe}" );
+    if ( !-e $path ) {
+        $path = catfile( updir(), $path );
+    }
+    exec $path;
+}
+
 1;
 
 __END__
@@ -246,47 +260,6 @@ PPCODE:
     lucy_TestQPSyntax_run_tests(index);
 END_XS_CODE
 
-my $charm_xs_code = <<'END_XS_CODE';
-MODULE = Lucy   PACKAGE = Lucy::Test::TestCharmonizer
-
-void
-run_tests(which)
-    char *which;
-PPCODE:
-{
-    chaz_TestBatch *batch = NULL;
-    chaz_Test_init();
-
-    if (strcmp(which, "dirmanip") == 0) {
-        batch = chaz_TestDirManip_prepare();
-    }
-    else if (strcmp(which, "integers") == 0) {
-        batch = chaz_TestIntegers_prepare();
-    }
-    else if (strcmp(which, "func_macro") == 0) {
-        batch = chaz_TestFuncMacro_prepare();
-    }
-    else if (strcmp(which, "headers") == 0) {
-        batch = chaz_TestHeaders_prepare();
-    }
-    else if (strcmp(which, "large_files") == 0) {
-        batch = chaz_TestLargeFiles_prepare();
-    }
-    else if (strcmp(which, "unused_vars") == 0) {
-        batch = chaz_TestUnusedVars_prepare();
-    }
-    else if (strcmp(which, "variadic_macros") == 0) {
-        batch = chaz_TestVariadicMacros_prepare();
-    }
-    else {
-        THROW(LUCY_ERR, "Unknown test identifier: '%s'", which);
-    }
-
-    batch->run_test(batch);
-    batch->destroy(batch);
-}
-END_XS_CODE
-
 Clownfish::Binding::Perl::Class->register(
     parcel            => "Lucy",
     class_name        => "Lucy::Test::TestSchema",
@@ -298,11 +271,4 @@ Clownfish::Binding::Perl::Class->register(
     class_name        => "Lucy::Test",
     xs_code           => $xs_code,
 );
-
-Clownfish::Binding::Perl::Class->register(
-    parcel            => "Lucy",
-    class_name        => "Lucy::Test::TestCharmonizer",
-    xs_code           => $charm_xs_code,
-);
-
 
