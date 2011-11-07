@@ -58,7 +58,8 @@ Highlighter_init(Highlighter *self, Searcher *searcher, Obj *query,
     self->searcher       = (Searcher*)INCREF(searcher);
     self->field          = CB_Clone(field);
     self->compiler       = Query_Make_Compiler(self->query, searcher,
-                                               Query_Get_Boost(self->query));
+                                               Query_Get_Boost(self->query),
+                                               false);
     self->excerpt_length = excerpt_length;
     self->slop           = excerpt_length / 3;
     self->window_width   = excerpt_length + (self->slop * 2);
@@ -171,9 +172,8 @@ Highlighter_create_excerpt(Highlighter *self, HitDoc *hit_doc) {
         top = Highlighter_Raw_Excerpt(self, (CharBuf*)field_val,
                                       (CharBuf*)fragment, raw_excerpt, top,
                                       heat_map, sentences);
-        VA_Sort(score_spans, NULL, NULL);
-        Highlighter_highlight_excerpt(self, score_spans, raw_excerpt,
-                                      highlighted, top);
+        Highlighter_highlight_excerpt(self, HeatMap_Get_Spans(heat_map),
+                                      raw_excerpt, highlighted, top);
 
         DECREF(sentences);
         DECREF(heat_map);

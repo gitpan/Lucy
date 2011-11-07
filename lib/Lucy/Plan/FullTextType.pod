@@ -107,7 +107,7 @@ Accessor for "highlightable" property.
 
 =head1 INHERITANCE
 
-Lucy::Plan::FullTextType isa L<Lucy::Plan::TextType> isa L<Lucy::Plan::FieldType> isa L<Lucy::Object::Obj>.
+Lucy::Plan::FullTextType isa Lucy::Plan::TextType isa L<Lucy::Plan::FieldType> isa L<Lucy::Object::Obj>.
 
 
 =cut

@@ -38,8 +38,13 @@ ORQuery_init(ORQuery *self, VArray *children) {
 }
 
 Compiler*
-ORQuery_make_compiler(ORQuery *self, Searcher *searcher, float boost) {
-    return (Compiler*)ORCompiler_new(self, searcher, boost);
+ORQuery_make_compiler(ORQuery *self, Searcher *searcher, float boost,
+                      bool_t subordinate) {
+    ORCompiler *compiler = ORCompiler_new(self, searcher, boost);
+    if (!subordinate) {
+        ORCompiler_Normalize(compiler);
+    }   
+    return (Compiler*)compiler;
 }
 
 bool_t
@@ -85,7 +90,6 @@ ORCompiler_init(ORCompiler *self, ORQuery *parent, Searcher *searcher,
                 float boost) {
     PolyCompiler_init((PolyCompiler*)self, (PolyQuery*)parent, searcher,
                       boost);
-    ORCompiler_Normalize(self);
     return self;
 }
 
@@ -95,6 +99,7 @@ ORCompiler_make_matcher(ORCompiler *self, SegReader *reader,
     uint32_t num_kids = VA_Get_Size(self->children);
 
     if (num_kids == 1) {
+        // No need for an ORMatcher wrapper.
         Compiler *only_child = (Compiler*)VA_Fetch(self->children, 0);
         return Compiler_Make_Matcher(only_child, reader, need_score);
     }
@@ -108,8 +113,8 @@ ORCompiler_make_matcher(ORCompiler *self, SegReader *reader,
             Compiler *child = (Compiler*)VA_Fetch(self->children, i);
             Matcher *submatcher
                 = Compiler_Make_Matcher(child, reader, need_score);
+            VA_Push(submatchers, (Obj*)submatcher);
             if (submatcher != NULL) {
-                VA_Push(submatchers, (Obj*)submatcher);
                 num_submatchers++;
             }
         }
@@ -118,12 +123,6 @@ ORCompiler_make_matcher(ORCompiler *self, SegReader *reader,
             // No possible matches, so return null.
             DECREF(submatchers);
             return NULL;
-        }
-        else if (num_submatchers == 1) {
-            // Only one submatcher, so no need for ORScorer wrapper.
-            Matcher *submatcher = (Matcher*)INCREF(VA_Fetch(submatchers, 0));
-            DECREF(submatchers);
-            return submatcher;
         }
         else {
             Similarity *sim    = ORCompiler_Get_Similarity(self);

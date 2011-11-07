@@ -71,7 +71,7 @@ sortable.
 
 =head1 INHERITANCE
 
-Lucy::Plan::StringType isa L<Lucy::Plan::TextType> isa L<Lucy::Plan::FieldType> isa L<Lucy::Object::Obj>.
+Lucy::Plan::StringType isa Lucy::Plan::TextType isa L<Lucy::Plan::FieldType> isa L<Lucy::Object::Obj>.
 
 
 =cut

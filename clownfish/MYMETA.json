@@ -1,0 +1,155 @@
+{
+   "abstract" : "A small OO language that forms symbiotic relationships with \"host\"\nlanguages.",
+   "author" : [
+      "The Apache Lucy Project <lucy-dev at incubator dot apache dot org>"
+   ],
+   "dynamic_config" : 0,
+   "generated_by" : "Module::Build version 0.38, CPAN::Meta::Converter version 2.112150",
+   "license" : [
+      "apache_2_0"
+   ],
+   "meta-spec" : {
+      "url" : "http://search.cpan.org/perldoc?CPAN::Meta::Spec",
+      "version" : "2"
+   },
+   "name" : "Clownfish",
+   "prereqs" : {
+      "build" : {
+         "requires" : {
+            "Devel::PPPort" : "3.13",
+            "ExtUtils::CBuilder" : "0.18",
+            "ExtUtils::ParseXS" : "2.16"
+         }
+      },
+      "runtime" : {
+         "requires" : {
+            "Parse::RecDescent" : 0
+         }
+      }
+   },
+   "provides" : {
+      "Clownfish" : {
+         "file" : "lib/Clownfish.pm",
+         "version" : "0.01"
+      },
+      "Clownfish::Base" : {
+         "file" : "lib/Clownfish/Base.pm",
+         "version" : 0
+      },
+      "Clownfish::Binding::Core" : {
+         "file" : "lib/Clownfish/Binding/Core.pm",
+         "version" : 0
+      },
+      "Clownfish::Binding::Core::Aliases" : {
+         "file" : "lib/Clownfish/Binding/Core/Aliases.pm",
+         "version" : 0
+      },
+      "Clownfish::Binding::Core::Class" : {
+         "file" : "lib/Clownfish/Binding/Core/Class.pm",
+         "version" : 0
+      },
+      "Clownfish::Binding::Core::File" : {
+         "file" : "lib/Clownfish/Binding/Core/File.pm",
+         "version" : 0
+      },
+      "Clownfish::Binding::Core::Method" : {
+         "file" : "lib/Clownfish/Binding/Core/Method.pm",
+         "version" : 0
+      },
+      "Clownfish::Binding::Perl" : {
+         "file" : "lib/Clownfish/Binding/Perl.pm",
+         "version" : 0
+      },
+      "Clownfish::Binding::Perl::Class" : {
+         "file" : "lib/Clownfish/Binding/Perl/Class.pm",
+         "version" : 0
+      },
+      "Clownfish::Binding::Perl::Constructor" : {
+         "file" : "lib/Clownfish/Binding/Perl/Constructor.pm",
+         "version" : 0
+      },
+      "Clownfish::Binding::Perl::Method" : {
+         "file" : "lib/Clownfish/Binding/Perl/Method.pm",
+         "version" : 0
+      },
+      "Clownfish::Binding::Perl::Subroutine" : {
+         "file" : "lib/Clownfish/Binding/Perl/Subroutine.pm",
+         "version" : 0
+      },
+      "Clownfish::Binding::Perl::TypeMap" : {
+         "file" : "lib/Clownfish/Binding/Perl/TypeMap.pm",
+         "version" : 0
+      },
+      "Clownfish::CBlock" : {
+         "file" : "lib/Clownfish/CBlock.pm",
+         "version" : 0
+      },
+      "Clownfish::Class" : {
+         "file" : "lib/Clownfish/Class.pm",
+         "version" : 0
+      },
+      "Clownfish::DocuComment" : {
+         "file" : "lib/Clownfish/DocuComment.pm",
+         "version" : 0
+      },
+      "Clownfish::Dumpable" : {
+         "file" : "lib/Clownfish/Dumpable.pm",
+         "version" : 0
+      },
+      "Clownfish::File" : {
+         "file" : "lib/Clownfish/File.pm",
+         "version" : 0
+      },
+      "Clownfish::Function" : {
+         "file" : "lib/Clownfish/Function.pm",
+         "version" : 0
+      },
+      "Clownfish::Hierarchy" : {
+         "file" : "lib/Clownfish/Hierarchy.pm",
+         "version" : 0
+      },
+      "Clownfish::Method" : {
+         "file" : "lib/Clownfish/Method.pm",
+         "version" : 0
+      },
+      "Clownfish::ParamList" : {
+         "file" : "lib/Clownfish/ParamList.pm",
+         "version" : 0
+      },
+      "Clownfish::Parcel" : {
+         "file" : "lib/Clownfish/Parcel.pm",
+         "version" : 0
+      },
+      "Clownfish::Parser" : {
+         "file" : "lib/Clownfish/Parser.pm",
+         "version" : 0
+      },
+      "Clownfish::Symbol" : {
+         "file" : "lib/Clownfish/Symbol.pm",
+         "version" : 0
+      },
+      "Clownfish::Type" : {
+         "file" : "lib/Clownfish/Type.pm",
+         "version" : 0
+      },
+      "Clownfish::Util" : {
+         "file" : "lib/Clownfish/Util.pm",
+         "version" : 0
+      },
+      "Clownfish::Variable" : {
+         "file" : "lib/Clownfish/Variable.pm",
+         "version" : 0
+      },
+      "Lucy::Autobinding" : {
+         "file" : "lib/Clownfish/Binding/Perl.pm",
+         "version" : 0
+      }
+   },
+   "release_status" : "stable",
+   "resources" : {
+      "license" : [
+         "http://apache.org/licenses/LICENSE-2.0"
+      ]
+   },
+   "version" : "0.01"
+}

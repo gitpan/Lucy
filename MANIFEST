@@ -89,6 +89,7 @@ clownfish/lib/Clownfish/Type.pm
 clownfish/lib/Clownfish/Util.pm
 clownfish/lib/Clownfish/Variable.pm
 clownfish/MANIFEST
+clownfish/MYMETA.json
 clownfish/src/CFCBase.c
 clownfish/src/CFCBase.h
 clownfish/src/CFCBindAliases.c
@@ -863,6 +864,8 @@ lib/LucyX/Search/ProximityQuery.pm
 lib/LucyX/Search/ProximityQuery.pod
 LICENSE
 MANIFEST			This list of files
+META.json
+META.yml
 modules/analysis/snowstem/devel/update_snowstem.pl
 modules/analysis/snowstem/source/include/libstemmer.h
 modules/analysis/snowstem/source/libstemmer/libstemmer_utf8.c
@@ -1154,4 +1157,3 @@ xs/Lucy/Util/Json.c
 xs/Lucy/Util/StringHelper.c
 xs/XSBind.c
 xs/XSBind.h
-META.yml

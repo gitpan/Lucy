@@ -16,7 +16,6 @@
 
 #define C_LUCY_PROXIMITYQUERY
 #define C_LUCY_PROXIMITYCOMPILER
-#include <stdarg.h>
 
 #include "Lucy/Util/ToolSet.h"
 
@@ -134,7 +133,7 @@ ProximityQuery_to_string(ProximityQuery *self) {
 
 Compiler*
 ProximityQuery_make_compiler(ProximityQuery *self, Searcher *searcher,
-                             float boost) {
+                             float boost, bool_t subordinate) {
     if (VA_Get_Size(self->terms) == 1) {
         // Optimize for one-term "phrases".
         Obj *term = VA_Fetch(self->terms, 0);
@@ -143,13 +142,17 @@ ProximityQuery_make_compiler(ProximityQuery *self, Searcher *searcher,
         TermQuery_Set_Boost(term_query, self->boost);
         term_compiler
             = (TermCompiler*)TermQuery_Make_Compiler(term_query, searcher,
-                                                     boost);
+                                                     boost, subordinate);
         DECREF(term_query);
         return (Compiler*)term_compiler;
     }
     else {
-        return (Compiler*)ProximityCompiler_new(self, searcher, boost,
-                                                self->within);
+        ProximityCompiler *compiler
+            = ProximityCompiler_new(self, searcher, boost, self->within);
+        if (!subordinate) {
+            ProximityCompiler_Normalize(compiler);
+        }   
+        return (Compiler*)compiler;
     }
 }
 
@@ -205,9 +208,6 @@ ProximityCompiler_init(ProximityCompiler *self, ProximityQuery *parent,
 
     // Calculate raw weight.
     self->raw_weight = self->idf * self->boost;
-
-    // Make final preparations.
-    ProximityCompiler_Normalize(self);
 
     return self;
 }

@@ -82,8 +82,13 @@ ReqOptQuery_equals(RequiredOptionalQuery *self, Obj *other) {
 
 Compiler*
 ReqOptQuery_make_compiler(RequiredOptionalQuery *self, Searcher *searcher,
-                          float boost) {
-    return (Compiler*)ReqOptCompiler_new(self, searcher, boost);
+                          float boost, bool_t subordinate) {
+    RequiredOptionalCompiler *compiler
+        = ReqOptCompiler_new(self, searcher, boost);
+    if (!subordinate) {
+        ReqOptCompiler_Normalize(compiler);
+    }   
+    return (Compiler*)compiler;
 }
 
 /**********************************************************************/
@@ -103,7 +108,6 @@ ReqOptCompiler_init(RequiredOptionalCompiler *self,
                     Searcher *searcher, float boost) {
     PolyCompiler_init((PolyCompiler*)self, (PolyQuery*)parent, searcher,
                       boost);
-    ReqOptCompiler_Normalize(self);
     return self;
 }
 
@@ -123,9 +127,6 @@ ReqOptCompiler_make_matcher(RequiredOptionalCompiler *self, SegReader *reader,
         // No required matcher, ergo no matches possible.
         DECREF(opt_matcher);
         return NULL;
-    }
-    else if (opt_matcher == NULL) {
-        return req_matcher;
     }
     else {
         Matcher *retval
