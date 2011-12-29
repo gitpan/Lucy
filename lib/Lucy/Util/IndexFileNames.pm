@@ -39,12 +39,12 @@ CODE:
 {
     lucy_CharBuf *latest = lucy_IxFileNames_latest_snapshot(folder);
     RETVAL = XSBind_cb_to_sv(latest);
-    LUCY_DECREF(latest);
+    CFISH_DECREF(latest);
 }
 OUTPUT: RETVAL
 END_XS_CODE
 
-Clownfish::Binding::Perl::Class->register(
+Clownfish::CFC::Binding::Perl::Class->register(
     parcel     => "Lucy",
     class_name => "Lucy::Util::IndexFileNames",
     xs_code    => $xs_code,

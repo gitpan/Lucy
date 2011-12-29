@@ -60,41 +60,28 @@ change in a future update.
 
 =head2 new( I<[labeled params]> )
 
-    my $indexer = Lucy::Index::Indexer->new(
-        schema   => $schema,             # required at index creation
-        index    => '/path/to/index',    # required
-        create   => 1,                   # default: 0
-        truncate => 1,                   # default: 0
-        manager  => $manager             # default: created internally
-    );
+Open a new Indexer.  If the index already exists, update it.
 
 =over
 
 =item *
 
-B<schema> - A Schema.  Required when index is being created; if not supplied,
-will be extracted from the index folder.
+B<schema> - A Schema.
 
 =item *
 
-B<index> - Either a filepath to an index or a Folder.
-
-=item *
-
-B<create> - If true and the index directory does not exist, attempt to create
-it.
-
-=item *
-
-B<truncate> - If true, proceed with the intention of discarding all previous
-indexing data.  The old data will remain intact and visible until commit()
-succeeds.
+B<index> - Either a string filepath or a Folder.
 
 =item *
 
 B<manager> - An IndexManager.
 
+=item *
+
+B<flags> - Flags governing behavior.
+
 =back
+
 
 
 

@@ -48,6 +48,16 @@ chaz_OS_run_local(const char *arg1, ...);
 int
 chaz_OS_run_quietly(const char *command);
 
+/* Attempt to create a directory.
+ */
+void
+chaz_OS_mkdir(const char *filepath);
+
+/* Attempt to remove a directory, which must be empty.
+ */
+void
+chaz_OS_rmdir(const char *filepath);
+
 /* Return the extension for an executable on this system.
  */
 const char*
@@ -68,21 +78,17 @@ chaz_OS_dev_null(void);
 void
 chaz_OS_init(void);
 
-/* Tear down the Charmonizer/Core/OperatingSystem module.
- */
-void
-chaz_OS_clean_up(void);
-
 #ifdef CHAZ_USE_SHORT_NAMES
   #define OS_remove_exe                chaz_OS_remove_exe
   #define OS_remove_obj                chaz_OS_remove_obj
   #define OS_run_local                 chaz_OS_run_local
   #define OS_run_quietly               chaz_OS_run_quietly
+  #define OS_mkdir                     chaz_OS_mkdir
+  #define OS_rmdir                     chaz_OS_rmdir
   #define OS_exe_ext                   chaz_OS_exe_ext
   #define OS_obj_ext                   chaz_OS_obj_ext
   #define OS_dev_null                  chaz_OS_dev_null
   #define OS_init                      chaz_OS_init
-  #define OS_clean_up                  chaz_OS_clean_up
 #endif
 
 #ifdef __cplusplus

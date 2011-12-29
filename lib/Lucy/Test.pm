@@ -72,8 +72,14 @@ PPCODE:
     else if (strEQ(package, "TestSnowStemmer")) {
         lucy_TestSnowStemmer_run_tests();
     }
+    else if (strEQ(package, "TestNormalizer")) {
+        lucy_TestNormalizer_run_tests();
+    }
     else if (strEQ(package, "TestRegexTokenizer")) {
         lucy_TestRegexTokenizer_run_tests();
+    }
+    else if (strEQ(package, "TestStandardTokenizer")) {
+        lucy_TestStandardTokenizer_run_tests();
     }
     // Lucy::Object
     else if (strEQ(package, "TestObj")) {
@@ -246,6 +252,10 @@ PPCODE:
     else if (strEQ(package, "TestVArray")) {
         lucy_TestVArray_run_tests();
     }
+    // Lucy::Highlight
+    else if (strEQ(package, "TestHighlighter")) {
+        lucy_TestHighlighter_run_tests();
+    }
     else {
         THROW(LUCY_ERR, "Unknown test id: %s", package);
     }
@@ -260,13 +270,13 @@ PPCODE:
     lucy_TestQPSyntax_run_tests(index);
 END_XS_CODE
 
-Clownfish::Binding::Perl::Class->register(
+Clownfish::CFC::Binding::Perl::Class->register(
     parcel            => "Lucy",
     class_name        => "Lucy::Test::TestSchema",
     bind_constructors => ["new"],
 );
 
-Clownfish::Binding::Perl::Class->register(
+Clownfish::CFC::Binding::Perl::Class->register(
     parcel            => "Lucy",
     class_name        => "Lucy::Test",
     xs_code           => $xs_code,

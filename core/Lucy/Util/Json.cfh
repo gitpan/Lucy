@@ -22,15 +22,17 @@ parcel Lucy;
  */
 class Lucy::Util::Json inherits Lucy::Object::Obj {
 
-    /** Encode <code>dump</code> as JSON.
+    /** Encode <code>dump</code> as JSON.  Returns NULL and sets Err_error on
+     * failure.
      */
-    inert incremented CharBuf*
+    inert incremented nullable CharBuf*
     to_json(Obj *dump);
 
     /** Decode the supplied JSON and return a data structure made
-     * of Hashes, VArrays, and CharBufs.
+     * of Hashes, VArrays, and CharBufs.  Returns NULL and sets Err_error on
+     * failure.
      */
-    inert incremented Obj*
+    inert incremented nullable Obj*
     from_json(CharBuf *json);
 
     /** Encode <code>dump</code> as JSON and attempt to write to the indicated
@@ -55,4 +57,15 @@ class Lucy::Util::Json inherits Lucy::Object::Obj {
     set_tolerant(bool_t tolerant);
 }
 
+
+__C__
+
+struct lucy_JsonParserState 
+{
+    lucy_Obj   *result;
+    chy_bool_t  errors;
+};
+typedef struct lucy_JsonParserState lucy_JsonParserState;
+
+__END_C__
 

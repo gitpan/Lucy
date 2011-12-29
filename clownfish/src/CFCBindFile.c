@@ -49,6 +49,7 @@ CFCBindFile_write_h(CFCFile *file, const char *dest, const char *header,
             CFCUtil_die("Can't make path %s", h_dir);
         }
     }
+    FREEMEM(h_dir);
 
     // Create the include-guard strings.
     const char *include_guard_start = CFCFile_guard_start(file);
@@ -60,10 +61,10 @@ CFCBindFile_write_h(CFCFile *file, const char *dest, const char *header,
     for (int i = 0; blocks[i] != NULL; i++) {
         const char *cfc_class = CFCBase_get_cfc_class(blocks[i]);
 
-        if (strcmp(cfc_class, "Clownfish::Parcel") == 0) {
+        if (strcmp(cfc_class, "Clownfish::CFC::Parcel") == 0) {
             ;
         }
-        else if (strcmp(cfc_class, "Clownfish::Class") == 0) {
+        else if (strcmp(cfc_class, "Clownfish::CFC::Class") == 0) {
             CFCBindClass *class_binding
                 = CFCBindClass_new((CFCClass*)blocks[i]);
             char *c_header = CFCBindClass_to_c_header(class_binding);
@@ -71,7 +72,7 @@ CFCBindFile_write_h(CFCFile *file, const char *dest, const char *header,
             FREEMEM(c_header);
             CFCBase_decref((CFCBase*)class_binding);
         }
-        else if (strcmp(cfc_class, "Clownfish::CBlock") == 0) {
+        else if (strcmp(cfc_class, "Clownfish::CFC::CBlock") == 0) {
             const char *block_contents 
                 = CFCCBlock_get_contents((CFCCBlock*)blocks[i]);
             content = CFCUtil_cat(content, block_contents, "\n", NULL);
@@ -116,6 +117,7 @@ CFCBindFile_write_h(CFCFile *file, const char *dest, const char *header,
     remove(h_path);
     CFCUtil_write_file(h_path, file_content, strlen(file_content));
 
+    FREEMEM(content);
     FREEMEM(file_content);
     FREEMEM(h_path);
 }

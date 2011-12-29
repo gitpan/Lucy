@@ -27,43 +27,37 @@ static INLINE const char* S_inline_function() {
 #endif
 
 static void
-S_run_tests(TestBatch *batch) {
+S_run_tests(void) {
 
 #ifdef HAS_FUNC_MACRO
-    TEST_STR_EQ(batch, FUNC_MACRO, "S_run_tests",
-                "FUNC_MACRO");
+    STR_EQ(FUNC_MACRO, "S_run_tests", "FUNC_MACRO");
 #else
-    SKIP(batch, "no FUNC_MACRO");
+    SKIP("no FUNC_MACRO");
 #endif
 
 #ifdef HAS_ISO_FUNC_MACRO
-    TEST_STR_EQ(batch, __func__, "S_run_tests",
-                "HAS_ISO_FUNC_MACRO");
+    STR_EQ(__func__, "S_run_tests", "HAS_ISO_FUNC_MACRO");
 #else
-    SKIP(batch, "no ISO_FUNC_MACRO");
+    SKIP("no ISO_FUNC_MACRO");
 #endif
 
 #ifdef HAS_GNUC_FUNC_MACRO
-    TEST_STR_EQ(batch, __FUNCTION__, "S_run_tests",
-                "HAS_GNUC_FUNC_MACRO");
+    STR_EQ(__FUNCTION__, "S_run_tests", "HAS_GNUC_FUNC_MACRO");
 #else
-    SKIP(batch, "no GNUC_FUNC_MACRO");
+    SKIP("no GNUC_FUNC_MACRO");
 #endif
 
 #ifdef INLINE
-    PASS(batch, S_inline_function());
+    PASS(S_inline_function());
 #else
-    SKIP(batch, "no INLINE functions");
+    SKIP("no INLINE functions");
 #endif
 }
 
 
 int main(int argc, char **argv) {
-    TestBatch *batch;
-
-    Test_init();
-    batch = Test_new_batch("FuncMacro", 4, S_run_tests);
-    batch->run_test(batch);
-    batch->destroy(batch);
-    return 0;
+    Test_start(4);
+    S_run_tests();
+    return !Test_finish();
 }
+

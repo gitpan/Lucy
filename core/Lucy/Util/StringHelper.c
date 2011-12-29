@@ -24,6 +24,25 @@
 #include "Lucy/Object/Err.h"
 #include "Lucy/Util/Memory.h"
 
+const uint8_t lucy_StrHelp_UTF8_COUNT[] = {
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+    2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+    3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+    4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0,
+};
+
 int32_t
 StrHelp_overlap(const char *a, const char *b, size_t a_len,  size_t b_len) {
     size_t i;
@@ -52,10 +71,85 @@ StrHelp_to_base36(uint64_t num, void *buffer) {
         num /= 36;
     } while (num > 0);
 
-    {
-        uint32_t size = end - buf;
-        memcpy(buffer, buf, size + 1);
-        return size;
+    uint32_t size = end - buf;
+    memcpy(buffer, buf, size + 1);
+    return size;
+}
+
+bool_t
+StrHelp_utf8_valid(const char *ptr, size_t size) {
+    const uint8_t *string    = (const uint8_t*)ptr;
+    const uint8_t *const end = string + size;
+    while (string < end) {
+        const uint8_t header_byte = *string++;
+        int count = StrHelp_UTF8_COUNT[header_byte] & 0x7;
+        switch (count & 0x7) {
+            case 1:
+                // ASCII
+                break;
+            case 2:
+                if (string == end)              { return false; }
+                // Disallow non-shortest-form ASCII.
+                if (!(header_byte & 0x1E))      { return false; }
+                if ((*string++ & 0xC0) != 0x80) { return false; }
+                break;
+            case 3:
+                if (end - string < 2)           { return false; }
+                if (header_byte == 0xED) {
+                    if (*string < 0x80 || *string > 0x9F) {
+                        return false;
+                    }
+                }
+                else if (!(header_byte & 0x0F)) {
+                    if (!(*string & 0x20)) {
+                        return false;
+                    }
+                }
+                if ((*string++ & 0xC0) != 0x80) { return false; }
+                if ((*string++ & 0xC0) != 0x80) { return false; }
+                break;
+            case 4:
+                if (end - string < 3)           { return false; }
+                if (!(header_byte & 0x07)) {
+                    if (!(*string & 0x30)) {
+                        return false;
+                    }
+                }
+                if ((*string++ & 0xC0) != 0x80) { return false; }
+                if ((*string++ & 0xC0) != 0x80) { return false; }
+                if ((*string++ & 0xC0) != 0x80) { return false; }
+                break;
+            default:
+                return false;
+        }
+    }
+
+    return true;
+}
+
+bool_t
+StrHelp_is_whitespace(uint32_t code_point) {
+    switch (code_point) {
+            // <control-0009>..<control-000D>
+        case 0x0009: case 0x000A: case 0x000B: case 0x000C: case 0x000D:
+        case 0x0020: // SPACE
+        case 0x0085: // <control-0085>
+        case 0x00A0: // NO-BREAK SPACE
+        case 0x1680: // OGHAM SPACE MARK
+        case 0x180E: // MONGOLIAN VOWEL SEPARATOR
+            // EN QUAD..HAIR SPACE
+        case 0x2000: case 0x2001: case 0x2002: case 0x2003: case 0x2004:
+        case 0x2005: case 0x2006: case 0x2007: case 0x2008: case 0x2009:
+        case 0x200A:
+        case 0x2028: // LINE SEPARATOR
+        case 0x2029: // PARAGRAPH SEPARATOR
+        case 0x202F: // NARROW NO-BREAK SPACE
+        case 0x205F: // MEDIUM MATHEMATICAL SPACE
+        case 0x3000: // IDEOGRAPHIC SPACE
+            return true;
+
+        default:
+            return false;
     }
 }
 

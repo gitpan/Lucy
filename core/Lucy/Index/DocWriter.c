@@ -63,18 +63,14 @@ S_lazy_init(DocWriter *self) {
         CharBuf *seg_name = Seg_Get_Name(self->segment);
 
         // Get streams.
-        {
-            CharBuf *ix_file = CB_newf("%o/documents.ix", seg_name);
-            self->ix_out = Folder_Open_Out(folder, ix_file);
-            DECREF(ix_file);
-            if (!self->ix_out) { RETHROW(INCREF(Err_get_error())); }
-        }
-        {
-            CharBuf *dat_file = CB_newf("%o/documents.dat", seg_name);
-            self->dat_out = Folder_Open_Out(folder, dat_file);
-            DECREF(dat_file);
-            if (!self->dat_out) { RETHROW(INCREF(Err_get_error())); }
-        }
+        CharBuf *ix_file = CB_newf("%o/documents.ix", seg_name);
+        self->ix_out = Folder_Open_Out(folder, ix_file);
+        DECREF(ix_file);
+        if (!self->ix_out) { RETHROW(INCREF(Err_get_error())); }
+        CharBuf *dat_file = CB_newf("%o/documents.dat", seg_name);
+        self->dat_out = Folder_Open_Out(folder, dat_file);
+        DECREF(dat_file);
+        if (!self->dat_out) { RETHROW(INCREF(Err_get_error())); }
 
         // Go past non-doc #0.
         OutStream_Write_I64(self->ix_out, 0);
@@ -138,18 +134,15 @@ DocWriter_add_segment(DocWriter *self, SegReader *reader,
             = (DefaultDocReader*)CERTIFY(
                   SegReader_Obtain(reader, VTable_Get_Name(DOCREADER)),
                   DEFAULTDOCREADER);
-        int32_t i, max;
 
-        for (i = 1, max = SegReader_Doc_Max(reader); i <= max; i++) {
+        for (int32_t i = 1, max = SegReader_Doc_Max(reader); i <= max; i++) {
             if (I32Arr_Get(doc_map, i)) {
                 int64_t  start = OutStream_Tell(dat_out);
-                char    *buf;
-                size_t   size;
 
                 // Copy record over.
                 DefDocReader_Read_Record(doc_reader, buffer, i);
-                buf  = BB_Get_Buf(buffer);
-                size = BB_Get_Size(buffer);
+                char *buf   = BB_Get_Buf(buffer);
+                size_t size = BB_Get_Size(buffer);
                 OutStream_Write_Bytes(dat_out, buf, size);
 
                 // Write file pointer.

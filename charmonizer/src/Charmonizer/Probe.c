@@ -22,11 +22,9 @@
 #include "Charmonizer/Probe.h"
 #include "Charmonizer/Core/HeaderChecker.h"
 #include "Charmonizer/Core/ConfWriter.h"
-#include "Charmonizer/Core/Dir.h"
 #include "Charmonizer/Core/Util.h"
 #include "Charmonizer/Core/Compiler.h"
 #include "Charmonizer/Core/OperatingSystem.h"
-#include "Charmonizer/Core/Stat.h"
 
 /* Write the "_charm.h" file used by every probe.
  */
@@ -63,10 +61,7 @@ Probe_clean_up(void) {
     /* Dispatch various clean up routines. */
     S_remove_charm_h();
     ConfWriter_clean_up();
-    Stat_clean_up();
-    Dir_clean_up();
     CC_clean_up();
-    OS_clean_up();
 
     if (Util_verbosity) { printf("Cleanup complete.\n"); }
 }

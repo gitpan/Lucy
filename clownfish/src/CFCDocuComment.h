@@ -14,8 +14,20 @@
  * limitations under the License.
  */
 
+/** Clownfish::CFC::DocuComment - Formatted comment a la Doxygen.
+ */
+
+#ifndef H_CFCDOCUCOMMENT
+#define H_CFCDOCUCOMMENT
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct CFCDocuComment CFCDocuComment;
 
+/** Parse comment text.
+ */
 CFCDocuComment*
 CFCDocuComment_parse(const char *raw_text);
 
@@ -40,4 +52,10 @@ CFCDocuComment_get_param_docs(CFCDocuComment *self);
 // May be NULL.
 const char*
 CFCDocuComment_get_retval(CFCDocuComment *self);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* H_CFCDOCUCOMMENT */
 

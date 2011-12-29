@@ -164,7 +164,6 @@ PostPool_get_mem_pool(PostingPool *self) {
 
 void
 PostPool_flip(PostingPool *self) {
-    uint32_t i;
     uint32_t num_runs   = VA_Get_Size(self->runs);
     uint32_t sub_thresh = num_runs > 0
                           ? self->mem_thresh / num_runs
@@ -206,7 +205,7 @@ PostPool_flip(PostingPool *self) {
     }
 
     // Assign.
-    for (i = 0; i < num_runs; i++) {
+    for (uint32_t i = 0; i < num_runs; i++) {
         PostingPool *run = (PostingPool*)VA_Fetch(self->runs, i);
         if (run != NULL) {
             PostPool_Set_Mem_Thresh(run, sub_thresh);
@@ -494,11 +493,9 @@ PostPool_refill(PostingPool *self) {
                 if (term_text && !Obj_Is_A((Obj*)term_text, CHARBUF)) {
                     THROW(ERR, "Only CharBuf terms are supported for now");
                 }
-                {
-                    Posting *posting = PList_Get_Posting(plist);
-                    Post_Set_Doc_ID(posting, doc_base);
-                    self->last_doc_id = doc_base;
-                }
+                Posting *posting = PList_Get_Posting(plist);
+                Post_Set_Doc_ID(posting, doc_base);
+                self->last_doc_id = doc_base;
             }
             // Bail if we've read everything in this run.
             else {

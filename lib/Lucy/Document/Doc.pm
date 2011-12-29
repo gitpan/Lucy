@@ -39,7 +39,7 @@ CODE:
                               ALLOT_I32(&doc_id, "doc_id", 6, false),
                               NULL);
     if (!args_ok) {
-        CFISH_RETHROW(LUCY_INCREF(cfish_Err_get_error()));
+        CFISH_RETHROW(CFISH_INCREF(cfish_Err_get_error()));
     }
 
     HV *fields = NULL;
@@ -92,7 +92,7 @@ my $constructor = <<'END_CONSTRUCTOR';
     );
 END_CONSTRUCTOR
 
-Clownfish::Binding::Perl::Class->register(
+Clownfish::CFC::Binding::Perl::Class->register(
     parcel            => "Lucy",
     class_name        => "Lucy::Document::Doc",
     xs_code           => $xs_code,

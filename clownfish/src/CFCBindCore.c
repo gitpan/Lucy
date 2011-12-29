@@ -47,12 +47,16 @@ S_write_parcel_h(CFCBindCore *self);
 static void
 S_write_parcel_c(CFCBindCore *self);
 
+const static CFCMeta CFCBINDCORE_META = {
+    "Clownfish::CFC::Binding::Core",
+    sizeof(CFCBindCore),
+    (CFCBase_destroy_t)CFCBindCore_destroy
+};
+
 CFCBindCore*
 CFCBindCore_new(CFCHierarchy *hierarchy, const char *dest, const char *header,
                 const char *footer) {
-    CFCBindCore *self
-        = (CFCBindCore*)CFCBase_allocate(sizeof(CFCBindCore),
-                                         "Clownfish::Binding::Core");
+    CFCBindCore *self = (CFCBindCore*)CFCBase_allocate(&CFCBINDCORE_META);
     return CFCBindCore_init(self, hierarchy, dest, header, footer);
 }
 
@@ -228,6 +232,7 @@ S_write_parcel_h(CFCBindCore *self) {
                                  CFCUTIL_PATH_SEP, "parcel.h", NULL);
     remove(filepath);
     CFCUtil_write_file(filepath, file_content, strlen(file_content));
+    FREEMEM(filepath);
 
     FREEMEM(aliases);
     FREEMEM(typedefs);
@@ -248,7 +253,7 @@ S_write_parcel_c(CFCBindCore *self) {
         CFCBase **blocks = CFCFile_blocks(file);
         for (int j = 0; blocks[j] != NULL; j++) {
             const char *cfc_class = CFCBase_get_cfc_class(blocks[j]);
-            if (strcmp(cfc_class, "Clownfish::Class") == 0) {
+            if (strcmp(cfc_class, "Clownfish::CFC::Class") == 0) {
                 CFCClass *klass = (CFCClass*)blocks[j];
 
                 CFCBindClass *class_binding = CFCBindClass_new(klass);
@@ -292,6 +297,7 @@ S_write_parcel_c(CFCBindCore *self) {
                                  CFCUTIL_PATH_SEP, "parcel.c", NULL);
     remove(filepath);
     CFCUtil_write_file(filepath, file_content, strlen(file_content));
+    FREEMEM(filepath);
 
     FREEMEM(privacy_syms);
     FREEMEM(includes);

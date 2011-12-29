@@ -24,14 +24,10 @@ my $builder = Lucy::Build->new(
     license     => 'apache',
     dist_author =>
         'The Apache Lucy Project <lucy-dev at incubator dot apache dot org>',
-    dist_version => '0.2.2',
-    requires     => {
-        'JSON::XS' => 1.53,
-        'perl'     => '5.8.3',
-    },
+    dist_version       => '0.2.9_01',
+    requires           => { 'perl' => '5.8.3', },
     configure_requires => { 'Module::Build' => 0.280801 },
-    build_requires => {
-        'Parse::RecDescent'  => 1.94,
+    build_requires     => {
         'Module::Build'      => 0.280801,
         'ExtUtils::CBuilder' => 0.21,
         'ExtUtils::ParseXS'  => 2.18,

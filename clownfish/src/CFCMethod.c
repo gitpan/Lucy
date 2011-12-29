@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-#include <stdlib.h>
-#include "EXTERN.h"
-#include "perl.h"
-#include "XSUB.h"
-#include "ppport.h"
+#include <string.h>
+#include <ctype.h>
+#include <stdio.h>
 
 #define CFC_NEED_FUNCTION_STRUCT_DEF
 #include "CFCFunction.h"
@@ -50,13 +48,18 @@ struct CFCMethod {
 static void
 S_update_typedefs(CFCMethod *self, const char *short_sym);
 
+const static CFCMeta CFCMETHOD_META = {
+    "Clownfish::CFC::Method",
+    sizeof(CFCMethod),
+    (CFCBase_destroy_t)CFCMethod_destroy
+};
+
 CFCMethod*
 CFCMethod_new(CFCParcel *parcel, const char *exposure, const char *class_name,
               const char *class_cnick, const char *macro_sym,
               CFCType *return_type, CFCParamList *param_list,
               CFCDocuComment *docucomment, int is_final, int is_abstract) {
-    CFCMethod *self = (CFCMethod*)CFCBase_allocate(sizeof(CFCMethod),
-                                                   "Clownfish::Method");
+    CFCMethod *self = (CFCMethod*)CFCBase_allocate(&CFCMETHOD_META);
     return CFCMethod_init(self, parcel, exposure, class_name, class_cnick,
                           macro_sym, return_type, param_list, docucomment,
                           is_final, is_abstract);
@@ -92,7 +95,9 @@ CFCMethod_init(CFCMethod *self, CFCParcel *parcel, const char *exposure,
                int is_final, int is_abstract) {
     // Validate macro_sym, derive micro_sym.
     if (!S_validate_macro_sym(macro_sym)) {
-        croak("Invalid macro_sym: '%s'", macro_sym ? macro_sym : "[NULL]");
+        CFCBase_decref((CFCBase*)self);
+        CFCUtil_die("Invalid macro_sym: '%s'",
+                    macro_sym ? macro_sym : "[NULL]");
     }
     char *micro_sym = CFCUtil_strdup(macro_sym);
     size_t i;
@@ -108,7 +113,7 @@ CFCMethod_init(CFCMethod *self, CFCParcel *parcel, const char *exposure,
 
     // Verify that the first element in the arg list is a self.
     CFCVariable **args = CFCParamList_get_variables(param_list);
-    if (!args[0]) { croak("Missing 'self' argument"); }
+    if (!args[0]) { CFCUtil_die("Missing 'self' argument"); }
     CFCType *type = CFCVariable_get_type(args[0]);
     const char *specifier = CFCType_get_specifier(type);
     const char *prefix    = CFCMethod_get_prefix(self);
@@ -119,8 +124,8 @@ CFCMethod_init(CFCMethod *self, CFCParcel *parcel, const char *exposure,
     int mismatch = strcmp(wanted, specifier);
     FREEMEM(wanted);
     if (mismatch) {
-        croak("First arg type doesn't match class: '%s' '%s", class_name,
-              specifier);
+        CFCUtil_die("First arg type doesn't match class: '%s' '%s",
+                    class_name, specifier);
     }
 
     self->macro_sym     = CFCUtil_strdup(macro_sym);
@@ -210,13 +215,13 @@ CFCMethod_override(CFCMethod *self, CFCMethod *orig) {
     if (CFCMethod_final(orig)) {
         const char *orig_class = CFCMethod_get_class_name(orig);
         const char *my_class   = CFCMethod_get_class_name(self);
-        croak("Attempt to override final method '%s' from '%s' by '%s'",
-              orig->macro_sym, orig_class, my_class);
+        CFCUtil_die("Attempt to override final method '%s' from '%s' by '%s'",
+                    orig->macro_sym, orig_class, my_class);
     }
     if (!CFCMethod_compatible(self, orig)) {
         const char *func      = CFCMethod_implementing_func_sym(self);
         const char *orig_func = CFCMethod_implementing_func_sym(orig);
-        croak("Non-matching signatures for %s and %s", func, orig_func);
+        CFCUtil_die("Non-matching signatures for %s and %s", func, orig_func);
     }
 
     // Mark the Method as no longer novel.
@@ -283,6 +288,11 @@ CFCMethod_full_offset_sym(CFCMethod *self, const char *invoker, char *buf,
 const char*
 CFCMethod_get_macro_sym(CFCMethod *self) {
     return self->macro_sym;
+}
+
+const char*
+CFCMethod_micro_sym(CFCMethod *self) {
+    return CFCSymbol_micro_sym((CFCSymbol*)self);
 }
 
 static void

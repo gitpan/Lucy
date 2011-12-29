@@ -14,11 +14,8 @@
  * limitations under the License.
  */
 
-#include <stdlib.h>
-#include "EXTERN.h"
-#include "perl.h"
-#include "XSUB.h"
-#include "ppport.h"
+#include <string.h>
+#include <stdio.h>
 
 #ifndef true
     #define true 1
@@ -46,7 +43,7 @@ S_add_dump_method(CFCClass *klass);
 static void
 S_add_load_method(CFCClass *klass);
 
-// Create a Clownfish::Method object for either Dump() or Load().
+// Create a Clownfish::CFC::Method object for either Dump() or Load().
 static CFCMethod*
 S_make_method_obj(CFCClass *klass, const char *method_name);
 
@@ -64,10 +61,15 @@ struct CFCDumpable {
     CFCBase base;
 };
 
+const static CFCMeta CFCDUMPABLE_META = {
+    "Clownfish::CFC::Dumpable",
+    sizeof(CFCDumpable),
+    (CFCBase_destroy_t)CFCDumpable_destroy
+};
+
 CFCDumpable*
 CFCDumpable_new(void) {
-    CFCDumpable *self = (CFCDumpable*)CFCBase_allocate(sizeof(CFCDumpable),
-                                                       "Clownfish::Dumpable");
+    CFCDumpable *self = (CFCDumpable*)CFCBase_allocate(&CFCDUMPABLE_META);
     return CFCDumpable_init(self);
 }
 
@@ -86,7 +88,7 @@ CFCDumpable_add_dumpables(CFCDumpable *self, CFCClass *klass) {
     (void)self;
 
     if (!CFCClass_has_attribute(klass, "dumpable")) {
-        croak("Class %s isn't dumpable", CFCClass_get_class_name(klass));
+        CFCUtil_die("Class %s isn't dumpable", CFCClass_get_class_name(klass));
     }
 
     // Inherit Dump/Load from parent if no novel member vars.
@@ -118,7 +120,8 @@ S_make_method_obj(CFCClass *klass, const char *method_name) {
         = CFCType_new_object(CFCTYPE_INCREMENTED, cf_parcel, "Obj", 1);
     CFCType *self_type = CFCType_new_object(0, klass_parcel, klass_struct_sym, 1);
     CFCVariable *self_var = CFCVariable_new(klass_parcel, NULL, klass_name,
-                                            klass_cnick, "self", self_type);
+                                            klass_cnick, "self", self_type,
+                                            false);
     CFCParamList *param_list = NULL;
 
     if (strcmp(method_name, "Dump") == 0) {
@@ -128,7 +131,8 @@ S_make_method_obj(CFCClass *klass, const char *method_name) {
     else if (strcmp(method_name, "Load") == 0) {
         CFCType *dump_type = CFCType_new_object(0, cf_parcel, "Obj", 1);
         CFCVariable *dump_var = CFCVariable_new(cf_parcel, NULL, NULL,
-                                                NULL, "dump", dump_type);
+                                                NULL, "dump", dump_type,
+                                                false);
         param_list = CFCParamList_new(false);
         CFCParamList_add_param(param_list, self_var, NULL);
         CFCParamList_add_param(param_list, dump_var, NULL);
@@ -136,7 +140,7 @@ S_make_method_obj(CFCClass *klass, const char *method_name) {
         CFCBase_decref((CFCBase*)dump_type);
     }
     else {
-        croak("Unexpected method_name: '%s'", method_name);
+        CFCUtil_die("Unexpected method_name: '%s'", method_name);
     }
 
     CFCMethod *method = CFCMethod_new(klass_parcel, "public", klass_name,
@@ -309,12 +313,24 @@ S_process_dump_member(CFCClass *klass, CFCVariable *member, char *buf,
             "    Cfish_Hash_Store_Str(dump, \"%s\", %u, (cfish_Obj*)cfish_CB_newf(\"%%i64\", (int64_t)self->%s));\n";
         char float_pattern[] =
             "    Cfish_Hash_Store_Str(dump, \"%s\", %u, (cfish_Obj*)cfish_CB_newf(\"%%f64\", (double)self->%s));\n";
-        const char *pattern = CFCType_is_integer(type)
-                              ? int_pattern : float_pattern;
+        char bool_pattern[] =
+            "    Cfish_Hash_Store_Str(dump, \"%s\", %u, (cfish_Obj*)cfish_Bool_singleton(self->%s));\n";
+        const char *pattern;
+        if (strcmp(specifier, "bool_t") == 0
+            || strcmp(specifier, "chy_bool_t") == 0
+           ) {
+            pattern = bool_pattern;
+        }
+        else if (CFCType_is_integer(type)) {
+            pattern = int_pattern;
+        }
+        else {
+            pattern = float_pattern;
+        }
         size_t needed = strlen(pattern) + name_len * 2 + 20;
         if (buf_size < needed) {
-            croak("Buffer not big enough (%lu < %lu)",
-                  (unsigned long)buf_size, (unsigned long)needed);
+            CFCUtil_die("Buffer not big enough (%lu < %lu)",
+                        (unsigned long)buf_size, (unsigned long)needed);
         }
         sprintf(buf, pattern, name, name_len, name);
     }
@@ -326,13 +342,14 @@ S_process_dump_member(CFCClass *klass, CFCVariable *member, char *buf,
 
         size_t needed = strlen(pattern) + name_len * 3 + 20;
         if (buf_size < needed) {
-            croak("Buffer not big enough (%lu < %lu)",
-                  (unsigned long)buf_size, (unsigned long)needed);
+            CFCUtil_die("Buffer not big enough (%lu < %lu)",
+                        (unsigned long)buf_size, (unsigned long)needed);
         }
         sprintf(buf, pattern, name, name, name_len, name);
     }
     else {
-        croak("Don't know how to dump a %s", CFCType_get_specifier(type));
+        CFCUtil_die("Don't know how to dump a %s",
+                    CFCType_get_specifier(type));
     }
 
     CFCClass_append_autocode(klass, buf);
@@ -357,10 +374,17 @@ S_process_load_member(CFCClass *klass, CFCVariable *member, char *buf,
     }
 
     if (2 * strlen(type_str) + 100 > sizeof(extraction)) { // play it safe
-        croak("type_str too long: '%s'", type_str);
+        CFCUtil_die("type_str too long: '%s'", type_str);
     }
     if (CFCType_is_integer(type)) {
-        sprintf(extraction, "(%s)Cfish_Obj_To_I64(var)", type_str);
+        if (strcmp(specifier, "bool_t") == 0
+            || strcmp(specifier, "chy_bool_t") == 0
+           ) {
+            sprintf(extraction, "Cfish_Obj_To_Bool(var)");
+        }
+        else {
+            sprintf(extraction, "(%s)Cfish_Obj_To_I64(var)", type_str);
+        }
     }
     else if (CFCType_is_floating(type)) {
         sprintf(extraction, "(%s)Cfish_Obj_To_F64(var)", type_str);
@@ -372,7 +396,7 @@ S_process_load_member(CFCClass *klass, CFCVariable *member, char *buf,
                 specifier, vtable_var);
     }
     else {
-        croak("Don't know how to load %s", specifier);
+        CFCUtil_die("Don't know how to load %s", specifier);
     }
 
     const char *pattern =
@@ -385,8 +409,8 @@ S_process_load_member(CFCClass *klass, CFCVariable *member, char *buf,
                     + strlen(extraction)
                     + 20;
     if (buf_size < needed) {
-        croak("Buffer not big enough (%lu < %lu)", (unsigned long)buf_size,
-              (unsigned long)needed);
+        CFCUtil_die("Buffer not big enough (%lu < %lu)",
+                    (unsigned long)buf_size, (unsigned long)needed);
     }
     sprintf(buf, pattern, name, name_len, name, extraction);
 

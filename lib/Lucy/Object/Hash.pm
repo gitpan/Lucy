@@ -49,7 +49,7 @@ store(self, key, value);
     lucy_Obj           *value;
 PPCODE:
 {
-    if (value) { LUCY_INCREF(value); }
+    if (value) { CFISH_INCREF(value); }
     lucy_Hash_store(self, (lucy_Obj*)key, value);
 }
 
@@ -75,7 +75,7 @@ PPCODE:
 }
 END_XS_CODE
 
-Clownfish::Binding::Perl::Class->register(
+Clownfish::CFC::Binding::Perl::Class->register(
     parcel       => "Lucy",
     class_name   => "Lucy::Object::Hash",
     xs_code      => $xs_code,

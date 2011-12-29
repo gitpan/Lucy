@@ -145,24 +145,20 @@
 #endif
 
 static void
-S_run_tests(TestBatch *batch) {
-    PASS(batch, "Compiled successfully with all detected headers");
+S_run_tests(void) {
+    PASS("Compiled successfully with all detected headers");
 
     /* Don't bother checking all -- just use stdio as an example. */
 #ifdef HAS_STDIO_H
-    PASS(batch, "stdio.h should have been detected");
+    PASS("stdio.h should have been detected");
 #else
-    FAIL(batch, "stdio.h should have been detected");
+    FAIL("stdio.h should have been detected");
 #endif
 }
 
-
 int main(int argc, char **argv) {
-    TestBatch *batch;
-
-    Test_init();
-    batch = Test_new_batch("Headers", 2, S_run_tests);
-    batch->run_test(batch);
-    batch->destroy(batch);
-    return 0;
+    Test_start(2);
+    S_run_tests();
+    return !Test_finish();
 }
+

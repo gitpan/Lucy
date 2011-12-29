@@ -46,7 +46,7 @@ CODE:
                               ALLOT_F32(&boost, "boost", 5, false),
                               NULL);
     if (!args_ok) {
-        CFISH_RETHROW(LUCY_INCREF(cfish_Err_get_error()));
+        CFISH_RETHROW(CFISH_INCREF(cfish_Err_get_error()));
     }
 
     STRLEN      len;
@@ -78,7 +78,7 @@ PPCODE:
 }
 END_XS
 
-Clownfish::Binding::Perl::Class->register(
+Clownfish::CFC::Binding::Perl::Class->register(
     parcel       => "Lucy",
     class_name   => "Lucy::Analysis::Token",
     bind_methods => [

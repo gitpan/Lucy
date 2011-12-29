@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-#include <stdlib.h>
+#include <ctype.h>
 #include <string.h>
-#include "EXTERN.h"
-#include "perl.h"
-#include "XSUB.h"
-#include "ppport.h"
 
 #define CFC_NEED_BASE_STRUCT_DEF
 #include "CFCBase.h"
@@ -47,7 +43,7 @@ S_strip(char *comment) {
     if (strstr(comment, "/**") != comment
         || strstr(comment, "*/") != (comment + len - 2)
        ) {
-        croak("Malformed comment");
+        CFCUtil_die("Malformed comment");
     }
 
     // Capture text minus beginning "/**", ending "*/", and left border.
@@ -82,38 +78,42 @@ S_strip(char *comment) {
     FREEMEM(scratch);
 }
 
+const static CFCMeta CFCDOCUCOMMENT_META = {
+    "Clownfish::CFC::DocuComment",
+    sizeof(CFCDocuComment),
+    (CFCBase_destroy_t)CFCDocuComment_destroy
+};
+
 CFCDocuComment*
 CFCDocuComment_parse(const char *raw_text) {
     char *text = CFCUtil_strdup(raw_text);
     CFCDocuComment *self
-        = (CFCDocuComment*)CFCBase_allocate(sizeof(CFCDocuComment),
-                                            "Clownfish::DocuComment");
+        = (CFCDocuComment*)CFCBase_allocate(&CFCDOCUCOMMENT_META);
 
     // Strip whitespace, comment open, close, and left border.
     CFCUtil_trim_whitespace(text);
     S_strip(text);
 
     // Extract the brief description.
-    {
-        char *ptr = text;
-        size_t len = strlen(text);
-        char *limit = strchr(ptr, '@');
-        if (!limit) {
-            limit = text + len;
-        }
-        while (ptr < limit) {
-            if (*ptr == '.'
-                && ((ptr == limit - 1) || isspace(*(ptr + 1)))
-               ) {
-                ptr++;
-                size_t brief_len = ptr - text;
-                self->brief = CFCUtil_strdup(text);
-                self->brief[brief_len] = '\0';
-                break;
-            }
-            ptr++;
-        }
+    char *ptr = text;
+    size_t len = strlen(text);
+    char *limit = strchr(ptr, '@');
+    if (!limit) {
+        limit = text + len;
     }
+    while (ptr < limit) {
+        if (*ptr == '.'
+            && ((ptr == limit - 1) || isspace(*(ptr + 1)))
+           ) {
+            ptr++;
+            size_t brief_len = ptr - text;
+            self->brief = CFCUtil_strdup(text);
+            self->brief[brief_len] = '\0';
+            break;
+        }
+        ptr++;
+    }
+
     if (!self->brief) {
         self->brief = CFCUtil_strdup("");
     }
@@ -122,76 +122,75 @@ CFCDocuComment_parse(const char *raw_text) {
     size_t num_params = 0;
     self->param_names = (char**)CALLOCATE(num_params + 1, sizeof(char*));
     self->param_docs  = (char**)CALLOCATE(num_params + 1, sizeof(char*));
-    {
-        char *candidate = strstr(text, "@param");
-        size_t len = strlen(text);
-        char *limit = text + len;
-        while (candidate) {
-            // Extract param name.
-            char *ptr = candidate + sizeof("@param") - 1;
-            if (!isspace(*ptr) || ptr > limit) {
-                croak("Malformed @param directive in '%s'", raw_text);
-            }
-            while (isspace(*ptr) && ptr < limit) { ptr++; }
-            char *param_name = ptr;
-            while ((isalnum(*ptr) || *ptr == '_') && ptr < limit) { ptr++; }
-            size_t param_name_len = ptr - param_name;
-            if (!param_name_len) {
-                croak("Malformed @param directive in '%s'", raw_text);
-            }
 
-            // Extract param description.
-            while (isspace(*ptr) && ptr < limit) { ptr++; }
-            char *param_doc = ptr;
-            while (ptr < limit) {
-                if (*ptr == '@') { break; }
-                else if (*ptr == '\n' && ptr < limit) {
-                    ptr++;
-                    while (ptr < limit && *ptr != '\n' && isspace(*ptr)) {
-                        ptr++;
-                    }
-                    if (*ptr == '\n' || *ptr == '@') { break; }
-                }
-                else {
-                    ptr++;
-                }
-            }
-            size_t param_doc_len = ptr - param_doc;
-
-            num_params++;
-            size_t size = (num_params + 1) * sizeof(char*);
-            self->param_names = (char**)REALLOCATE(self->param_names, size);
-            self->param_docs  = (char**)REALLOCATE(self->param_docs, size);
-            self->param_names[num_params - 1]
-                = CFCUtil_strndup(param_name, param_name_len);
-            self->param_docs[num_params - 1]
-                = CFCUtil_strndup(param_doc, param_doc_len);
-            CFCUtil_trim_whitespace(self->param_names[num_params - 1]);
-            CFCUtil_trim_whitespace(self->param_docs[num_params - 1]);
-            self->param_names[num_params] = NULL;
-            self->param_docs[num_params]  = NULL;
-
-            if (ptr == limit) {
-                break;
-            }
-            else if (ptr > limit) {
-                croak("Overran end of string while parsing '%s'", raw_text);
-            }
-            candidate = strstr(ptr, "@param");
+    char *candidate = strstr(text, "@param");
+    size_t text_len = strlen(text);
+    char *text_limit = text + text_len;
+    while (candidate) {
+        // Extract param name.
+        char *ptr = candidate + sizeof("@param") - 1;
+        if (!isspace(*ptr) || ptr > text_limit) {
+            CFCUtil_die("Malformed @param directive in '%s'", raw_text);
         }
+        while (isspace(*ptr) && ptr < text_limit) { ptr++; }
+        char *param_name = ptr;
+        while ((isalnum(*ptr) || *ptr == '_') && ptr < text_limit) { ptr++; }
+        size_t param_name_len = ptr - param_name;
+        if (!param_name_len) {
+            CFCUtil_die("Malformed @param directive in '%s'", raw_text);
+        }
+
+        // Extract param description.
+        while (isspace(*ptr) && ptr < text_limit) { ptr++; }
+        char *param_doc = ptr;
+        while (ptr < text_limit) {
+            if (*ptr == '@') { break; }
+            else if (*ptr == '\n' && ptr < text_limit) {
+                ptr++;
+                while (ptr < text_limit && *ptr != '\n' && isspace(*ptr)) {
+                    ptr++;
+                }
+                if (*ptr == '\n' || *ptr == '@') { break; }
+            }
+            else {
+                ptr++;
+            }
+        }
+        size_t param_doc_len = ptr - param_doc;
+
+        num_params++;
+        size_t size = (num_params + 1) * sizeof(char*);
+        self->param_names = (char**)REALLOCATE(self->param_names, size);
+        self->param_docs  = (char**)REALLOCATE(self->param_docs, size);
+        self->param_names[num_params - 1]
+            = CFCUtil_strndup(param_name, param_name_len);
+        self->param_docs[num_params - 1]
+            = CFCUtil_strndup(param_doc, param_doc_len);
+        CFCUtil_trim_whitespace(self->param_names[num_params - 1]);
+        CFCUtil_trim_whitespace(self->param_docs[num_params - 1]);
+        self->param_names[num_params] = NULL;
+        self->param_docs[num_params]  = NULL;
+
+        if (ptr == text_limit) {
+            break;
+        }
+        else if (ptr > text_limit) {
+            CFCUtil_die("Overran end of string while parsing '%s'", raw_text);
+        }
+        candidate = strstr(ptr, "@param");
     }
 
     // Extract full description.
     self->description = CFCUtil_strdup(text);
-    {
-        char *terminus = strstr(self->description, "@param");
-        if (!terminus) {
-            terminus = strstr(self->description, "@return");
-        }
-        if (terminus) {
-            *terminus = '\0';
-        }
+
+    char *terminus = strstr(self->description, "@param");
+    if (!terminus) {
+        terminus = strstr(self->description, "@return");
     }
+    if (terminus) {
+        *terminus = '\0';
+    }
+
     CFCUtil_trim_whitespace(self->description);
 
     // Extract long description.

@@ -14,13 +14,9 @@
  * limitations under the License.
  */
 
-#include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <ctype.h>
-#include "EXTERN.h"
-#include "perl.h"
-#include "XSUB.h"
-#include "ppport.h"
 
 #ifndef true
   #define true 1
@@ -52,6 +48,9 @@ static CFCClassRegEntry *registry = NULL;
 static size_t registry_size = 0;
 static size_t registry_cap  = 0;
 
+// Store a new CFCClass in a registry.
+static void
+S_register(CFCClass *self);
 
 struct CFCClass {
     CFCSymbol symbol;
@@ -106,14 +105,19 @@ S_create_dumpables(CFCClass *self);
 static void
 S_bequeath_methods(CFCClass *self);
 
+const static CFCMeta CFCCLASS_META = {
+    "Clownfish::CFC::Class",
+    sizeof(CFCClass),
+    (CFCBase_destroy_t)CFCClass_destroy
+};
+
 CFCClass*
 CFCClass_create(struct CFCParcel *parcel, const char *exposure,
                 const char *class_name, const char *cnick,
                 const char *micro_sym, CFCDocuComment *docucomment,
                 const char *source_class, const char *parent_class_name,
                 int is_final, int is_inert) {
-    CFCClass *self = (CFCClass*)CFCBase_allocate(sizeof(CFCClass),
-                                                 "Clownfish::Class");
+    CFCClass *self = (CFCClass*)CFCBase_allocate(&CFCCLASS_META);
     return CFCClass_do_create(self, parcel, exposure, class_name, cnick,
                               micro_sym, docucomment, source_class,
                               parent_class_name, is_final, is_inert);
@@ -128,6 +132,7 @@ CFCClass_do_create(CFCClass *self, struct CFCParcel *parcel,
     CFCUTIL_NULL_CHECK(class_name);
     exposure  = exposure  ? exposure  : "parcel";
     micro_sym = micro_sym ? micro_sym : "class";
+    parcel    = parcel    ? parcel    : CFCParcel_singleton(NULL, NULL);
     CFCSymbol_init((CFCSymbol*)self, parcel, exposure, class_name, cnick,
                    micro_sym);
     self->parent     = NULL;
@@ -202,7 +207,7 @@ CFCClass_do_create(CFCClass *self, struct CFCParcel *parcel,
     self->is_inert = !!is_inert;
 
     // Store in registry.
-    CFCClass_register(self);
+    S_register(self);
 
     return self;
 }
@@ -249,11 +254,12 @@ CFCClass_destroy(CFCClass *self) {
     FREEMEM(self->full_vtable_hidden);
     FREEMEM(self->full_vtable_type);
     FREEMEM(self->privacy_symbol);
+    FREEMEM(self->include_h);
     CFCSymbol_destroy((CFCSymbol*)self);
 }
 
-void
-CFCClass_register(CFCClass *self) {
+static void
+S_register(CFCClass *self) {
     if (registry_size == registry_cap) {
         size_t new_cap = registry_cap + 10;
         registry = (CFCClassRegEntry*)REALLOCATE(
@@ -271,9 +277,9 @@ CFCClass_register(CFCClass *self) {
     CFCClass *existing = CFCClass_fetch_singleton(parcel, class_name);
     const char *key = self->full_struct_sym;
     if (existing) {
-        croak("New class %s conflicts with existing class %s",
-              CFCClass_get_class_name(self),
-              CFCClass_get_class_name(existing));
+        CFCBase_decref((CFCBase*)self);
+        CFCUtil_die("Conflict with existing class %s",
+                    CFCClass_get_class_name(existing));
     }
     registry[registry_size].key   = CFCUtil_strdup(key);
     registry[registry_size].klass = (CFCClass*)CFCBase_incref((CFCBase*)self);
@@ -294,7 +300,7 @@ CFCClass_fetch_singleton(CFCParcel *parcel, const char *class_name) {
     size_t struct_sym_len = strlen(struct_sym);
     const size_t MAX_LEN = 256;
     if (prefix_len + struct_sym_len > MAX_LEN) {
-        croak("names too long: '%s', '%s'", prefix, struct_sym);
+        CFCUtil_die("names too long: '%s', '%s'", prefix, struct_sym);
     }
     char key[MAX_LEN + 1];
     sprintf(key, "%s%s", prefix, struct_sym);
@@ -311,7 +317,14 @@ void
 CFCClass_clear_registry(void) {
     size_t i;
     for (i = 0; i < registry_size; i++) {
-        CFCBase_decref((CFCBase*)registry[i].klass);
+        CFCClass *klass = registry[i].klass;
+        if (klass->parent) {
+            // Break circular ref.
+            CFCBase_decref((CFCBase*)klass->parent);
+            klass->parent = NULL;
+        }
+        CFCBase_decref((CFCBase*)klass);
+        FREEMEM(registry[i].key);
     }
     FREEMEM(registry);
     registry_size = 0;
@@ -322,7 +335,7 @@ CFCClass_clear_registry(void) {
 void
 CFCClass_add_child(CFCClass *self, CFCClass *child) {
     CFCUTIL_NULL_CHECK(child);
-    if (self->tree_grown) { croak("Can't call add_child after grow_tree"); }
+    if (self->tree_grown) { CFCUtil_die("Can't call add_child after grow_tree"); }
     self->num_kids++;
     size_t size = (self->num_kids + 1) * sizeof(CFCClass*);
     self->children = (CFCClass**)REALLOCATE(self->children, size);
@@ -335,7 +348,7 @@ void
 CFCClass_add_function(CFCClass *self, CFCFunction *func) {
     CFCUTIL_NULL_CHECK(func);
     if (self->tree_grown) {
-        croak("Can't call add_function after grow_tree");
+        CFCUtil_die("Can't call add_function after grow_tree");
     }
     self->num_functions++;
     size_t size = (self->num_functions + 1) * sizeof(CFCFunction*);
@@ -349,10 +362,10 @@ void
 CFCClass_add_method(CFCClass *self, CFCMethod *method) {
     CFCUTIL_NULL_CHECK(method);
     if (self->tree_grown) {
-        croak("Can't call add_method after grow_tree");
+        CFCUtil_die("Can't call add_method after grow_tree");
     }
     if (self->is_inert) {
-        croak("Can't add_method to an inert class");
+        CFCUtil_die("Can't add_method to an inert class");
     }
     self->num_methods++;
     size_t size = (self->num_methods + 1) * sizeof(CFCMethod*);
@@ -366,7 +379,7 @@ void
 CFCClass_add_member_var(CFCClass *self, CFCVariable *var) {
     CFCUTIL_NULL_CHECK(var);
     if (self->tree_grown) {
-        croak("Can't call add_member_var after grow_tree");
+        CFCUtil_die("Can't call add_member_var after grow_tree");
     }
     self->num_member_vars++;
     size_t size = (self->num_member_vars + 1) * sizeof(CFCVariable*);
@@ -380,7 +393,7 @@ void
 CFCClass_add_inert_var(CFCClass *self, CFCVariable *var) {
     CFCUTIL_NULL_CHECK(var);
     if (self->tree_grown) {
-        croak("Can't call add_inert_var after grow_tree");
+        CFCUtil_die("Can't call add_inert_var after grow_tree");
     }
     self->num_inert_vars++;
     size_t size = (self->num_inert_vars + 1) * sizeof(CFCVariable*);
@@ -392,9 +405,9 @@ CFCClass_add_inert_var(CFCClass *self, CFCVariable *var) {
 
 void
 CFCClass_add_attribute(CFCClass *self, const char *name, const char *value) {
-    if (!name || !strlen(name)) { croak("'name' is required"); }
+    if (!name || !strlen(name)) { CFCUtil_die("'name' is required"); }
     if (CFCClass_has_attribute(self, name)) {
-        croak("Attribute '%s' already registered");
+        CFCUtil_die("Attribute '%s' already registered", name);
     }
     CFCClassAttribute *attribute
         = (CFCClassAttribute*)MALLOCATE(sizeof(CFCClassAttribute));
@@ -424,7 +437,7 @@ S_find_func(CFCFunction **funcs, const char *sym) {
     const size_t MAX_LEN = 128;
     char lcsym[MAX_LEN + 1];
     size_t sym_len = strlen(sym);
-    if (sym_len > MAX_LEN) { croak("sym too long: '%s'", sym); }
+    if (sym_len > MAX_LEN) { CFCUtil_die("sym too long: '%s'", sym); }
     size_t i;
     for (i = 0; i <= sym_len; i++) {
         lcsym[i] = tolower(sym[i]);
@@ -583,7 +596,7 @@ S_create_dumpables(CFCClass *self) {
 void
 CFCClass_grow_tree(CFCClass *self) {
     if (self->tree_grown) {
-        croak("Can't call grow_tree more than once");
+        CFCUtil_die("Can't call grow_tree more than once");
     }
     S_establish_ancestry(self);
     S_bequeath_member_vars(self);
@@ -690,8 +703,9 @@ CFCClass_get_cnick(CFCClass *self) {
 
 void
 CFCClass_set_parent(CFCClass *self, CFCClass *parent) {
-    CFCBase_decref((CFCBase*)self->parent);
+    CFCClass *old_parent = self->parent;
     self->parent = (CFCClass*)CFCBase_incref((CFCBase*)parent);
+    CFCBase_decref((CFCBase*)old_parent);
 }
 
 CFCClass*

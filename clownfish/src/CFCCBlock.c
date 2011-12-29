@@ -14,12 +14,6 @@
  * limitations under the License.
  */
 
-#include <stdlib.h>
-#include "EXTERN.h"
-#include "perl.h"
-#include "XSUB.h"
-#include "ppport.h"
-
 #define CFC_NEED_BASE_STRUCT_DEF
 #include "CFCBase.h"
 #include "CFCCBlock.h"
@@ -30,10 +24,15 @@ struct CFCCBlock {
     char *contents;
 };
 
+const static CFCMeta CFCCBLOCK_META = {
+    "Clownfish::CFC::CBlock",
+    sizeof(CFCCBlock),
+    (CFCBase_destroy_t)CFCCBlock_destroy
+};
+
 CFCCBlock*
 CFCCBlock_new(const char *contents) {
-    CFCCBlock *self = (CFCCBlock*)CFCBase_allocate(sizeof(CFCCBlock),
-                                                   "Clownfish::CBlock");
+    CFCCBlock *self = (CFCCBlock*)CFCBase_allocate(&CFCCBLOCK_META);
     return CFCCBlock_init(self, contents);
 }
 

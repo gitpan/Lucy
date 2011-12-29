@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-#include <stdlib.h>
-#include "EXTERN.h"
-#include "perl.h"
-#include "XSUB.h"
-#include "ppport.h"
+#include <string.h>
+#include <stdio.h>
+#include <ctype.h>
 
 #ifndef true
     #define true 1
@@ -43,11 +41,16 @@ struct CFCFile {
     char *path_part;
 };
 
+const static CFCMeta CFCFILE_META = {
+    "Clownfish::CFC::File",
+    sizeof(CFCFile),
+    (CFCBase_destroy_t)CFCFile_destroy
+};
+
 CFCFile*
 CFCFile_new(const char *source_class) {
 
-    CFCFile *self = (CFCFile*)CFCBase_allocate(sizeof(CFCFile),
-                                               "Clownfish::File");
+    CFCFile *self = (CFCFile*)CFCBase_allocate(&CFCFILE_META);
     return CFCFile_init(self, source_class);
 }
 
@@ -124,7 +127,7 @@ CFCFile_add_block(CFCFile *self, CFCBase *block) {
     const char *cfc_class = CFCBase_get_cfc_class(block);
 
     // Add to classes array if the block is a CFCClass.
-    if (strcmp(cfc_class, "Clownfish::Class") == 0) {
+    if (strcmp(cfc_class, "Clownfish::CFC::Class") == 0) {
         size_t num_class_blocks = 0;
         while (self->classes[num_class_blocks] != NULL) {
             num_class_blocks++;
@@ -138,9 +141,9 @@ CFCFile_add_block(CFCFile *self, CFCBase *block) {
     }
 
     // Add to blocks array.
-    if (strcmp(cfc_class, "Clownfish::Class") == 0
-        || strcmp(cfc_class, "Clownfish::Parcel") == 0
-        || strcmp(cfc_class, "Clownfish::CBlock") == 0
+    if (strcmp(cfc_class, "Clownfish::CFC::Class") == 0
+        || strcmp(cfc_class, "Clownfish::CFC::Parcel") == 0
+        || strcmp(cfc_class, "Clownfish::CFC::CBlock") == 0
        ) {
         size_t num_blocks = 0;
         while (self->blocks[num_blocks] != NULL) {
@@ -153,7 +156,7 @@ CFCFile_add_block(CFCFile *self, CFCBase *block) {
         self->blocks[num_blocks] = NULL;
     }
     else {
-        croak("Wrong kind of object: '%s'", cfc_class);
+        CFCUtil_die("Wrong kind of object: '%s'", cfc_class);
     }
 }
 
@@ -162,10 +165,11 @@ S_some_path(CFCFile *self, char *buf, size_t buf_size, const char *base_dir,
             const char *ext) {
     size_t needed = CFCFile_path_buf_size(self, base_dir);
     if (strlen(ext) > 4) {
-        croak("ext cannot be more than 4 characters.");
+        CFCUtil_die("ext cannot be more than 4 characters.");
     }
     if (needed > buf_size) {
-        croak("Need buf_size of %lu, but got %lu", needed, buf_size);
+        CFCUtil_die("Need buf_size of %lu, but got %lu",
+                    (unsigned long)needed, (unsigned long)buf_size);
     }
     if (base_dir) {
         sprintf(buf, "%s" CFCUTIL_PATH_SEP "%s%s", base_dir, self->path_part,

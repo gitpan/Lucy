@@ -14,12 +14,9 @@
  * limitations under the License.
  */
 
-#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 #include <ctype.h>
-#include "EXTERN.h"
-#include "perl.h"
-#include "XSUB.h"
-#include "ppport.h"
 
 #ifndef true
   #define true 1
@@ -46,13 +43,42 @@ struct CFCType {
     struct CFCType *child;
 };
 
+const static CFCMeta CFCTYPE_META = {
+    "Clownfish::CFC::Type",
+    sizeof(CFCType),
+    (CFCBase_destroy_t)CFCType_destroy
+};
+
 CFCType*
 CFCType_new(int flags, struct CFCParcel *parcel, const char *specifier,
             int indirection, const char *c_string) {
-    CFCType *self = (CFCType*)CFCBase_allocate(sizeof(CFCType),
-                                               "Clownfish::Type");
+    CFCType *self = (CFCType*)CFCBase_allocate(&CFCTYPE_META);
     return CFCType_init(self, flags, parcel, specifier, indirection,
                         c_string);
+}
+
+static void
+S_check_flags(int supplied, int acceptable, const char *type_name) {
+    int bad = (supplied & ~acceptable);
+    if (bad) {
+        char bad_flag[20];
+        if ((bad & CFCTYPE_CONST))            { strcpy(bad_flag, "CONST"); }
+        else if ((bad & CFCTYPE_NULLABLE))    { strcpy(bad_flag, "NULLABLE"); }
+        else if ((bad & CFCTYPE_INCREMENTED)) { strcpy(bad_flag, "INCREMENTED"); }
+        else if ((bad & CFCTYPE_DECREMENTED)) { strcpy(bad_flag, "DECREMENTED"); }
+        else if ((bad & CFCTYPE_OBJECT))      { strcpy(bad_flag, "OBJECT"); }
+        else if ((bad & CFCTYPE_PRIMITIVE))   { strcpy(bad_flag, "PRIMITIVE"); }
+        else if ((bad & CFCTYPE_INTEGER))     { strcpy(bad_flag, "INTEGER"); }
+        else if ((bad & CFCTYPE_FLOATING))    { strcpy(bad_flag, "FLOATING"); }
+        else if ((bad & CFCTYPE_STRING_TYPE)) { strcpy(bad_flag, "STRING_TYPE"); }
+        else if ((bad & CFCTYPE_VA_LIST))     { strcpy(bad_flag, "VA_LIST"); }
+        else if ((bad & CFCTYPE_ARBITRARY))   { strcpy(bad_flag, "ARBITRARY"); }
+        else if ((bad & CFCTYPE_COMPOSITE))   { strcpy(bad_flag, "COMPOSITE"); }
+        else {
+            CFCUtil_die("Unknown flags: %d", bad);
+        }
+        CFCUtil_die("Bad flag for type %s: %s", type_name, bad_flag);
+    }
 }
 
 CFCType*
@@ -105,7 +131,7 @@ CFCType_new_integer(int flags, const char *specifier) {
         width = 0;
     }
     else {
-        croak("Unknown integer specifier: '%s'", specifier);
+        CFCUtil_die("Unknown integer specifier: '%s'", specifier);
     }
 
     // Add Charmonizer prefix if necessary.
@@ -129,6 +155,8 @@ CFCType_new_integer(int flags, const char *specifier) {
     // Add flags.
     flags |= CFCTYPE_PRIMITIVE;
     flags |= CFCTYPE_INTEGER;
+    S_check_flags(flags, CFCTYPE_CONST | CFCTYPE_PRIMITIVE | CFCTYPE_INTEGER,
+                  "Integer");
 
     CFCType *self = CFCType_new(flags, NULL, full_specifier, 0, c_string);
     self->width = width;
@@ -147,7 +175,7 @@ CFCType_new_float(int flags, const char *specifier) {
     size_t i;
     for (i = 0; ; i++) {
         if (!float_specifiers[i]) {
-            croak("Unknown float specifier: '%s'", specifier);
+            CFCUtil_die("Unknown float specifier: '%s'", specifier);
         }
         if (strcmp(float_specifiers[i], specifier) == 0) {
             break;
@@ -165,6 +193,8 @@ CFCType_new_float(int flags, const char *specifier) {
 
     flags |= CFCTYPE_PRIMITIVE;
     flags |= CFCTYPE_FLOATING;
+    S_check_flags(flags, CFCTYPE_CONST | CFCTYPE_PRIMITIVE | CFCTYPE_FLOATING,
+                  "Floating");
 
     return CFCType_new(flags, NULL, specifier, 0, c_string);
 }
@@ -174,16 +204,18 @@ CFCType_new_object(int flags, CFCParcel *parcel, const char *specifier,
                    int indirection) {
     // Validate params.
     if (indirection != 1) {
-        croak("Parameter 'indirection' can only be 1");
+        CFCUtil_die("Parameter 'indirection' can only be 1");
     }
     if (!specifier || !strlen(specifier)) {
-        croak("Missing required param 'specifier'");
+        CFCUtil_die("Missing required param 'specifier'");
     }
     if ((flags & CFCTYPE_INCREMENTED) && (flags & CFCTYPE_DECREMENTED)) {
-        croak("Can't be both incremented and decremented");
+        CFCUtil_die("Can't be both incremented and decremented");
     }
+
+    // Use default parcel if none supplied.
     if (!parcel) {
-        croak("Missing required param 'parcel'");
+        parcel = CFCParcel_singleton(NULL, NULL);
     }
 
     // Add flags.
@@ -198,7 +230,7 @@ CFCType_new_object(int flags, CFCParcel *parcel, const char *specifier,
     char full_specifier[MAX_SPECIFIER_LEN + 1];
     char small_specifier[MAX_SPECIFIER_LEN + 1];
     if (strlen(prefix) + strlen(specifier) > MAX_SPECIFIER_LEN) {
-        croak("Specifier and/or parcel prefix too long");
+        CFCUtil_die("Specifier and/or parcel prefix too long");
     }
     if (strstr(specifier, prefix) != specifier) {
         sprintf(full_specifier, "%s%s", prefix, specifier);
@@ -209,7 +241,7 @@ CFCType_new_object(int flags, CFCParcel *parcel, const char *specifier,
         strcpy(small_specifier, specifier + strlen(prefix));
     }
     if (!CFCSymbol_validate_class_name_component(small_specifier)) {
-        croak("Invalid specifier: '%s'", specifier);
+        CFCUtil_die("Invalid specifier: '%s'", specifier);
     }
 
     // Cache C representation.
@@ -221,6 +253,14 @@ CFCType_new_object(int flags, CFCParcel *parcel, const char *specifier,
         sprintf(c_string, "%s*", full_specifier);
     }
 
+    int acceptable_flags = CFCTYPE_OBJECT
+                           | CFCTYPE_STRING_TYPE
+                           | CFCTYPE_CONST
+                           | CFCTYPE_NULLABLE
+                           | CFCTYPE_INCREMENTED
+                           | CFCTYPE_DECREMENTED;
+    S_check_flags(flags, acceptable_flags, "Object");
+
     return CFCType_new(flags, parcel, full_specifier, 1, c_string);
 }
 
@@ -228,9 +268,10 @@ CFCType*
 CFCType_new_composite(int flags, CFCType *child, int indirection,
                       const char *array) {
     if (!child) {
-        croak("Missing required param 'child'");
+        CFCUtil_die("Missing required param 'child'");
     }
     flags |= CFCTYPE_COMPOSITE;
+    S_check_flags(flags, CFCTYPE_COMPOSITE | CFCTYPE_NULLABLE, "Composite");
 
     // Cache C representation.
     // NOTE: Array postfixes are NOT included.
@@ -239,7 +280,7 @@ CFCType_new_composite(int flags, CFCType *child, int indirection,
     size_t        child_c_len    = strlen(child_c_string);
     size_t        amount         = child_c_len + indirection;
     if (amount > MAX_LEN) {
-        croak("C representation too long");
+        CFCUtil_die("C representation too long");
     }
     char c_string[MAX_LEN + 1];
     strcpy(c_string, child_c_string);
@@ -285,13 +326,13 @@ CFCType_new_arbitrary(CFCParcel *parcel, const char *specifier) {
         const char *prefix   = CFCParcel_get_prefix(parcel);
         size_t      full_len = strlen(prefix) + strlen(specifier);
         if (full_len > MAX_SPECIFIER_LEN) {
-            croak("Illegal specifier: '%s'", specifier);
+            CFCUtil_die("Illegal specifier: '%s'", specifier);
         }
         sprintf(full_specifier, "%s%s", prefix, specifier);
     }
     else {
         if (strlen(specifier) > MAX_SPECIFIER_LEN) {
-            croak("Illegal specifier: '%s'", specifier);
+            CFCUtil_die("Illegal specifier: '%s'", specifier);
         }
         strcpy(full_specifier, specifier);
     }
@@ -300,7 +341,7 @@ CFCType_new_arbitrary(CFCParcel *parcel, const char *specifier) {
     size_t i, max;
     for (i = 0, max = strlen(full_specifier); i < max; i++) {
         if (!isalnum(full_specifier[i]) && full_specifier[i] != '_') {
-            croak("Illegal specifier: '%s'", full_specifier);
+            CFCUtil_die("Illegal specifier: '%s'", full_specifier);
         }
     }
 
@@ -317,6 +358,7 @@ CFCType_destroy(CFCType *self) {
     FREEMEM(self->specifier);
     FREEMEM(self->c_string);
     FREEMEM(self->array);
+    FREEMEM(self->vtable_var);
     CFCBase_destroy((CFCBase*)self);
 }
 
@@ -353,7 +395,7 @@ CFCType_equals(CFCType *self, CFCType *other) {
 int
 CFCType_similar(CFCType *self, CFCType *other) {
     if (!CFCType_is_object(self)) {
-        croak("Attempt to call 'similar' on a non-object type");
+        CFCUtil_die("Attempt to call 'similar' on a non-object type");
     }
     if ((CFCType_const(self)           ^ CFCType_const(other))
         || (CFCType_nullable(self)     ^ CFCType_nullable(other))

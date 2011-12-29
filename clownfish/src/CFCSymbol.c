@@ -14,13 +14,8 @@
  * limitations under the License.
  */
 
-#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include "EXTERN.h"
-#include "perl.h"
-#include "XSUB.h"
-#include "ppport.h"
 
 #ifndef true
   #define true 1
@@ -32,12 +27,17 @@
 #include "CFCParcel.h"
 #include "CFCUtil.h"
 
+const static CFCMeta CFCSYMBOL_META = {
+    "Clownfish::CFC::Symbol",
+    sizeof(CFCSymbol),
+    (CFCBase_destroy_t)CFCSymbol_destroy
+};
+
 CFCSymbol*
 CFCSymbol_new(struct CFCParcel *parcel, const char *exposure,
               const char *class_name, const char *class_cnick,
               const char *micro_sym) {
-    CFCSymbol *self = (CFCSymbol*)CFCBase_allocate(sizeof(CFCSymbol),
-                                                   "Clownfish::Symbol");
+    CFCSymbol *self = (CFCSymbol*)CFCBase_allocate(&CFCSYMBOL_META);
     return CFCSymbol_init(self, parcel, exposure, class_name, class_cnick,
                           micro_sym);
 }
@@ -128,13 +128,16 @@ CFCSymbol_init(CFCSymbol *self, struct CFCParcel *parcel,
     // Validate.
     CFCUTIL_NULL_CHECK(parcel);
     if (!S_validate_exposure(exposure)) {
-        croak("Invalid exposure: '%s'", exposure ? exposure : "[NULL]");
+        CFCBase_decref((CFCBase*)self);
+        CFCUtil_die("Invalid exposure: '%s'", exposure ? exposure : "[NULL]");
     }
     if (class_name && !S_validate_class_name(class_name)) {
-        croak("Invalid class_name: '%s'", class_name);
+        CFCBase_decref((CFCBase*)self);
+        CFCUtil_die("Invalid class_name: '%s'", class_name);
     }
     if (!micro_sym || !S_validate_identifier(micro_sym)) {
-        croak("Invalid micro_sym: '%s'",  micro_sym ? micro_sym : "[NULL]");
+        CFCBase_decref((CFCBase*)self);
+        CFCUtil_die("Invalid micro_sym: '%s'",  micro_sym ? micro_sym : "[NULL]");
     }
 
     // Derive class_cnick if necessary, then validate.
@@ -150,13 +153,15 @@ CFCSymbol_init(CFCSymbol *self, struct CFCParcel *parcel,
     }
     else if (class_cnick) {
         // Sanity check class_cnick without class_name.
-        croak("Can't supply class_cnick without class_name");
+        CFCBase_decref((CFCBase*)self);
+        CFCUtil_die("Can't supply class_cnick without class_name");
     }
     else {
         real_cnick = NULL;
     }
     if (real_cnick && !S_validate_class_cnick(real_cnick)) {
-        croak("Invalid class_cnick: '%s'", real_cnick);
+        CFCBase_decref((CFCBase*)self);
+        CFCUtil_die("Invalid class_cnick: '%s'", real_cnick);
     }
 
     // Assign.

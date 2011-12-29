@@ -17,6 +17,9 @@
 #ifndef H_CFCBASE
 #define H_CFCBASE
 
+/** Clownfish::CFC::Base - Base class for all CFC objects.
+ */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -24,12 +27,20 @@ extern "C" {
 #include <stddef.h>
 
 typedef struct CFCBase CFCBase;
+typedef struct CFCMeta CFCMeta;
+typedef void (*CFCBase_destroy_t)(CFCBase *self);
 
 #ifdef CFC_NEED_BASE_STRUCT_DEF
 struct CFCBase {
-    void *perl_obj;
+    const CFCMeta *meta;
+    int refcount;
 };
 #endif
+struct CFCMeta {
+    char *cfc_class;
+    size_t obj_alloc_size;
+    CFCBase_destroy_t destroy;
+};
 
 /** Allocate a new CFC object.
  *
@@ -37,7 +48,7 @@ struct CFCBase {
  * @param klass Class name.
  */
 CFCBase*
-CFCBase_allocate(size_t size, const char *klass);
+CFCBase_allocate(const CFCMeta *meta);
 
 /** Clean up CFCBase member variables as necessary and free the object blob
  * itself.
@@ -59,10 +70,10 @@ CFCBase_incref(CFCBase *self);
 unsigned
 CFCBase_decref(CFCBase *self);
 
-/** Return the CFC object's cached Perl object.
+/** Return the CFC object's refcount.
  */
-void*
-CFCBase_get_perl_obj(CFCBase *self);
+unsigned
+CFCBase_get_refcount(CFCBase *self);
 
 /** Return the class name of the CFC object.  (Not the class name of any
  * parsed object the CFC object might represent.)

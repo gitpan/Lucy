@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-#include <stdlib.h>
-#include "EXTERN.h"
-#include "perl.h"
-#include "XSUB.h"
-#include "ppport.h"
+#include <string.h>
 
 #define CFC_NEED_BASE_STRUCT_DEF
 #include "CFCBase.h"
@@ -41,10 +37,15 @@ struct CFCParamList {
 static void
 S_generate_c_strings(CFCParamList *self);
 
+const static CFCMeta CFCPARAMLIST_META = {
+    "Clownfish::CFC::ParamList",
+    sizeof(CFCParamList),
+    (CFCBase_destroy_t)CFCParamList_destroy
+};
+
 CFCParamList*
 CFCParamList_new(int variadic) {
-    CFCParamList *self = (CFCParamList*)CFCBase_allocate(sizeof(CFCParamList),
-                                                         "Clownfish::ParamList");
+    CFCParamList *self = (CFCParamList*)CFCBase_allocate(&CFCPARAMLIST_META);
     return CFCParamList_init(self, variadic);
 }
 
@@ -143,6 +144,12 @@ CFCParamList_get_initial_values(CFCParamList *self) {
 size_t
 CFCParamList_num_vars(CFCParamList *self) {
     return self->num_vars;
+}
+
+void
+CFCParamList_set_variadic(CFCParamList *self, int variadic) {
+    self->variadic = !!variadic;
+    S_generate_c_strings(self);
 }
 
 int

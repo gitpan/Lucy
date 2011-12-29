@@ -111,7 +111,7 @@ XSBind_maybe_sv_to_cfish_obj(SV *sv, cfish_VTable *vtable, void *allocation) {
                 // dangerous, but is the only way to avoid requiring that the
                 // caller take responsibility for a refcount.
                 SV *mortal = (SV*)Cfish_Obj_To_Host(retval);
-                LUCY_DECREF(retval);
+                CFISH_DECREF(retval);
                 sv_2mortal(mortal);
             }
         }
@@ -139,6 +139,12 @@ XSBind_cfish_to_perl(cfish_Obj *obj) {
     }
     else if (Cfish_Obj_Is_A(obj, CFISH_FLOATNUM)) {
         return newSVnv(Cfish_Obj_To_F64(obj));
+    }
+    else if (obj == (cfish_Obj*)CFISH_TRUE) {
+        return newSViv(1);
+    }
+    else if (obj == (cfish_Obj*)CFISH_FALSE) {
+        return newSViv(0);
     }
     else if (sizeof(IV) == 8 && Cfish_Obj_Is_A(obj, CFISH_INTNUM)) {
         int64_t num = Cfish_Obj_To_I64(obj);
@@ -176,7 +182,7 @@ XSBind_perl_to_cfish(SV *sv) {
                     ) {
                 IV tmp = SvIV(inner);
                 retval = INT2PTR(cfish_Obj*, tmp);
-                (void)LUCY_INCREF(retval);
+                (void)CFISH_INCREF(retval);
             }
         }
 
@@ -483,7 +489,6 @@ XSBind_allot_params(SV** stack, int32_t start, int32_t num_stack_elems,
 
     // Verify that our args come in pairs. Return success if there are no
     // args.
-    if (num_stack_elems == start) { return true; }
     if ((num_stack_elems - start) % 2 != 0) {
         cfish_CharBuf *mess
             = CFISH_MAKE_MESS(
@@ -507,7 +512,7 @@ XSBind_allot_params(SV** stack, int32_t start, int32_t num_stack_elems,
 
     void *target;
     va_start(args, params_hash_name);
-    while (args_left && NULL != (target = va_arg(args, void*))) {
+    while (NULL != (target = va_arg(args, void*))) {
         char *label     = va_arg(args, char*);
         int   label_len = va_arg(args, int);
         int   required  = va_arg(args, int);
@@ -531,7 +536,6 @@ XSBind_allot_params(SV** stack, int32_t start, int32_t num_stack_elems,
                         CFISH_ERR_ADD_FRAME(cfish_Err_get_error());
                         return false;
                     }
-                    args_left--;
                     break;
                 }
             }

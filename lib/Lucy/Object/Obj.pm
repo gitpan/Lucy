@@ -55,8 +55,8 @@ PPCODE:
         serialized_bb
             = Lucy_RAMFile_Get_Contents(Lucy_RAMFH_Get_File(file_handle));
         retval = XSBind_bb_to_sv(serialized_bb);
-        LUCY_DECREF(file_handle);
-        LUCY_DECREF(target);
+        CFISH_DECREF(file_handle);
+        CFISH_DECREF(target);
 
         if (SvCUR(retval) == 0) { // Thwart Storable bug
             THROW(LUCY_ERR, "Calling serialize produced an empty string");
@@ -97,28 +97,16 @@ PPCODE:
     lucy_Obj *deserialized = Lucy_Obj_Deserialize(self, instream);
 
     CHY_UNUSED_VAR(cloning);
-    LUCY_DECREF(contents);
-    LUCY_DECREF(ram_file);
-    LUCY_DECREF(file_handle);
-    LUCY_DECREF(instream);
+    CFISH_DECREF(contents);
+    CFISH_DECREF(ram_file);
+    CFISH_DECREF(file_handle);
+    CFISH_DECREF(instream);
 
     // Catch bad deserialize() override.
     if (deserialized != self) {
         THROW(LUCY_ERR, "Error when deserializing obj of class %o", klass);
     }
 }
-
-void
-DESTROY(self)
-    lucy_Obj *self;
-PPCODE:
-    /*
-    {
-        char *perl_class = HvNAME(SvSTASH(SvRV(ST(0))));
-        warn("Destroying: 0x%x %s", (unsigned)self, perl_class);
-    }
-    */
-    Lucy_Obj_Destroy(self);
 END_XS_CODE
 
 my $synopsis = <<'END_SYNOPSIS';
@@ -205,7 +193,7 @@ All Lucy classes implement a DESTROY method; if you override it in a
 subclass, you must call C<< $self->SUPER::DESTROY >> to avoid leaking memory.
 END_DESCRIPTION
 
-Clownfish::Binding::Perl::Class->register(
+Clownfish::CFC::Binding::Perl::Class->register(
     parcel       => "Lucy",
     class_name   => "Lucy::Object::Obj",
     xs_code      => $xs_code,

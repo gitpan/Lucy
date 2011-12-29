@@ -24,12 +24,8 @@ __BINDING__
 
 my $synopsis = <<'END_SYNOPSIS';
     my $schema = MySchema->new;
-    for my $server_name (@server_names) {
-        push @searchers, LucyX::Remote::SearchClient->new(
-            peer_address => "$server_name:$port",
-            password     => $pass,
-            schema       => $schema,
-        );
+    for my $index (@index_paths) {
+        push @searchers, Lucy::Search::IndexSearcher->new( index => $index );
     }
     my $poly_searcher = Lucy::Search::PolySearcher->new(
         schema    => $schema,
@@ -45,7 +41,7 @@ my $constructor = <<'END_CONSTRUCTOR';
     );
 END_CONSTRUCTOR
 
-Clownfish::Binding::Perl::Class->register(
+Clownfish::CFC::Binding::Perl::Class->register(
     parcel            => "Lucy",
     class_name        => "Lucy::Search::PolySearcher",
     bind_constructors => ["new"],

@@ -20,8 +20,6 @@ package LucyX::Remote::SearchClient;
 BEGIN { our @ISA = qw( Lucy::Search::Searcher ) }
 use Carp;
 use Storable qw( nfreeze thaw );
-use bytes;
-no bytes;
 
 # Inside-out member vars.
 our %peer_address;
@@ -45,17 +43,16 @@ sub new {
     );
     confess("No socket: $!") unless $sock;
     $sock->autoflush(1);
-
-    # Verify password.
-    print $sock "$password\n";
-    chomp( my $response = <$sock> );
-    confess("Failed to connect: '$response'") unless $response =~ /accept/i;
+    my %handshake_args = ( _action => 'handshake', password => $password );
+    my $response = $self->_rpc( \%handshake_args );
+    confess("Failed to connect") unless $response;
 
     return $self;
 }
 
 sub DESTROY {
     my $self = shift;
+    $self->close if defined $sock{$$self};
     delete $peer_address{$$self};
     delete $password{$$self};
     delete $sock{$$self};
@@ -71,23 +68,32 @@ Storable.
 =cut
 
 sub _rpc {
-    my ( $self, $method, $args ) = @_;
+    my ( $self, $args ) = @_;
     my $sock = $sock{$$self};
 
     my $serialized = nfreeze($args);
-    my $packed_len = pack( 'N', bytes::length($serialized) );
-    print $sock "$method\n$packed_len$serialized";
+    my $packed_len = pack( 'N', length($serialized) );
+    print $sock "$packed_len$serialized" or confess $!;
+
+=begin disabled
+    my $check_val = $sock->syswrite("$packed_len$serialized");
+    confess $! if $check_val != length($serialized) + 4;
+=cut
+
+    my $check_val;
 
     # Bail out if we're either closing or shutting down the server remotely.
-    return if $method eq 'done';
-    return if $method eq 'terminate';
+    return if $args->{_action} eq 'done';
+    return if $args->{_action} eq 'terminate';
 
     # Decode response.
-    $sock->read( $packed_len, 4 );
+    $check_val = $sock->read( $packed_len, 4 );
+    confess("Failed to read 4 bytes: $!")
+        unless $check_val == 4;
     my $arg_len = unpack( 'N', $packed_len );
-    my $check_val = read( $sock, $serialized, $arg_len );
-    confess("Tried to read $arg_len bytes, got $check_val")
-        unless ( defined $arg_len and $check_val == $arg_len );
+    $check_val = $sock->read( $serialized, $arg_len );
+    confess("Failed to read $arg_len bytes")
+        unless $check_val == $arg_len;
     my $response = thaw($serialized);
     if ( exists $response->{retval} ) {
         return $response->{retval};
@@ -97,45 +103,46 @@ sub _rpc {
 
 sub top_docs {
     my $self = shift;
-    return $self->_rpc( 'top_docs', {@_} );
+    my %args = ( @_, _action => 'top_docs' );
+    return $self->_rpc( \%args );
 }
 
 sub terminate {
     my $self = shift;
-    return $self->_rpc( 'terminate', {} );
+    my %args = ( _action => 'terminate' );
+    return $self->_rpc( \%args );
 }
 
 sub fetch_doc {
     my ( $self, $doc_id ) = @_;
-    return $self->_rpc( 'fetch_doc', { doc_id => $doc_id } );
+    my %args = ( doc_id => $doc_id, _action => 'fetch_doc' );
+    return $self->_rpc( \%args );
 }
 
 sub fetch_doc_vec {
     my ( $self, $doc_id ) = @_;
-    return $self->_rpc( 'fetch_doc_vec', { doc_id => $doc_id } );
+    my %args = ( doc_id => $doc_id, _action => 'fetch_doc_vec' );
+    return $self->_rpc( \%args );
 }
 
 sub doc_max {
     my $self = shift;
-    return $self->_rpc( 'doc_max', {} );
+    my %args = ( _action => 'doc_max' );
+    return $self->_rpc( { _action => 'doc_max' } );
 }
 
 sub doc_freq {
     my $self = shift;
-    return $self->_rpc( 'doc_freq', {@_} );
+    my %args = ( @_, _action => 'doc_freq' );
+    return $self->_rpc( \%args );
 }
 
 sub close {
     my $self = shift;
-    $self->_rpc( 'done', {} );
+    $self->_rpc( { _action => 'done' } );
     my $sock = $sock{$$self};
     close $sock or confess("Error when closing socket: $!");
     delete $sock{$$self};
-}
-
-sub NUKE {
-    my $self = shift;
-    $self->close if defined $sock{$$self};
 }
 
 1;
@@ -150,7 +157,6 @@ LucyX::Remote::SearchClient - Connect to a remote SearchServer.
 
     my $client = LucyX::Remote::SearchClient->new(
         peer_address => 'searchserver1:7890',
-        password     => $pass,
     );
     my $hits = $client->hits( query => $query );
 
@@ -175,8 +181,8 @@ attempt to connect to.
 
 =item *
 
-B<password> - Password to be supplied to the SearchServer when initializing
-socket connection.
+B<password> - Optional password to be supplied to the SearchServer when
+initializing socket connection.
 
 =back
 

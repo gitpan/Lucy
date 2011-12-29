@@ -19,6 +19,7 @@
 #include <string.h>
 #include <errno.h>
 #include <sys/stat.h>
+#include <ctype.h>
 
 #ifndef true
     #define true 1
@@ -32,12 +33,13 @@
 #include "CFCFile.h"
 #include "CFCSymbol.h"
 #include "CFCUtil.h"
+#include "CFCParser.h"
 
 struct CFCHierarchy {
     CFCBase base;
     char *source;
     char *dest;
-    void *parser;
+    CFCParser *parser;
     CFCClass **trees;
     size_t num_trees;
     CFCFile **files;
@@ -60,24 +62,22 @@ S_fetch_file(CFCHierarchy *self, const char *source_class);
 static int
 S_do_propagate_modified(CFCHierarchy *self, CFCClass *klass, int modified);
 
-#include "EXTERN.h"
-#include "perl.h"
-#include "XSUB.h"
-#include "ppport.h"
+const static CFCMeta CFCHIERARCHY_META = {
+    "Clownfish::CFC::Hierarchy",
+    sizeof(CFCHierarchy),
+    (CFCBase_destroy_t)CFCHierarchy_destroy
+};
 
 CFCHierarchy*
-CFCHierarchy_new(const char *source, const char *dest, void *parser) {
-    CFCHierarchy *self
-        = (CFCHierarchy*)CFCBase_allocate(sizeof(CFCHierarchy),
-                                          "Clownfish::Hierarchy");
-    return CFCHierarchy_init(self, source, dest, parser);
+CFCHierarchy_new(const char *source, const char *dest) {
+    CFCHierarchy *self = (CFCHierarchy*)CFCBase_allocate(&CFCHIERARCHY_META);
+    return CFCHierarchy_init(self, source, dest);
 }
 
 CFCHierarchy*
-CFCHierarchy_init(CFCHierarchy *self, const char *source, const char *dest,
-                  void *parser) {
+CFCHierarchy_init(CFCHierarchy *self, const char *source, const char *dest) {
     if (!source || !strlen(source) || !dest || !strlen(dest)) {
-        croak("Both 'source' and 'dest' are required");
+        CFCUtil_die("Both 'source' and 'dest' are required");
     }
     self->source    = CFCUtil_strdup(source);
     self->dest      = CFCUtil_strdup(dest);
@@ -85,7 +85,7 @@ CFCHierarchy_init(CFCHierarchy *self, const char *source, const char *dest,
     self->num_trees = 0;
     self->files     = (CFCFile**)CALLOCATE(1, sizeof(CFCFile*));
     self->num_files = 0;
-    self->parser    = newSVsv((SV*)parser);
+    self->parser    = CFCParser_new();
     return self;
 }
 
@@ -102,7 +102,7 @@ CFCHierarchy_destroy(CFCHierarchy *self) {
     FREEMEM(self->files);
     FREEMEM(self->source);
     FREEMEM(self->dest);
-    SvREFCNT_dec((SV*)self->parser);
+    CFCBase_decref((CFCBase*)self->parser);
     CFCBase_destroy((CFCBase*)self);
 }
 
@@ -113,40 +113,6 @@ CFCHierarchy_build(CFCHierarchy *self) {
     for (i = 0; self->trees[i] != NULL; i++) {
         CFCClass_grow_tree(self->trees[i]);
     }
-}
-
-static CFCFile*
-S_parse_file(void *parser, const char *content, const char *source_class) {
-    dSP;
-    ENTER;
-    SAVETMPS;
-    PUSHMARK(SP);
-    XPUSHs(sv_2mortal(newSVsv((SV*)parser)));
-    XPUSHs(sv_2mortal(newSVpvn(content, strlen(content))));
-    XPUSHs(sv_2mortal(newSVpvn(source_class, strlen(source_class))));
-    PUTBACK;
-
-    int count = call_pv("Clownfish::Hierarchy::_do_parse_file", G_SCALAR);
-
-    SPAGAIN;
-
-    if (count != 1) {
-        CFCUtil_die("call to _do_parse_file failed\n");
-    }
-
-    SV *got = POPs;
-    CFCFile *file = NULL;
-    if (sv_derived_from(got, "Clownfish::File")) {
-        IV tmp = SvIV(SvRV(got));
-        file = INT2PTR(CFCFile*, tmp);
-        CFCBase_incref((CFCBase*)file);
-    }
-
-    PUTBACK;
-    FREETMPS;
-    LEAVE;
-
-    return file;
 }
 
 static char**
@@ -165,7 +131,7 @@ S_find_cfh(char *dir, char **cfh_list, size_t num_cfh) {
         size_t needed = strlen(dir) + 1 + name_len + 1;
         if (needed > full_path_cap) {
             full_path_cap = needed;
-            full_path = (char*)MALLOCATE(full_path_cap);
+            full_path = (char*)REALLOCATE(full_path, full_path_cap);
         }
         int full_path_len = sprintf(full_path, "%s" CFCUTIL_PATH_SEP "%s",
                                     dir, entry);
@@ -237,9 +203,10 @@ S_parse_cf_files(CFCHierarchy *self) {
         // Slurp, parse, add parsed file to pool.
         size_t unused;
         char *content = CFCUtil_slurp_text(source_path, &unused);
-        CFCFile *file = S_parse_file(self->parser, content, source_class);
+        CFCFile *file = CFCParser_parse_file(self->parser, content, source_class);
+        FREEMEM(content);
         if (!file) {
-            croak("parser error for %s", source_path);
+            CFCUtil_die("parser error for %s", source_path);
         }
         S_add_file(self, file);
 
@@ -253,6 +220,7 @@ S_parse_cf_files(CFCHierarchy *self) {
             }
             all_classes[num_classes++] = classes_in_file[j];
         }
+        CFCBase_decref((CFCBase*)file);
     }
     all_classes[num_classes] = NULL;
 
@@ -321,6 +289,8 @@ S_do_propagate_modified(CFCHierarchy *self, CFCClass *klass, int modified) {
     if (!CFCUtil_current(source_path, h_path)) {
         modified = true;
     }
+    FREEMEM(h_path);
+    FREEMEM(source_path);
     if (modified) {
         CFCFile_set_modified(file, modified);
     }

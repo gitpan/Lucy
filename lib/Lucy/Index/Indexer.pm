@@ -59,7 +59,7 @@ PPCODE:
                                   ALLOT_F32(&boost, "boost", 5, false),
                                   NULL);
         if (!args_ok) {
-            CFISH_RETHROW(LUCY_INCREF(cfish_Err_get_error()));
+            CFISH_RETHROW(CFISH_INCREF(cfish_Err_get_error()));
         }
     }
     else if (items == 1) {
@@ -174,7 +174,7 @@ B<boost> - A floating point weight which affects how this document scores.
 
 END_ADD_DOC_POD
 
-Clownfish::Binding::Perl::Class->register(
+Clownfish::CFC::Binding::Perl::Class->register(
     parcel       => "Lucy",
     class_name   => "Lucy::Index::Indexer",
     xs_code      => $xs_code,
@@ -202,7 +202,7 @@ Clownfish::Binding::Perl::Class->register(
                 )
         ],
         synopsis     => $synopsis,
-        constructors => [$constructor],
+        constructors => [ { pod => $constructor } ],
     },
 );
 

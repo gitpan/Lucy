@@ -66,10 +66,9 @@ IxManager_destroy(IndexManager *self) {
 int64_t
 IxManager_highest_seg_num(IndexManager *self, Snapshot *snapshot) {
     VArray *files = Snapshot_List(snapshot);
-    uint32_t i, max;
     uint64_t highest_seg_num = 0;
     UNUSED_VAR(self);
-    for (i = 0, max = VA_Get_Size(files); i < max; i++) {
+    for (uint32_t i = 0, max = VA_Get_Size(files); i < max; i++) {
         CharBuf *file = (CharBuf*)VA_Fetch(files, i);
         if (Seg_valid_seg_name(file)) {
             uint64_t seg_num = IxFileNames_extract_gen(file);
@@ -84,11 +83,10 @@ CharBuf*
 IxManager_make_snapshot_filename(IndexManager *self) {
     Folder *folder = (Folder*)CERTIFY(self->folder, FOLDER);
     DirHandle *dh = Folder_Open_Dir(folder, NULL);
-    CharBuf *entry;
     uint64_t max_gen = 0;
 
     if (!dh) { RETHROW(INCREF(Err_get_error())); }
-    entry = DH_Get_Entry(dh);
+    CharBuf *entry = DH_Get_Entry(dh);
     while (DH_Next(dh)) {
         if (CB_Starts_With_Str(entry, "snapshot_", 9)
             && CB_Ends_With_Str(entry, ".json", 5)
@@ -99,12 +97,10 @@ IxManager_make_snapshot_filename(IndexManager *self) {
     }
     DECREF(dh);
 
-    {
-        uint64_t new_gen = max_gen + 1;
-        char  base36[StrHelp_MAX_BASE36_BYTES];
-        StrHelp_to_base36(new_gen, &base36);
-        return CB_newf("snapshot_%s.json", &base36);
-    }
+    uint64_t new_gen = max_gen + 1;
+    char  base36[StrHelp_MAX_BASE36_BYTES];
+    StrHelp_to_base36(new_gen, &base36);
+    return CB_newf("snapshot_%s.json", &base36);
 }
 
 static int
@@ -155,7 +151,7 @@ IxManager_recycle(IndexManager *self, PolyReader *reader,
     VA_Sort(candidates, S_compare_doc_count, NULL);
     int32_t *counts = (int32_t*)MALLOCATE(num_candidates * sizeof(int32_t));
     for (uint32_t i = 0; i < num_candidates; i++) {
-        SegReader *seg_reader 
+        SegReader *seg_reader
             = (SegReader*)CERTIFY(VA_Fetch(candidates, i), SEGREADER);
         counts[i] = SegReader_Doc_Count(seg_reader);
     }

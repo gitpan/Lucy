@@ -16,10 +16,10 @@
 use strict;
 use warnings;
 
-use lib '../clownfish/blib/arch';
-use lib '../clownfish/blib/lib';
-use lib 'clownfish/blib/arch';
-use lib 'clownfish/blib/lib';
+use lib '../clownfish/perl/blib/arch';
+use lib '../clownfish/perl/blib/lib';
+use lib 'clownfish/perl/blib/arch';
+use lib 'clownfish/perl/blib/lib';
 
 package Lucy::Build::CBuilder;
 BEGIN { our @ISA = "ExtUtils::CBuilder"; }
@@ -82,7 +82,7 @@ sub extra_ccflags {
     my $self      = shift;
     my $gcc_flags = '-std=gnu99 -D_GNU_SOURCE ';
     if ( defined $ENV{LUCY_VALGRIND} ) {
-        return "$gcc_flags -fno-inline-functions ";
+        return "$gcc_flags -DLUCY_VALGRIND -fno-inline-functions ";
     }
     elsif ( defined $ENV{LUCY_DEBUG} ) {
         return "$gcc_flags -DLUCY_DEBUG -pedantic -Wall -Wextra "
@@ -93,7 +93,7 @@ sub extra_ccflags {
     }
     elsif ( $self->config('cc') =~ /^cl\b/ ) {
         # Compile as C++ under MSVC.
-        return '/TP ';
+        return '/TP -D_CRT_SECURE_NO_WARNINGS -D_SCL_SECURE_NO_WARNINGS ';
     }
 }
 
@@ -114,14 +114,19 @@ my $base_dir = rel2abs( $is_distro_not_devel ? getcwd() : updir() );
 my $CHARMONIZER_ORIG_DIR = catdir( $base_dir, 'charmonizer' );
 my $CHARMONIZE_EXE_PATH
     = catfile( $CHARMONIZER_ORIG_DIR, "charmonize$Config{_exe}" );
-my $CHARMONY_PATH = 'charmony.h';
+my $CHARMONY_PATH  = 'charmony.h';
+my $LEMON_DIR      = catdir( $base_dir, 'lemon' );
+my $LEMON_EXE_PATH = catfile( $LEMON_DIR, "lemon$Config{_exe}" );
 my $SNOWSTEM_SRC_DIR
     = catdir( $base_dir, qw( modules analysis snowstem source ) );
 my $SNOWSTEM_INC_DIR = catdir( $SNOWSTEM_SRC_DIR, 'include' );
 my $SNOWSTOP_SRC_DIR
     = catdir( $base_dir, qw( modules analysis snowstop source ) );
+my $UCD_INC_DIR      = catdir( $base_dir, qw( modules unicode ucd ) );
+my $UTF8PROC_SRC_DIR = catdir( $base_dir, qw( modules unicode utf8proc ) );
+my $UTF8PROC_C = catfile( $UTF8PROC_SRC_DIR, 'utf8proc.c' );
 my $CORE_SOURCE_DIR = catdir( $base_dir, 'core' );
-my $CLOWNFISH_DIR   = catdir( $base_dir, 'clownfish' );
+my $CLOWNFISH_DIR = catdir( $base_dir, 'clownfish', 'perl' );
 my $CLOWNFISH_BUILD  = catfile( $CLOWNFISH_DIR, 'Build' );
 my $AUTOGEN_DIR      = 'autogen';
 my $XS_SOURCE_DIR    = 'xs';
@@ -177,6 +182,7 @@ sub ACTION_charmony {
     if ( $ENV{CHARM_VALGRIND} ) {
         unshift @command, "valgrind", "--leak-check=yes";
     }
+    print join( " ", @command ), $/;
 
     system(@command) and die "Failed to write $CHARMONY_PATH: $!";
 }
@@ -196,15 +202,25 @@ sub ACTION_charmonizer_tests {
     );
 }
 
+# Build the Lemon parser generator.
+sub ACTION_lemon {
+    my $self = shift;
+    print "Building the Lemon parser generator...\n\n";
+    $self->_run_make(
+        dir  => $LEMON_DIR,
+        args => [],
+    );
+}
+
 sub _compile_clownfish {
     my $self = shift;
 
-    require Clownfish::Hierarchy;
-    require Clownfish::Binding::Perl;
-    require Clownfish::Binding::Perl::Class;
+    require Clownfish::CFC::Hierarchy;
+    require Clownfish::CFC::Binding::Perl;
+    require Clownfish::CFC::Binding::Perl::Class;
 
     # Compile Clownfish.
-    my $hierarchy = Clownfish::Hierarchy->new(
+    my $hierarchy = Clownfish::CFC::Hierarchy->new(
         source => $CORE_SOURCE_DIR,
         dest   => $AUTOGEN_DIR,
     );
@@ -226,7 +242,7 @@ sub _compile_clownfish {
         }
     }
 
-    my $binding = Clownfish::Binding::Perl->new(
+    my $binding = Clownfish::CFC::Binding::Perl->new(
         parcel     => 'Lucy',
         hierarchy  => $hierarchy,
         lib_dir    => $LIB_DIR,
@@ -300,8 +316,8 @@ sub ACTION_clownfish {
     print "Parsing Clownfish files...\n";
     my ( $hierarchy, $perl_binding, $pm_filepaths_with_xs )
         = $self->_compile_clownfish;
-    require Clownfish::Binding::Core;
-    my $core_binding = Clownfish::Binding::Core->new(
+    require Clownfish::CFC::Binding::Core;
+    my $core_binding = Clownfish::CFC::Binding::Core->new(
         hierarchy => $hierarchy,
         dest      => $AUTOGEN_DIR,
         header    => $self->autogen_header,
@@ -383,6 +399,7 @@ sub ACTION_suppressions {
         . " ../devel/bin/valgrind_triggers.pl 2>&1";
     my $suppressions = `$command`;
     $suppressions =~ s/^==.*?\n//mg;
+    $suppressions =~ s/^--.*?\n//mg;
     my $rule_number = 1;
     while ( $suppressions =~ /<insert.a.*?>/ ) {
         $suppressions =~ s/^\s*<insert.a.*?>/{\n  <core_perl_$rule_number>/m;
@@ -404,13 +421,27 @@ sub _valgrind_base_command {
         . "--leak-check=yes "
         . "--show-reachable=yes "
         . "--num-callers=10 "
+        . "--dsymutil=yes "
         . "--suppressions=../devel/conf/lucyperl.supp ";
 }
 
+# Run the entire test suite under Valgrind.
+#
+# For this to work, Lucy must be compiled with the LUCY_VALGRIND environment
+# variable set to a true value, under a debugging Perl.
+#
+# A custom suppressions file will probably be needed -- use your judgment.
+# To pass in one or more local suppressions files, provide a comma separated
+# list like so:
+#
+#   $ ./Build test_valgrind --suppressions=foo.supp,bar.supp
 sub ACTION_test_valgrind {
     my $self = shift;
     die "Must be run under a perl that was compiled with -DDEBUGGING"
         unless $self->config('ccflags') =~ /-D?DEBUGGING\b/;
+    if ( !$ENV{LUCY_VALGRIND} ) {
+        warn "\$ENV{LUCY_VALGRIND} not true -- possible false positives";
+    }
     $self->dispatch('code');
     $self->dispatch('suppressions');
 
@@ -464,10 +495,27 @@ sub ACTION_test_valgrind {
     }
 }
 
+# Run all .y files through lemon.
+sub ACTION_parsers {
+    my $self = shift;
+    $self->dispatch('lemon');
+    my $y_files = $self->rscan_dir( $CORE_SOURCE_DIR, qr/\.y$/ );
+    for my $y_file (@$y_files) {
+        my $c_file = $y_file;
+        my $h_file = $y_file;
+        $c_file =~ s/\.y$/.c/ or die "no match";
+        $h_file =~ s/\.y$/.h/ or die "no match";
+        next if $self->up_to_date( $y_file, [ $c_file, $h_file ] );
+        $self->add_to_cleanup( $c_file, $h_file );
+        system( $LEMON_EXE_PATH, '-q', $y_file ) and die "lemon failed";
+    }
+}
+
 sub ACTION_compile_custom_xs {
     my $self = shift;
 
     $self->dispatch('ppport');
+    $self->dispatch('parsers');
 
     require ExtUtils::ParseXS;
 
@@ -477,8 +525,9 @@ sub ACTION_compile_custom_xs {
     my $archdir = catdir( $self->blib, 'arch', 'auto', 'Lucy', );
     mkpath( $archdir, 0, 0777 ) unless -d $archdir;
     my @include_dirs = (
-        getcwd(), $CORE_SOURCE_DIR, $AUTOGEN_DIR, $XS_SOURCE_DIR,
-        $SNOWSTEM_INC_DIR
+        getcwd(),       $CORE_SOURCE_DIR,  $AUTOGEN_DIR,
+        $XS_SOURCE_DIR, $SNOWSTEM_INC_DIR, $UCD_INC_DIR,
+        $UTF8PROC_SRC_DIR
     );
     my @objects;
 
@@ -489,6 +538,7 @@ sub ACTION_compile_custom_xs {
     push @$c_files, @{ $self->rscan_dir( $AUTOGEN_DIR,      qr/\.c$/ ) };
     push @$c_files, @{ $self->rscan_dir( $SNOWSTEM_SRC_DIR, qr/\.c$/ ) };
     push @$c_files, @{ $self->rscan_dir( $SNOWSTOP_SRC_DIR, qr/\.c$/ ) };
+    push @$c_files, $UTF8PROC_C;
     for my $c_file (@$c_files) {
         my $o_file   = $c_file;
         my $ccs_file = $c_file;
@@ -571,7 +621,7 @@ sub ACTION_compile_custom_xs {
     my $lib_file = catfile( $archdir, "Lucy.$Config{dlext}" );
     if ( !$self->up_to_date( [ @objects, $AUTOGEN_DIR ], $lib_file ) ) {
         # TODO: use Charmonizer to determine whether pthreads are userland.
-        my $link_flags = $Config{osname} =~ /openbsd/i ? '-pthread ' : '';
+        my $link_flags = $Config{osname} =~ /openbsd/i ? '-lpthread ' : '';
         $cbuilder->link(
             module_name        => 'Lucy',
             objects            => \@objects,
@@ -638,6 +688,7 @@ sub ACTION_dist {
         devel
         clownfish
         CHANGES
+        CONTRIBUTING
         LICENSE
         NOTICE
         README
@@ -720,6 +771,7 @@ sub ACTION_clean {
             and die "Clownfish clean failed";
     }
     $self->_run_make( dir => $CHARMONIZER_ORIG_DIR, args => ['clean'] );
+    $self->_run_make( dir => $LEMON_DIR,            args => ['clean'] );
     $self->SUPER::ACTION_clean;
 }
 

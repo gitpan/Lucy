@@ -80,6 +80,46 @@ TestUtils_random_f64s(double *buf, size_t count) {
     return f64s;
 }
 
+uint32_t
+S_random_code_point(void) {
+    uint32_t code_point = 0;
+    while (1) {
+        uint8_t chance = (rand() % 9) + 1;
+        switch (chance) {
+            case 1: case 2: case 3:
+                code_point = rand() % 0x80;
+                break;
+            case 4: case 5: case 6:
+                code_point = (rand() % (0x0800  - 0x0080)) + 0x0080;
+                break;
+            case 7: case 8:
+                code_point = (rand() % (0x10000 - 0x0800)) + 0x0800;
+                break;
+            case 9: {
+                    uint64_t num = TestUtils_random_u64();
+                    code_point = (num % (0x10FFFF - 0x10000)) + 0x10000;
+                }
+        }
+        if (code_point > 0x10FFFF) {
+            continue; // Too high.
+        }
+        if (code_point > 0xD7FF && code_point < 0xE000) {
+            continue; // UTF-16 surrogate.
+        }
+        break;
+    }
+    return code_point;
+}
+
+CharBuf*
+TestUtils_random_string(size_t length) {
+    CharBuf *string = CB_new(length);
+    while (length--) {
+        CB_Cat_Char(string, S_random_code_point());
+    }
+    return string;
+}
+
 VArray*
 TestUtils_doc_set() {
     VArray *docs = VA_new(10);
@@ -181,13 +221,12 @@ TestUtils_freeze_thaw(Obj *object) {
         FREEZE(object, outstream);
         OutStream_Close(outstream);
         DECREF(outstream);
-        {
-            InStream *instream = InStream_open((Obj*)ram_file);
-            Obj *retval = THAW(instream);
-            DECREF(instream);
-            DECREF(ram_file);
-            return retval;
-        }
+
+        InStream *instream = InStream_open((Obj*)ram_file);
+        Obj *retval = THAW(instream);
+        DECREF(instream);
+        DECREF(ram_file);
+        return retval;
     }
     else {
         return NULL;

@@ -359,6 +359,265 @@ logical_test_and_not_nested_or(uint32_t boolop) {
 }
 
 static TestQueryParser*
+logical_test_a_AND_b_AND_c_AND_d(uint32_t boolop) {
+    Query *a_query    = make_leaf_query(NULL, "a");
+    Query *b_query    = make_leaf_query(NULL, "b");
+    Query *c_query    = make_leaf_query(NULL, "c");
+    Query *d_query    = make_leaf_query(NULL, "d");
+    Query *tree       = make_poly_query(BOOLOP_AND, a_query, b_query, c_query,
+                                        d_query, NULL);
+    UNUSED_VAR(boolop);
+    return TestQP_new("a AND b AND c AND d", tree, NULL, 1);
+}
+
+static TestQueryParser*
+logical_test_a_AND_b_AND_c_OR_d(uint32_t boolop) {
+    Query *a_query    = make_leaf_query(NULL, "a");
+    Query *b_query    = make_leaf_query(NULL, "b");
+    Query *c_query    = make_leaf_query(NULL, "c");
+    Query *d_query    = make_leaf_query(NULL, "d");
+    Query *nested     = make_poly_query(BOOLOP_AND, a_query, b_query, c_query,
+                                        NULL);
+    Query *tree       = make_poly_query(BOOLOP_OR, nested,
+                                        d_query, NULL);
+    UNUSED_VAR(boolop);
+    return TestQP_new("a AND b AND c OR d", tree, NULL, 2);
+}
+
+static TestQueryParser*
+logical_test_a_AND_b_OR_c_AND_d(uint32_t boolop) {
+    Query *a_query    = make_leaf_query(NULL, "a");
+    Query *b_query    = make_leaf_query(NULL, "b");
+    Query *c_query    = make_leaf_query(NULL, "c");
+    Query *d_query    = make_leaf_query(NULL, "d");
+    Query *left       = make_poly_query(BOOLOP_AND, a_query, b_query, NULL);
+    Query *right      = make_poly_query(BOOLOP_AND, c_query, d_query, NULL);
+    Query *tree       = make_poly_query(BOOLOP_OR, left, right, NULL);
+    UNUSED_VAR(boolop);
+    return TestQP_new("a AND b OR c AND d", tree, NULL, 3);
+}
+
+static TestQueryParser*
+logical_test_a_AND_b_OR_c_OR_d(uint32_t boolop) {
+    Query *a_query    = make_leaf_query(NULL, "a");
+    Query *b_query    = make_leaf_query(NULL, "b");
+    Query *c_query    = make_leaf_query(NULL, "c");
+    Query *d_query    = make_leaf_query(NULL, "d");
+    Query *left       = make_poly_query(BOOLOP_AND, a_query, b_query, NULL);
+    Query *tree       = make_poly_query(BOOLOP_OR, left, c_query, d_query,
+                                        NULL);
+    UNUSED_VAR(boolop);
+    return TestQP_new("a AND b OR c OR d", tree, NULL, 3);
+}
+
+static TestQueryParser*
+logical_test_a_OR_b_AND_c_AND_d(uint32_t boolop) {
+    Query *a_query    = make_leaf_query(NULL, "a");
+    Query *b_query    = make_leaf_query(NULL, "b");
+    Query *c_query    = make_leaf_query(NULL, "c");
+    Query *d_query    = make_leaf_query(NULL, "d");
+    Query *right      = make_poly_query(BOOLOP_AND, b_query, c_query, d_query,
+                                        NULL);
+    Query *tree       = make_poly_query(BOOLOP_OR, a_query, right, NULL);
+    UNUSED_VAR(boolop);
+    return TestQP_new("a OR b AND c AND d", tree, NULL, 4);
+}
+
+static TestQueryParser*
+logical_test_a_OR_b_AND_c_OR_d(uint32_t boolop) {
+    Query *a_query    = make_leaf_query(NULL, "a");
+    Query *b_query    = make_leaf_query(NULL, "b");
+    Query *c_query    = make_leaf_query(NULL, "c");
+    Query *d_query    = make_leaf_query(NULL, "d");
+    Query *middle     = make_poly_query(BOOLOP_AND, b_query, c_query, NULL);
+    Query *tree       = make_poly_query(BOOLOP_OR, a_query, middle, d_query,
+                                        NULL);
+    UNUSED_VAR(boolop);
+    return TestQP_new("a OR b AND c OR d", tree, NULL, 4);
+}
+
+static TestQueryParser*
+logical_test_a_OR_b_OR_c_AND_d(uint32_t boolop) {
+    Query *a_query    = make_leaf_query(NULL, "a");
+    Query *b_query    = make_leaf_query(NULL, "b");
+    Query *c_query    = make_leaf_query(NULL, "c");
+    Query *d_query    = make_leaf_query(NULL, "d");
+    Query *right      = make_poly_query(BOOLOP_AND, c_query, d_query, NULL);
+    Query *tree       = make_poly_query(BOOLOP_OR, a_query, b_query, right,
+                                        NULL);
+    UNUSED_VAR(boolop);
+    return TestQP_new("a OR b OR c AND d", tree, NULL, 4);
+}
+
+static TestQueryParser*
+logical_test_a_OR_b_OR_c_OR_d(uint32_t boolop) {
+    Query *a_query    = make_leaf_query(NULL, "a");
+    Query *b_query    = make_leaf_query(NULL, "b");
+    Query *c_query    = make_leaf_query(NULL, "c");
+    Query *d_query    = make_leaf_query(NULL, "d");
+    Query *tree       = make_poly_query(BOOLOP_OR, a_query, b_query, c_query,
+                                        d_query, NULL);
+    UNUSED_VAR(boolop);
+    return TestQP_new("a OR b OR c OR d", tree, NULL, 4);
+}
+
+static TestQueryParser*
+logical_test_a_AND_b_AND_c_d(uint32_t boolop) {
+    Query *a_query    = make_leaf_query(NULL, "a");
+    Query *b_query    = make_leaf_query(NULL, "b");
+    Query *c_query    = make_leaf_query(NULL, "c");
+    Query *d_query    = make_leaf_query(NULL, "d");
+    Query *left       = make_poly_query(BOOLOP_AND, a_query, b_query, c_query,
+                                        NULL);
+    Query *tree       = make_poly_query(boolop, left, d_query, NULL);
+    int32_t num_hits  = boolop == BOOLOP_AND ? 1 : 2;
+    return TestQP_new("a AND b AND c d", tree, NULL, num_hits);
+}
+
+static TestQueryParser*
+logical_test_a_AND_b_OR_c_d(uint32_t boolop) {
+    Query *a_query    = make_leaf_query(NULL, "a");
+    Query *b_query    = make_leaf_query(NULL, "b");
+    Query *c_query    = make_leaf_query(NULL, "c");
+    Query *d_query    = make_leaf_query(NULL, "d");
+    Query *inner      = make_poly_query(BOOLOP_AND, a_query, b_query, NULL);
+    Query *left       = make_poly_query(BOOLOP_OR, inner, c_query, NULL);
+    Query *tree       = make_poly_query(boolop, left, d_query, NULL);
+    int32_t num_hits  = boolop == BOOLOP_AND ? 1 : 3;
+    return TestQP_new("a AND b OR c d", tree, NULL, num_hits);
+}
+
+static TestQueryParser*
+logical_test_a_OR_b_AND_c_d(uint32_t boolop) {
+    Query *a_query    = make_leaf_query(NULL, "a");
+    Query *b_query    = make_leaf_query(NULL, "b");
+    Query *c_query    = make_leaf_query(NULL, "c");
+    Query *d_query    = make_leaf_query(NULL, "d");
+    Query *inner      = make_poly_query(BOOLOP_AND, b_query, c_query, NULL);
+    Query *left       = make_poly_query(BOOLOP_OR, a_query, inner, NULL);
+    Query *tree       = make_poly_query(boolop, left, d_query, NULL);
+    int32_t num_hits  = boolop == BOOLOP_AND ? 1 : 4;
+    return TestQP_new("a OR b AND c d", tree, NULL, num_hits);
+}
+
+static TestQueryParser*
+logical_test_a_OR_b_OR_c_d(uint32_t boolop) {
+    Query *a_query    = make_leaf_query(NULL, "a");
+    Query *b_query    = make_leaf_query(NULL, "b");
+    Query *c_query    = make_leaf_query(NULL, "c");
+    Query *d_query    = make_leaf_query(NULL, "d");
+    Query *left       = make_poly_query(BOOLOP_OR, a_query, b_query, c_query,
+                                        NULL);
+    Query *tree       = make_poly_query(boolop, left, d_query, NULL);
+    int32_t num_hits  = boolop == BOOLOP_AND ? 1 : 4;
+    return TestQP_new("a OR b OR c d", tree, NULL, num_hits);
+}
+
+static TestQueryParser*
+logical_test_a_AND_b_c_AND_d(uint32_t boolop) {
+    Query *a_query    = make_leaf_query(NULL, "a");
+    Query *b_query    = make_leaf_query(NULL, "b");
+    Query *c_query    = make_leaf_query(NULL, "c");
+    Query *d_query    = make_leaf_query(NULL, "d");
+    Query *left       = make_poly_query(BOOLOP_AND, a_query, b_query, NULL);
+    Query *right      = make_poly_query(BOOLOP_AND, c_query, d_query, NULL);
+    Query *tree       = make_poly_query(boolop, left, right, NULL);
+    int32_t num_hits  = boolop == BOOLOP_AND ? 1 : 3;
+    return TestQP_new("a AND b c AND d", tree, NULL, num_hits);
+}
+
+static TestQueryParser*
+logical_test_a_AND_b_c_OR_d(uint32_t boolop) {
+    Query *a_query    = make_leaf_query(NULL, "a");
+    Query *b_query    = make_leaf_query(NULL, "b");
+    Query *c_query    = make_leaf_query(NULL, "c");
+    Query *d_query    = make_leaf_query(NULL, "d");
+    Query *left       = make_poly_query(BOOLOP_AND, a_query, b_query, NULL);
+    Query *right      = make_poly_query(BOOLOP_OR, c_query, d_query, NULL);
+    Query *tree       = make_poly_query(boolop, left, right, NULL);
+    int32_t num_hits  = boolop == BOOLOP_AND ? 2 : 3;
+    return TestQP_new("a AND b c OR d", tree, NULL, num_hits);
+}
+
+static TestQueryParser*
+logical_test_a_OR_b_c_AND_d(uint32_t boolop) {
+    Query *a_query    = make_leaf_query(NULL, "a");
+    Query *b_query    = make_leaf_query(NULL, "b");
+    Query *c_query    = make_leaf_query(NULL, "c");
+    Query *d_query    = make_leaf_query(NULL, "d");
+    Query *left       = make_poly_query(BOOLOP_OR, a_query, b_query, NULL);
+    Query *right      = make_poly_query(BOOLOP_AND, c_query, d_query, NULL);
+    Query *tree       = make_poly_query(boolop, left, right, NULL);
+    int32_t num_hits  = boolop == BOOLOP_AND ? 1 : 4;
+    return TestQP_new("a OR b c AND d", tree, NULL, num_hits);
+}
+
+static TestQueryParser*
+logical_test_a_OR_b_c_OR_d(uint32_t boolop) {
+    Query *a_query    = make_leaf_query(NULL, "a");
+    Query *b_query    = make_leaf_query(NULL, "b");
+    Query *c_query    = make_leaf_query(NULL, "c");
+    Query *d_query    = make_leaf_query(NULL, "d");
+    Query *left       = make_poly_query(BOOLOP_OR, a_query, b_query, NULL);
+    Query *right      = make_poly_query(BOOLOP_OR, c_query, d_query, NULL);
+    Query *tree       = make_poly_query(boolop, left, right, NULL);
+    int32_t num_hits  = boolop == BOOLOP_AND ? 2 : 4;
+    return TestQP_new("a OR b c OR d", tree, NULL, num_hits);
+}
+
+static TestQueryParser*
+logical_test_a_b_AND_c_AND_d(uint32_t boolop) {
+    Query *a_query    = make_leaf_query(NULL, "a");
+    Query *b_query    = make_leaf_query(NULL, "b");
+    Query *c_query    = make_leaf_query(NULL, "c");
+    Query *d_query    = make_leaf_query(NULL, "d");
+    Query *right      = make_poly_query(BOOLOP_AND, b_query, c_query, d_query,
+                                        NULL);
+    Query *tree       = make_poly_query(boolop, a_query, right, NULL);
+    int32_t num_hits  = boolop == BOOLOP_AND ? 1 : 4;
+    return TestQP_new("a b AND c AND d", tree, NULL, num_hits);
+}
+
+static TestQueryParser*
+logical_test_a_b_AND_c_OR_d(uint32_t boolop) {
+    Query *a_query    = make_leaf_query(NULL, "a");
+    Query *b_query    = make_leaf_query(NULL, "b");
+    Query *c_query    = make_leaf_query(NULL, "c");
+    Query *d_query    = make_leaf_query(NULL, "d");
+    Query *inner      = make_poly_query(BOOLOP_AND, b_query, c_query, NULL);
+    Query *right      = make_poly_query(BOOLOP_OR, inner, d_query, NULL);
+    Query *tree       = make_poly_query(boolop, a_query, right, NULL);
+    int32_t num_hits  = boolop == BOOLOP_AND ? 2 : 4;
+    return TestQP_new("a b AND c OR d", tree, NULL, num_hits);
+}
+
+static TestQueryParser*
+logical_test_a_b_OR_c_AND_d(uint32_t boolop) {
+    Query *a_query    = make_leaf_query(NULL, "a");
+    Query *b_query    = make_leaf_query(NULL, "b");
+    Query *c_query    = make_leaf_query(NULL, "c");
+    Query *d_query    = make_leaf_query(NULL, "d");
+    Query *inner      = make_poly_query(BOOLOP_AND, c_query, d_query, NULL);
+    Query *right      = make_poly_query(BOOLOP_OR, b_query, inner, NULL);
+    Query *tree       = make_poly_query(boolop, a_query, right, NULL);
+    int32_t num_hits  = boolop == BOOLOP_AND ? 3 : 4;
+    return TestQP_new("a b OR c AND d", tree, NULL, num_hits);
+}
+
+static TestQueryParser*
+logical_test_a_b_OR_c_OR_d(uint32_t boolop) {
+    Query *a_query    = make_leaf_query(NULL, "a");
+    Query *b_query    = make_leaf_query(NULL, "b");
+    Query *c_query    = make_leaf_query(NULL, "c");
+    Query *d_query    = make_leaf_query(NULL, "d");
+    Query *right      = make_poly_query(BOOLOP_OR, b_query, c_query, d_query,
+                                        NULL);
+    Query *tree       = make_poly_query(boolop, a_query, right, NULL);
+    int32_t num_hits  = boolop == BOOLOP_AND ? 3 : 4;
+    return TestQP_new("a b OR c OR d", tree, NULL, num_hits);
+}
+
+static TestQueryParser*
 logical_test_required_phrase_negated_term(uint32_t boolop) {
     Query *bc_query   = make_leaf_query(NULL, "\"b c\"");
     Query *d_query    = make_leaf_query(NULL, "d");
@@ -547,6 +806,26 @@ static lucy_TestQPLogic_logical_test_t logical_test_funcs[] = {
     logical_test_and_nested_or,
     logical_test_or_nested_or,
     logical_test_and_not_nested_or,
+    logical_test_a_AND_b_AND_c_AND_d,
+    logical_test_a_AND_b_AND_c_OR_d,
+    logical_test_a_AND_b_OR_c_AND_d,
+    logical_test_a_AND_b_OR_c_OR_d,
+    logical_test_a_OR_b_AND_c_AND_d,
+    logical_test_a_OR_b_AND_c_OR_d,
+    logical_test_a_OR_b_OR_c_AND_d,
+    logical_test_a_OR_b_OR_c_OR_d,
+    logical_test_a_AND_b_AND_c_d,
+    logical_test_a_AND_b_OR_c_d,
+    logical_test_a_OR_b_AND_c_d,
+    logical_test_a_OR_b_OR_c_d,
+    logical_test_a_AND_b_c_AND_d,
+    logical_test_a_AND_b_c_OR_d,
+    logical_test_a_OR_b_c_AND_d,
+    logical_test_a_OR_b_c_OR_d,
+    logical_test_a_b_AND_c_AND_d,
+    logical_test_a_b_AND_c_OR_d,
+    logical_test_a_b_OR_c_AND_d,
+    logical_test_a_b_OR_c_OR_d,
     logical_test_required_phrase_negated_term,
     logical_test_required_term_optional_phrase,
     logical_test_nested_nest,
@@ -599,7 +878,7 @@ S_create_index() {
 void
 TestQPLogic_run_tests() {
     uint32_t i;
-    TestBatch     *batch      = TestBatch_new(178);
+    TestBatch     *batch      = TestBatch_new(258);
     Folder        *folder     = S_create_index();
     IndexSearcher *searcher   = IxSearcher_new((Obj*)folder);
     QueryParser   *or_parser  = QParser_new(IxSearcher_Get_Schema(searcher),

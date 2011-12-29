@@ -22,12 +22,8 @@ Lucy::Search::PolySearcher - Aggregate results from multiple Searchers.
 =head1 SYNOPSIS
 
     my $schema = MySchema->new;
-    for my $server_name (@server_names) {
-        push @searchers, LucyX::Remote::SearchClient->new(
-            peer_address => "$server_name:$port",
-            password     => $pass,
-            schema       => $schema,
-        );
+    for my $index (@index_paths) {
+        push @searchers, Lucy::Search::IndexSearcher->new( index => $index );
     }
     my $poly_searcher = Lucy::Search::PolySearcher->new(
         schema    => $schema,
@@ -40,10 +36,7 @@ Lucy::Search::PolySearcher - Aggregate results from multiple Searchers.
 =head1 DESCRIPTION
 
 The primary use for PolySearcher is to aggregate results from several
-remote L<Searchers|Lucy::Search::Searcher> via
-L<LucyX::Remote::SearchClient>, diffusing the cost of searching a large
-corpus over multiple machines.  It is also possible to aggregate results
-from multiple Searchers on a single machine.
+indexes on a single machine.
 
 =head1 CONSTRUCTORS
 

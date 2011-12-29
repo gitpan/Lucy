@@ -14,11 +14,8 @@
  * limitations under the License.
  */
 
-#include <stdlib.h>
-#include "EXTERN.h"
-#include "perl.h"
-#include "XSUB.h"
-#include "ppport.h"
+#include <string.h>
+#include <ctype.h>
 
 #ifndef true
     #define true 1
@@ -33,14 +30,19 @@
 #include "CFCDocuComment.h"
 #include "CFCUtil.h"
 
+const static CFCMeta CFCFUNCTION_META = {
+    "Clownfish::CFC::Function",
+    sizeof(CFCFunction),
+    (CFCBase_destroy_t)CFCFunction_destroy
+};
+
 CFCFunction*
 CFCFunction_new(CFCParcel *parcel, const char *exposure,
                 const char *class_name, const char *class_cnick,
                 const char *micro_sym, CFCType *return_type,
                 CFCParamList *param_list, CFCDocuComment *docucomment,
                 int is_inline) {
-    CFCFunction *self = (CFCFunction*)CFCBase_allocate(sizeof(CFCFunction),
-                                                       "Clownfish::Function");
+    CFCFunction *self = (CFCFunction*)CFCBase_allocate(&CFCFUNCTION_META);
     return CFCFunction_init(self, parcel, exposure, class_name, class_cnick,
                             micro_sym, return_type, param_list, docucomment,
                             is_inline);
@@ -66,14 +68,15 @@ CFCFunction_init(CFCFunction *self, CFCParcel *parcel, const char *exposure,
                  int is_inline) {
 
     exposure = exposure ? exposure : "parcel";
-    CFCSymbol_init((CFCSymbol*)self, parcel, exposure, class_name,
-                   class_cnick, micro_sym);
     CFCUTIL_NULL_CHECK(class_name);
     CFCUTIL_NULL_CHECK(return_type);
     CFCUTIL_NULL_CHECK(param_list);
     if (!S_validate_micro_sym(micro_sym)) {
-        croak("Invalid micro_sym: '%s'", micro_sym);
+        CFCBase_decref((CFCBase*)self);
+        CFCUtil_die("Invalid micro_sym: '%s'", micro_sym);
     }
+    CFCSymbol_init((CFCSymbol*)self, parcel, exposure, class_name,
+                   class_cnick, micro_sym);
     self->return_type = (CFCType*)CFCBase_incref((CFCBase*)return_type);
     self->param_list  = (CFCParamList*)CFCBase_incref((CFCBase*)param_list);
     self->docucomment = (CFCDocuComment*)CFCBase_incref((CFCBase*)docucomment);

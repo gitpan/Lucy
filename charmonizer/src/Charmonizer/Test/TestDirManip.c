@@ -37,39 +37,35 @@
 #endif
 
 static void
-S_run_tests(TestBatch *batch) {
-    TEST_INT_EQ(batch, 0, makedir("_chaz_test_dir", 0777), "makedir");
-    TEST_INT_EQ(batch, 0, makedir("_chaz_test_dir" DIR_SEP "deep", 0777),
-                "makedir with DIR_SEP");
-    TEST_INT_EQ(batch, 0, rmdir("_chaz_test_dir" DIR_SEP "deep"),
-                "rmdir with DIR_SEP");
-    TEST_INT_EQ(batch, 0, rmdir("_chaz_test_dir"), "rmdir");
+S_run_tests(void) {
+    LONG_EQ(0, makedir("_chaz_test_dir", 0777), "makedir");
+    LONG_EQ(0, makedir("_chaz_test_dir" DIR_SEP "deep", 0777),
+            "makedir with DIR_SEP");
+    LONG_EQ(0, rmdir("_chaz_test_dir" DIR_SEP "deep"), "rmdir with DIR_SEP");
+    LONG_EQ(0, rmdir("_chaz_test_dir"), "rmdir");
 #ifdef CHY_HAS_DIRENT_D_NAMLEN
     {
         struct dirent entry;
         entry.d_namlen = 5;
-        TEST_INT_EQ(batch, 5, entry.d_namlen, "d_namlen");
+        LONG_EQ(5, entry.d_namlen, "d_namlen");
     }
 #else
-    SKIP(batch, "no d_namlen member on this platform");
+    SKIP("no d_namlen member on this platform");
 #endif
 #ifdef CHY_HAS_DIRENT_D_TYPE
     {
         struct dirent entry;
         entry.d_type = 5;
-        TEST_INT_EQ(batch, 5, entry.d_type, "d_type");
+        LONG_EQ(5, entry.d_type, "d_type");
     }
 #else
-    SKIP(batch, "no d_type member on this platform");
+    SKIP("no d_type member on this platform");
 #endif
 }
 
 int main(int argc, char **argv) {
-    TestBatch *batch;
-
-    Test_init();
-    batch = Test_new_batch("Integers", 6, S_run_tests);
-    batch->run_test(batch);
-    batch->destroy(batch);
-    return 0;
+    Test_start(6);
+    S_run_tests();
+    return !Test_finish();
 }
+

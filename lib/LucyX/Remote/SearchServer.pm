@@ -20,8 +20,7 @@ package LucyX::Remote::SearchServer;
 BEGIN { our @ISA = qw( Lucy::Object::Obj ) }
 use Carp;
 use Storable qw( nfreeze thaw );
-use bytes;
-no bytes;
+use Scalar::Util qw( reftype );
 
 # Inside-out member vars.
 our %searcher;
@@ -52,7 +51,6 @@ sub new {
         Reuse     => 1,
     );
     confess("No socket: $!") unless $sock;
-    $sock->autoflush(1);
     $sock{$$self} = $sock;
 
     return $self;
@@ -68,12 +66,13 @@ sub DESTROY {
 }
 
 my %dispatch = (
+    handshake     => \&do_handshake,
+    terminate     => \&do_terminate,
     doc_max       => \&do_doc_max,
     doc_freq      => \&do_doc_freq,
     top_docs      => \&do_top_docs,
     fetch_doc     => \&do_fetch_doc,
     fetch_doc_vec => \&do_fetch_doc_vec,
-    terminate     => undef,
 );
 
 sub serve {
@@ -86,23 +85,27 @@ sub serve {
             # If this is the main handle, we have a new client, so accept.
             if ( $readhandle == $main_sock ) {
                 my $client_sock = $main_sock->accept;
-
-                # Verify password.
-                my $pass = <$client_sock>;
-                chomp($pass) if defined $pass;
-                if ( defined $pass && $pass eq $password{$$self} ) {
-                    $read_set->add($client_sock);
-                    print $client_sock "accepted\n";
-                }
-                else {
-                    print $client_sock "password incorrect\n";
-                }
+                $read_set->add($client_sock);
             }
             # Otherwise it's a client sock, so process the request.
             else {
                 my $client_sock = $readhandle;
-                my ( $check_val, $buf, $len, $method, $args );
-                chomp( $method = <$client_sock> );
+                my ( $check_val, $buf, $len );
+                $check_val = $client_sock->read( $buf, 4 );
+                if ( $check_val == 0 ) {
+                    # If read returns 0, socket has been closed cleanly at
+                    # the other end.
+                    $read_set->remove($client_sock);
+                    next;
+                }
+                confess $! unless $check_val == 4;
+                $len = unpack( 'N', $buf );
+                $check_val = $client_sock->read( $buf, $len );
+                confess $! unless $check_val == $len;
+                my $args = eval { thaw($buf) };
+                confess $@ if $@;
+                confess "Not a hashref" unless reftype($args) eq 'HASH';
+                my $method = delete $args->{_action};
 
                 # If "done", the client's closing.
                 if ( $method eq 'done' ) {
@@ -110,30 +113,44 @@ sub serve {
                     $client_sock->close;
                     next;
                 }
+
+                # Process the method call.
+                $dispatch{$method}
+                    or confess "ERROR: Bad method name: $method\n";
+                my $response   = $dispatch{$method}->( $self, $args );
+                my $frozen     = nfreeze($response);
+                my $packed_len = pack( 'N', length($frozen) );
+                print $client_sock "$packed_len$frozen"
+                    or confess $!;
+
                 # Remote signal to close the server.
-                elsif ( $method eq 'terminate' ) {
-                    $read_set->remove($client_sock);
+                if ( $method eq 'terminate' ) {
+                    my @all_handles = $read_set->handles;
+                    $read_set->remove( \@all_handles );
                     $client_sock->close;
                     $main_sock->close;
                     return;
                 }
-                # Sanity check the method name.
-                elsif ( !$dispatch{$method} ) {
-                    print $client_sock "ERROR: Bad method name: $method\n";
-                    next;
-                }
-
-                # Process the method call.
-                read( $client_sock, $buf, 4 );
-                $len = unpack( 'N', $buf );
-                read( $client_sock, $buf, $len );
-                my $response   = $dispatch{$method}->( $self, thaw($buf) );
-                my $frozen     = nfreeze($response);
-                my $packed_len = pack( 'N', bytes::length($frozen) );
-                print $client_sock $packed_len . $frozen;
             }
         }
     }
+}
+
+sub do_handshake {
+    my ( $self, $args ) = @_;
+    my $retval = 1;
+    if ( defined $password{$$self} ) {
+        if ( !defined $args->{password}
+            || $password{$$self} ne $args->{password} )
+        {
+            $retval = 0;
+        }
+    }
+    return { retval => $retval };
+}
+
+sub do_terminate {
+    return { retval => 1 };
 }
 
 sub do_doc_freq {
@@ -180,21 +197,20 @@ LucyX::Remote::SearchServer - Make a Searcher remotely accessible.
     );
     my $search_server = LucyX::Remote::SearchServer->new(
         searcher => $searcher,
-        port       => 7890,
-        password   => $pass,
+        port     => 7890,
     );
     $search_server->serve;
 
 =head1 DESCRIPTION 
 
-The SearchServer class, in conjunction with
-L<SearchClient|LucyX::Remote::SearchClient>, makes it possible to run
-a search on one machine and report results on another.  
+The SearchServer class, in conjunction with either
+L<SearchClient|LucyX::Remote::SearchClient> or
+L<ClusterSearcher|LucyX::Remote::ClusterSearcher>, makes it possible to run a
+search on one machine and report results on another.  
 
-By aggregating several SearchClients under a
-L<PolySearcher|Lucy::Search::PolySearcher>, the cost of searching
-what might have been a prohibitively large monolithic index can be distributed
-across multiple nodes, each with its own, smaller index.
+By aggregating several SearchClients under a ClusterSearcher, the cost of
+searching what might have been a prohibitively large monolithic index can be
+distributed across multiple nodes, each with its own, smaller index.
 
 =head1 METHODS
 
@@ -202,8 +218,8 @@ across multiple nodes, each with its own, smaller index.
 
     my $search_server = LucyX::Remote::SearchServer->new(
         searcher => $searcher, # required
-        port       => 7890,      # required
-        password   => $pass,     # required
+        port     => 7890,      # required
+        password => $pass,     # optional
     );
 
 Constructor.  Takes hash-style parameters.
@@ -221,7 +237,8 @@ B<port> - the port on localhost that the server should open and listen on.
 
 =item *
 
-B<password> - a password which must be supplied by clients.
+B<password> - an optional password which, if supplied, must also be supplied
+by clients.
 
 =back
 

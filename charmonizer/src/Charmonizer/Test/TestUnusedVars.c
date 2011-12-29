@@ -20,27 +20,23 @@
 #include "Charmonizer/Test.h"
 
 static void
-S_run_tests(TestBatch *batch) {
+S_run_tests(void) {
 #ifdef UNUSED_VAR
-    PASS(batch, "UNUSED_VAR macro is defined");
+    PASS("UNUSED_VAR macro is defined");
 #else
-    FAIL(batch, "UNUSED_VAR macro is defined");
+    FAIL("UNUSED_VAR macro is defined");
 #endif
 
 #ifdef UNREACHABLE_RETURN
-    PASS(batch, "UNREACHABLE_RETURN macro is defined");
+    PASS("UNREACHABLE_RETURN macro is defined");
 #else
-    FAIL(batch, "UNREACHABLE_RETURN macro is defined");
+    FAIL("UNREACHABLE_RETURN macro is defined");
 #endif
 }
+
 int main(int argc, char **argv) {
-    TestBatch *batch;
-
-    Test_init();
-    batch = Test_new_batch("UnusedVars", 2, S_run_tests);
-    batch->run_test(batch);
-    batch->destroy(batch);
-    return 0;
+    Test_start(2);
+    S_run_tests();
+    return !Test_finish();
 }
-
 

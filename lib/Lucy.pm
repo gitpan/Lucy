@@ -21,12 +21,12 @@ package Lucy;
 use 5.008003;
 use Exporter;
 
-our $VERSION = '0.002002';
+our $VERSION = '0.002009_01';
 $VERSION = eval $VERSION;
 
 use XSLoader;
 # This loads a large number of disparate subs.
-BEGIN { XSLoader::load( 'Lucy', '0.002002' ) }
+BEGIN { XSLoader::load( 'Lucy', '0.002009_01' ) }
 
 BEGIN {
     push our @ISA, 'Exporter';
@@ -154,6 +154,7 @@ sub error {$Lucy::Object::Err::error}
 
 {
     package Lucy::Object::LockFreeRegistry;
+    no warnings 'redefine';
     sub DESTROY { }    # leak all
 }
 
@@ -198,6 +199,9 @@ sub error {$Lucy::Object::Err::error}
             push @{"$singleton_class\::ISA"}, $parent_class;
         }
     }
+
+    no warnings 'redefine';
+    sub DESTROY { }    # leak all
 }
 
 {
@@ -393,6 +397,7 @@ sub error {$Lucy::Object::Err::error}
     package Lucy::Object::ZombieCharBuf;
     use Carp;
     sub new { confess "ZombieCharBuf objects can only be created from C." }
+    no warnings 'redefine';
     sub DESTROY { }
 }
 
@@ -517,77 +522,6 @@ sub error {$Lucy::Object::Err::error}
 }
 
 {
-    package Lucy::Util::Json;
-    use Scalar::Util qw( blessed );
-    use Lucy qw( to_clownfish );
-    use Lucy::Util::StringHelper qw( utf8_valid utf8_flag_on );
-    use JSON::XS qw();
-
-    my $json_encoder = JSON::XS->new->pretty(1)->canonical(1);
-
-    sub slurp_json {
-        my ( undef, %args ) = @_;
-        my $result;
-        my $instream = $args{folder}->open_in( $args{path} )
-            or return;
-        my $len = $instream->length;
-        my $json;
-        $instream->read( $json, $len );
-        if ( utf8_valid($json) ) {
-            utf8_flag_on($json);
-            $result = eval { to_clownfish( $json_encoder->decode($json) ) };
-        }
-        else {
-            $@ = "Invalid UTF-8";
-        }
-        if ( $@ or !$result ) {
-            Lucy::Object::Err->set_error(
-                Lucy::Object::Err->new( $@ || "Failed to decode JSON" ) );
-            return;
-        }
-        return $result;
-    }
-
-    sub spew_json {
-        my ( undef, %args ) = @_;
-        my $json = eval { $json_encoder->encode( $args{'dump'} ) };
-        if ( !defined $json ) {
-            Lucy::Object::Err->set_error( Lucy::Object::Err->new($@) );
-            return 0;
-        }
-        my $outstream = $args{folder}->open_out( $args{path} );
-        return 0 unless $outstream;
-        eval {
-            $outstream->print($json);
-            $outstream->close;
-        };
-        if ($@) {
-            my $error;
-            if ( blessed($@) && $@->isa("Lucy::Object::Err") ) {
-                $error = $@;
-            }
-            else {
-                $error = Lucy::Object::Err->new($@);
-            }
-            Lucy::Object::Err->set_error($error);
-            return 0;
-        }
-        return 1;
-    }
-
-    sub to_json {
-        my ( undef, $dump ) = @_;
-        return $json_encoder->encode($dump);
-    }
-
-    sub from_json {
-        return to_clownfish( $json_encoder->decode( $_[1] ) );
-    }
-
-    sub set_tolerant { $json_encoder->allow_nonref( $_[1] ) }
-}
-
-{
     package Lucy::Object::Host;
     BEGIN {
         if ( !__PACKAGE__->isa('Lucy::Object::Obj') ) {
@@ -642,7 +576,7 @@ CODE:
 OUTPUT: RETVAL
 END_XS_CODE
 
-Clownfish::Binding::Perl::Class->register(
+Clownfish::CFC::Binding::Perl::Class->register(
     parcel     => "Lucy",
     class_name => "Lucy",
     xs_code    => $xs_code,

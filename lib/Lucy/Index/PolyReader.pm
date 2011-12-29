@@ -33,12 +33,26 @@ my $synopsis = <<'END_SYNOPSIS';
     }
 END_SYNOPSIS
 
-Clownfish::Binding::Perl::Class->register(
+my $xs_code = <<'END_XS_CODE';
+MODULE = Lucy   PACKAGE = Lucy::Index::PolyReader
+
+uint32_t
+sub_tick(offsets, doc_id)
+    lucy_I32Array *offsets;
+    int32_t doc_id;
+CODE:
+    RETVAL = lucy_PolyReader_sub_tick(offsets, doc_id);
+OUTPUT: RETVAL
+
+END_XS_CODE
+
+Clownfish::CFC::Binding::Perl::Class->register(
     parcel            => "Lucy",
     class_name        => "Lucy::Index::PolyReader",
     bind_constructors => [ 'new', 'open|do_open' ],
     bind_methods      => [qw( Get_Seg_Readers )],
     make_pod          => { synopsis => $synopsis },
+    xs_code           => $xs_code,
 );
 
 

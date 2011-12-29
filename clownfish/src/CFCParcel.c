@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-#include <stdlib.h>
+#include <ctype.h>
 #include <string.h>
-#include "EXTERN.h"
-#include "perl.h"
-#include "XSUB.h"
-#include "ppport.h"
 
 #ifndef true
   #define true 1
@@ -64,14 +60,14 @@ CFCParcel_singleton(const char *name, const char *cnick) {
         CFCParcel *existing = registry[i];
         if (strcmp(existing->name, name) == 0) {
             if (cnick && strcmp(existing->cnick, cnick) != 0) {
-                croak("cnick '%s' for parcel '%s' conflicts with '%s'",
-                      cnick, name, existing->cnick);
+                CFCUtil_die("cnick '%s' for parcel '%s' conflicts with '%s'",
+                            cnick, name, existing->cnick);
             }
             return existing;
         }
     }
     if (i == MAX_PARCELS) {
-        croak("Exceeded maximum number of parcels (%d)", MAX_PARCELS);
+        CFCUtil_die("Exceeded maximum number of parcels (%d)", MAX_PARCELS);
     }
 
     // Register new parcel.
@@ -103,10 +99,15 @@ S_validate_name_or_cnick(const char *orig) {
     return true;
 }
 
+const static CFCMeta CFCPARCEL_META = {
+    "Clownfish::CFC::Parcel",
+    sizeof(CFCParcel),
+    (CFCBase_destroy_t)CFCParcel_destroy
+};
+
 CFCParcel*
 CFCParcel_new(const char *name, const char *cnick) {
-    CFCParcel *self = (CFCParcel*)CFCBase_allocate(sizeof(CFCParcel),
-                                                   "Clownfish::Parcel");
+    CFCParcel *self = (CFCParcel*)CFCBase_allocate(&CFCPARCEL_META);
     return CFCParcel_init(self, name, cnick);
 }
 
@@ -114,14 +115,14 @@ CFCParcel*
 CFCParcel_init(CFCParcel *self, const char *name, const char *cnick) {
     // Validate name.
     if (!name || !S_validate_name_or_cnick(name)) {
-        croak("Invalid name: '%s'", name ? name : "[NULL]");
+        CFCUtil_die("Invalid name: '%s'", name ? name : "[NULL]");
     }
     self->name = CFCUtil_strdup(name);
 
     // Validate or derive cnick.
     if (cnick) {
         if (!S_validate_name_or_cnick(cnick)) {
-            croak("Invalid cnick: '%s'", cnick);
+            CFCUtil_die("Invalid cnick: '%s'", cnick);
         }
         self->cnick = CFCUtil_strdup(cnick);
     }
