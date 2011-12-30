@@ -13,8 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-package Clownfish::CFC::Dumpable;
-use Clownfish::CFC;
+CC= cc
+DEFS=
+CFLAGS= $(DEFS) 
+PROGNAME= lemon
 
-1;
+all: $(PROGNAME)
+
+$(PROGNAME):
+	$(CC) $(CFLAGS) lemon.c -o $(PROGNAME)
+
+clean:
+	rm -f $(PROGNAME)
 

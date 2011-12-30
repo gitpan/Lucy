@@ -79,54 +79,10 @@ no_index:
     - charmonizer/src/Charmonizer/Test/TestUnusedVars.c
     - charmonizer/src/Charmonizer/Test/TestVariadicMacros.c
     - clownfish/include/CFC.h
-    - clownfish/perl/Build
     - clownfish/perl/Build.PL
     - clownfish/perl/MANIFEST
-    - clownfish/perl/MYMETA.yml
-    - clownfish/perl/_build/auto_features
-    - clownfish/perl/_build/build_params
-    - clownfish/perl/_build/cleanup
-    - clownfish/perl/_build/config_data
-    - clownfish/perl/_build/features
-    - clownfish/perl/_build/magicnum
-    - clownfish/perl/_build/notes
-    - clownfish/perl/_build/prereqs
-    - clownfish/perl/_build/runtime_params
-    - clownfish/perl/blib/arch/auto/Clownfish/CFC/CFC.bs
-    - clownfish/perl/blib/arch/auto/Clownfish/CFC/CFC.bundle
-    - clownfish/perl/blib/lib/Clownfish.pod
-    - clownfish/perl/blib/lib/Clownfish/CFC.pm
-    - clownfish/perl/blib/lib/Clownfish/CFC/Base.pm
-    - clownfish/perl/blib/lib/Clownfish/CFC/Binding/Core.pm
-    - clownfish/perl/blib/lib/Clownfish/CFC/Binding/Core/Aliases.pm
-    - clownfish/perl/blib/lib/Clownfish/CFC/Binding/Core/Class.pm
-    - clownfish/perl/blib/lib/Clownfish/CFC/Binding/Core/File.pm
-    - clownfish/perl/blib/lib/Clownfish/CFC/Binding/Core/Function.pm
-    - clownfish/perl/blib/lib/Clownfish/CFC/Binding/Core/Method.pm
-    - clownfish/perl/blib/lib/Clownfish/CFC/Binding/Perl.pm
-    - clownfish/perl/blib/lib/Clownfish/CFC/Binding/Perl/Class.pm
-    - clownfish/perl/blib/lib/Clownfish/CFC/Binding/Perl/Constructor.pm
-    - clownfish/perl/blib/lib/Clownfish/CFC/Binding/Perl/Method.pm
-    - clownfish/perl/blib/lib/Clownfish/CFC/Binding/Perl/Subroutine.pm
-    - clownfish/perl/blib/lib/Clownfish/CFC/Binding/Perl/TypeMap.pm
-    - clownfish/perl/blib/lib/Clownfish/CFC/CBlock.pm
-    - clownfish/perl/blib/lib/Clownfish/CFC/Class.pm
-    - clownfish/perl/blib/lib/Clownfish/CFC/DocuComment.pm
-    - clownfish/perl/blib/lib/Clownfish/CFC/Dumpable.pm
-    - clownfish/perl/blib/lib/Clownfish/CFC/File.pm
-    - clownfish/perl/blib/lib/Clownfish/CFC/Function.pm
-    - clownfish/perl/blib/lib/Clownfish/CFC/Hierarchy.pm
-    - clownfish/perl/blib/lib/Clownfish/CFC/Method.pm
-    - clownfish/perl/blib/lib/Clownfish/CFC/ParamList.pm
-    - clownfish/perl/blib/lib/Clownfish/CFC/Parcel.pm
-    - clownfish/perl/blib/lib/Clownfish/CFC/Parser.pm
-    - clownfish/perl/blib/lib/Clownfish/CFC/Symbol.pm
-    - clownfish/perl/blib/lib/Clownfish/CFC/Type.pm
-    - clownfish/perl/blib/lib/Clownfish/CFC/Util.pm
-    - clownfish/perl/blib/lib/Clownfish/CFC/Variable.pm
     - clownfish/perl/buildlib/Clownfish/CFC/Build.pm
     - clownfish/perl/lib/Clownfish.pod
-    - clownfish/perl/lib/Clownfish/CFC.c
     - clownfish/perl/lib/Clownfish/CFC.pm
     - clownfish/perl/lib/Clownfish/CFC.xs
     - clownfish/perl/lib/Clownfish/CFC/Base.pm
@@ -226,8 +182,6 @@ no_index:
     - clownfish/src/CFCParamList.h
     - clownfish/src/CFCParcel.c
     - clownfish/src/CFCParcel.h
-    - clownfish/src/CFCParseHeader.c
-    - clownfish/src/CFCParseHeader.h
     - clownfish/src/CFCParseHeader.y
     - clownfish/src/CFCParser.c
     - clownfish/src/CFCParser.h
@@ -726,6 +680,12 @@ no_index:
     - devel/conf/lucyperl.supp
     - devel/conf/perltidyrc
     - devel/conf/rat-excludes
+    - lemon/Makefile
+    - lemon/Makefile.MSVC
+    - lemon/Makefile.MinGW
+    - lemon/README
+    - lemon/lemon.c
+    - lemon/lempar.c
     - lib/Lucy.pm
     - lib/Lucy/Analysis/Analyzer.pm
     - lib/Lucy/Analysis/CaseFolder.pm
@@ -1180,7 +1140,7 @@ no_index:
 provides:
   Lucy:
     file: lib/Lucy.pm
-    version: 0.002009_01
+    version: 0.002009_02
   Lucy::Analysis::Analyzer:
     file: lib/Lucy/Analysis/Analyzer.pm
   Lucy::Analysis::CaseFolder:
@@ -1485,4 +1445,4 @@ requires:
   perl: v5.8.3
 resources:
   license: http://apache.org/licenses/LICENSE-2.0
-version: v0.2.9_01
+version: v0.2.9_02
