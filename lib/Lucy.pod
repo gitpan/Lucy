@@ -19,7 +19,7 @@ Lucy - Apache Lucy search engine library.
 
 =head1 VERSION
 
-0.2.9_02
+0.2.9_03
 
 =head1 SYNOPSIS
 
