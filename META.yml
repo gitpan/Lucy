@@ -1140,7 +1140,7 @@ no_index:
 provides:
   Lucy:
     file: lib/Lucy.pm
-    version: 0.002009_04
+    version: 0.002009_05
   Lucy::Analysis::Analyzer:
     file: lib/Lucy/Analysis/Analyzer.pm
   Lucy::Analysis::CaseFolder:
@@ -1445,4 +1445,4 @@ requires:
   perl: v5.8.3
 resources:
   license: http://apache.org/licenses/LICENSE-2.0
-version: v0.2.9_04
+version: v0.2.9_05
