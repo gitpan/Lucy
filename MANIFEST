@@ -1098,7 +1098,6 @@ t/binding/019-obj.t
 t/binding/022-bytebuf.t
 t/binding/029-charbuf.t
 t/binding/034-err.t
-t/binding/038-lock_free_registry.t
 t/binding/101-simple_io.t
 t/binding/150-polyanalyzer.t
 t/binding/151-analyzer.t
@@ -1113,7 +1112,6 @@ t/binding/303-highlighter.t
 t/binding/506-collector.t
 t/binding/702-sample.t
 t/binding/800-stack.t
-t/binding/801-pod_checker.t
 t/charmonizer/001-integers.t
 t/charmonizer/002-func_macro.t
 t/charmonizer/003-headers.t
@@ -1136,7 +1134,6 @@ t/core/033-index_file_names.t
 t/core/035-json.t
 t/core/036-i32_array.t
 t/core/037-atomic.t
-t/core/038-lock_free_registry.t
 t/core/039-memory.t
 t/core/050-ram_file_handle.t
 t/core/051-fs_file_handle.t
@@ -1200,3 +1197,4 @@ xs/Lucy/Store/FSFolder.c
 xs/XSBind.c
 xs/XSBind.h
 META.yml
+META.json

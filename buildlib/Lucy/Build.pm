@@ -24,6 +24,8 @@ use lib 'clownfish/perl/blib/lib';
 package Lucy::Build::CBuilder;
 BEGIN { our @ISA = "ExtUtils::CBuilder"; }
 use Config;
+our $VERSION = '0.003001';
+$VERSION = eval $VERSION;
 
 my %cc;
 
@@ -63,13 +65,14 @@ sub link_executable {
 
 package Lucy::Build;
 use base qw( Module::Build );
+our $VERSION = '0.003001';
+$VERSION = eval $VERSION;
 
 use File::Spec::Functions
     qw( catdir catfile splitpath updir no_upwards rel2abs );
 use File::Path qw( mkpath rmtree );
 use File::Copy qw( copy move );
 use File::Find qw( find );
-use Module::Build::ModuleInfo;
 use Config;
 use Env qw( @PATH );
 use Fcntl;
@@ -571,9 +574,7 @@ sub ACTION_compile_custom_xs {
     }
 
     # .c => .o
-    my $lucy_pm_file = catfile( $LIB_DIR, 'Lucy.pm' );
-    my $info    = Module::Build::ModuleInfo->new_from_file($lucy_pm_file);
-    my $version = $info->version;
+    my $version = $self->dist_version;
     my $perl_binding_o_file = catfile( $LIB_DIR, "Lucy$Config{_o}" );
     unshift @objects, $perl_binding_o_file;
     $self->add_to_cleanup($perl_binding_o_file);
@@ -676,8 +677,20 @@ sub autogen_header {
 END_AUTOGEN
 }
 
+sub _check_module_build_for_dist {
+    eval "use Module::Build 0.38;";
+    die "./Build dist reqiures Module::Build 0.38 or higher--this is only "
+        . Module::Build->VERSION . $/ if $@;
+}
+
+sub ACTION_distdir {
+    _check_module_build_for_dist;
+    shift->SUPER::ACTION_distdir(@_);
+}
+
 sub ACTION_dist {
     my $self = shift;
+    _check_module_build_for_dist;
 
     # Create POD but make sure not to include build artifacts.
     $self->dispatch('pod');
@@ -719,6 +732,24 @@ sub ACTION_dist {
     rmtree($_) for @items_to_copy;
     unlink("META.yml");
     move( "MANIFEST.bak", "MANIFEST" ) or die "move() failed: $!";
+}
+
+sub ACTION_distmeta {
+    my $self = shift;
+    $self->SUPER::ACTION_distmeta(@_);
+    # Make sure everything has a version.
+    require CPAN::Meta;
+    my $v = version->new($self->dist_version);
+    my $meta = CPAN::Meta->load_file('META.json');
+    my $provides = $meta->provides;
+    while (my ($pkg, $data) = each %{ $provides }) {
+        die "$pkg, defined in $data->{file}, has no version\n"
+            unless $data->{version};
+        die "$pkg, defined in $data->{file}, is "
+            . version->new($data->{version})->normal
+            . " but should be " . $v->normal . "\n"
+            unless $data->{version} == $v;
+    }
 }
 
 # Generate a list of files for PAUSE, search.cpan.org, etc to ignore.

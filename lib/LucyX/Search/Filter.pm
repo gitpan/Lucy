@@ -18,6 +18,8 @@ use warnings;
 
 package LucyX::Search::Filter;
 BEGIN { our @ISA = qw( Lucy::Search::Query ) }
+our $VERSION = '0.003001';
+$VERSION = eval $VERSION;
 use Carp;
 use Storable qw( nfreeze thaw );
 use Scalar::Util qw( blessed weaken );
@@ -165,6 +167,8 @@ sub _cached_count {
 }
 
 package LucyX::Search::FilterCompiler;
+our $VERSION = '0.003001';
+$VERSION = eval $VERSION;
 BEGIN { our @ISA = qw( Lucy::Search::Compiler ) }
 
 sub new {
@@ -184,6 +188,8 @@ sub make_matcher {
 }
 
 package LucyX::Search::FilterMatcher;
+our $VERSION = '0.003001';
+$VERSION = eval $VERSION;
 BEGIN { our @ISA = qw( Lucy::Search::Matcher ) }
 
 1;

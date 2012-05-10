@@ -15,6 +15,8 @@
 
 package Lucy::Object::VArray;
 use Lucy;
+our $VERSION = '0.003001';
+$VERSION = eval $VERSION;
 
 1;
 

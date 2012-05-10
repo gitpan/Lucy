@@ -15,6 +15,8 @@
 
 package Lucy::Object::Host;
 use Lucy;
+our $VERSION = '0.003001';
+$VERSION = eval $VERSION;
 
 1;
 

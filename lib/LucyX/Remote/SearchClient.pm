@@ -18,6 +18,8 @@ use warnings;
 
 package LucyX::Remote::SearchClient;
 BEGIN { our @ISA = qw( Lucy::Search::Searcher ) }
+our $VERSION = '0.003001';
+$VERSION = eval $VERSION;
 use Carp;
 use Storable qw( nfreeze thaw );
 
@@ -74,6 +76,7 @@ sub _rpc {
 =begin disabled
     my $check_val = $sock->syswrite("$packed_len$serialized");
     confess $! if $check_val != length($serialized) + 4;
+
 =cut
 
     my $check_val;

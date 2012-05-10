@@ -25,6 +25,9 @@ use Lucy qw( to_perl );
 use bytes;
 no bytes;
 
+our $VERSION = '0.003001';
+$VERSION = eval $VERSION;
+
 # Inside-out member vars.
 our %ix_out;
 our %dat_out;

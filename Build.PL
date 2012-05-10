@@ -23,8 +23,8 @@ my $builder = Lucy::Build->new(
     module_name => 'Lucy',
     license     => 'apache',
     dist_author =>
-        'The Apache Lucy Project <lucy-dev at incubator dot apache dot org>',
-    dist_version       => '0.3.0',
+        'The Apache Lucy Project <dev at lucy dot apache dot org>',
+    dist_version       => '0.3.1',
     requires           => { 'perl' => '5.8.3', },
     configure_requires => { 'Module::Build' => 0.280801 },
     build_requires     => {
@@ -36,8 +36,8 @@ my $builder = Lucy::Build->new(
     meta_merge => { keywords => [qw( search lucy lucene )], },
     meta_add   => {
         resources => {
-            homepage   => 'http://incubator.apache.org/lucy',
-            repository => 'http://svn.apache.org/repos/asf/incubator/lucy',
+            homepage   => 'http://lucy.apache.org',
+            repository => 'http://svn.apache.org/repos/asf/lucy',
         },
     },
     add_to_cleanup => [

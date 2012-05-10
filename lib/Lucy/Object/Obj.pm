@@ -15,6 +15,8 @@
 
 package Lucy::Object::Obj;
 use Lucy;
+our $VERSION = '0.003001';
+$VERSION = eval $VERSION;
 
 1;
 
@@ -72,6 +74,7 @@ Calls deserialize(), and copies the object pointer.  Since deserialize is an
 abstract method, it will confess() unless implemented.
 
 =end comment
+
 =cut
 
 void
