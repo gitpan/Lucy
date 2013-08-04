@@ -24,7 +24,7 @@ my $builder = Lucy::Build->new(
     license     => 'apache',
     dist_author =>
         'The Apache Lucy Project <dev at lucy dot apache dot org>',
-    dist_version       => '0.3.2',
+    dist_version       => '0.3.3',
     requires           => { 'perl' => '5.8.3', },
     configure_requires => { 'Module::Build' => 0.280801 },
     build_requires     => {
@@ -37,7 +37,7 @@ my $builder = Lucy::Build->new(
     meta_add   => {
         resources => {
             homepage   => 'http://lucy.apache.org',
-            repository => 'http://svn.apache.org/repos/asf/lucy',
+            repository => 'http://git-wip-us.apache.org/repos/asf/lucy.git',
             bugtracker => 'https://issues.apache.org/jira/browse/LUCY',
         },
     },

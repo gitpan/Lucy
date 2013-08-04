@@ -10,7 +10,7 @@ build_requires:
 configure_requires:
   Module::Build: 0.280801
 dynamic_config: 1
-generated_by: 'Module::Build version 0.4001, CPAN::Meta::Converter version 2.120630'
+generated_by: 'Module::Build version 0.4003, CPAN::Meta::Converter version 2.120921'
 keywords:
   - search
   - lucy
@@ -1138,459 +1138,459 @@ no_index:
 provides:
   Lucy:
     file: lib/Lucy.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Analysis::Analyzer:
     file: lib/Lucy/Analysis/Analyzer.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Analysis::CaseFolder:
     file: lib/Lucy/Analysis/CaseFolder.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Analysis::EasyAnalyzer:
     file: lib/Lucy/Analysis/EasyAnalyzer.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Analysis::Inversion:
     file: lib/Lucy/Analysis/Inversion.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Analysis::Normalizer:
     file: lib/Lucy/Analysis/Normalizer.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Analysis::PolyAnalyzer:
     file: lib/Lucy/Analysis/PolyAnalyzer.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Analysis::RegexTokenizer:
     file: lib/Lucy/Analysis/RegexTokenizer.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Analysis::SnowballStemmer:
     file: lib/Lucy/Analysis/SnowballStemmer.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Analysis::SnowballStopFilter:
     file: lib/Lucy/Analysis/SnowballStopFilter.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Analysis::StandardTokenizer:
     file: lib/Lucy/Analysis/StandardTokenizer.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Analysis::Token:
     file: lib/Lucy/Analysis/Token.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Document::Doc:
     file: lib/Lucy/Document/Doc.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Document::HitDoc:
     file: lib/Lucy/Document/HitDoc.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Highlight::HeatMap:
     file: lib/Lucy/Highlight/HeatMap.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Highlight::Highlighter:
     file: lib/Lucy/Highlight/Highlighter.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::BackgroundMerger:
     file: lib/Lucy/Index/BackgroundMerger.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::DataReader:
     file: lib/Lucy/Index/DataReader.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::DataWriter:
     file: lib/Lucy/Index/DataWriter.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::DeletionsReader:
     file: lib/Lucy/Index/DeletionsReader.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::DeletionsWriter:
     file: lib/Lucy/Index/DeletionsWriter.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::DocReader:
     file: lib/Lucy/Index/DocReader.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::DocVector:
     file: lib/Lucy/Index/DocVector.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::DocWriter:
     file: lib/Lucy/Index/DocWriter.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::FilePurger:
     file: lib/Lucy/Index/FilePurger.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::HighlightReader:
     file: lib/Lucy/Index/HighlightReader.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::HighlightWriter:
     file: lib/Lucy/Index/HighlightWriter.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::IndexManager:
     file: lib/Lucy/Index/IndexManager.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::IndexReader:
     file: lib/Lucy/Index/IndexReader.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::Indexer:
     file: lib/Lucy/Index/Indexer.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::Inverter:
     file: lib/Lucy/Index/Inverter.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::Lexicon:
     file: lib/Lucy/Index/Lexicon.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::LexiconReader:
     file: lib/Lucy/Index/LexiconReader.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::LexiconWriter:
     file: lib/Lucy/Index/LexiconWriter.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::PolyLexicon:
     file: lib/Lucy/Index/PolyLexicon.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::PolyReader:
     file: lib/Lucy/Index/PolyReader.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::Posting:
     file: lib/Lucy/Index/Posting.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::Posting::MatchPosting:
     file: lib/Lucy/Index/Posting/MatchPosting.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::Posting::RichPosting:
     file: lib/Lucy/Index/Posting/RichPosting.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::Posting::ScorePosting:
     file: lib/Lucy/Index/Posting/ScorePosting.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::PostingList:
     file: lib/Lucy/Index/PostingList.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::PostingListReader:
     file: lib/Lucy/Index/PostingListReader.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::PostingListWriter:
     file: lib/Lucy/Index/PostingListWriter.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::SegLexicon:
     file: lib/Lucy/Index/SegLexicon.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::SegPostingList:
     file: lib/Lucy/Index/SegPostingList.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::SegReader:
     file: lib/Lucy/Index/SegReader.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::SegWriter:
     file: lib/Lucy/Index/SegWriter.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::Segment:
     file: lib/Lucy/Index/Segment.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::Similarity:
     file: lib/Lucy/Index/Similarity.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::Snapshot:
     file: lib/Lucy/Index/Snapshot.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::SortCache:
     file: lib/Lucy/Index/SortCache.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::SortReader:
     file: lib/Lucy/Index/SortReader.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::SortWriter:
     file: lib/Lucy/Index/SortWriter.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::TermInfo:
     file: lib/Lucy/Index/TermInfo.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Index::TermVector:
     file: lib/Lucy/Index/TermVector.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Object::BitVector:
     file: lib/Lucy/Object/BitVector.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Object::ByteBuf:
     file: lib/Lucy/Object/ByteBuf.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Object::CharBuf:
     file: lib/Lucy/Object/CharBuf.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Object::Err:
     file: lib/Lucy/Object/Err.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Object::Hash:
     file: lib/Lucy/Object/Hash.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Object::Host:
     file: lib/Lucy/Object/Host.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Object::I32Array:
     file: lib/Lucy/Object/I32Array.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Object::LockFreeRegistry:
     file: lib/Lucy/Object/LockFreeRegistry.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Object::Num:
     file: lib/Lucy/Object/Num.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Object::Obj:
     file: lib/Lucy/Object/Obj.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Object::VArray:
     file: lib/Lucy/Object/VArray.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Object::VTable:
     file: lib/Lucy/Object/VTable.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Object::ViewByteBuf:
     file: lib/Lucy.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Object::ViewCharBuf:
     file: lib/Lucy.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Object::ZombieCharBuf:
     file: lib/Lucy.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Plan::Architecture:
     file: lib/Lucy/Plan/Architecture.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Plan::BlobType:
     file: lib/Lucy/Plan/BlobType.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Plan::FieldType:
     file: lib/Lucy/Plan/FieldType.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Plan::Float32Type:
     file: lib/Lucy/Plan/Float32Type.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Plan::Float64Type:
     file: lib/Lucy/Plan/Float64Type.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Plan::FullTextType:
     file: lib/Lucy/Plan/FullTextType.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Plan::Int32Type:
     file: lib/Lucy/Plan/Int32Type.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Plan::Int64Type:
     file: lib/Lucy/Plan/Int64Type.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Plan::Schema:
     file: lib/Lucy/Plan/Schema.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Plan::StringType:
     file: lib/Lucy/Plan/StringType.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Search::ANDMatcher:
     file: lib/Lucy/Search/ANDMatcher.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Search::ANDQuery:
     file: lib/Lucy/Search/ANDQuery.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Search::BitVecMatcher:
     file: lib/Lucy/Search/BitVecMatcher.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Search::Collector:
     file: lib/Lucy/Search/Collector.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Search::Collector::BitCollector:
     file: lib/Lucy/Search/Collector/BitCollector.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Search::Collector::SortCollector:
     file: lib/Lucy/Search/Collector/SortCollector.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Search::Compiler:
     file: lib/Lucy/Search/Compiler.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Search::HitQueue:
     file: lib/Lucy/Search/HitQueue.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Search::Hits:
     file: lib/Lucy/Search/Hits.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Search::IndexSearcher:
     file: lib/Lucy/Search/IndexSearcher.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Search::LeafQuery:
     file: lib/Lucy/Search/LeafQuery.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Search::MatchAllQuery:
     file: lib/Lucy/Search/MatchAllQuery.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Search::MatchDoc:
     file: lib/Lucy/Search/MatchDoc.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Search::Matcher:
     file: lib/Lucy/Search/Matcher.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Search::NOTMatcher:
     file: lib/Lucy/Search/NOTMatcher.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Search::NOTQuery:
     file: lib/Lucy/Search/NOTQuery.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Search::NoMatchQuery:
     file: lib/Lucy/Search/NoMatchQuery.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Search::ORQuery:
     file: lib/Lucy/Search/ORQuery.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Search::ORScorer:
     file: lib/Lucy/Search/ORScorer.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Search::PhraseQuery:
     file: lib/Lucy/Search/PhraseQuery.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Search::PolyCompiler:
     file: lib/Lucy/Search/PolyCompiler.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Search::PolyQuery:
     file: lib/Lucy/Search/PolyQuery.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Search::PolySearcher:
     file: lib/Lucy/Search/PolySearcher.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Search::Query:
     file: lib/Lucy/Search/Query.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Search::QueryParser:
     file: lib/Lucy/Search/QueryParser.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Search::RangeQuery:
     file: lib/Lucy/Search/RangeQuery.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Search::RequiredOptionalMatcher:
     file: lib/Lucy/Search/RequiredOptionalMatcher.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Search::RequiredOptionalQuery:
     file: lib/Lucy/Search/RequiredOptionalQuery.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Search::Searcher:
     file: lib/Lucy/Search/Searcher.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Search::SortRule:
     file: lib/Lucy/Search/SortRule.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Search::SortSpec:
     file: lib/Lucy/Search/SortSpec.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Search::Span:
     file: lib/Lucy/Search/Span.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Search::TermQuery:
     file: lib/Lucy/Search/TermQuery.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Search::TopDocs:
     file: lib/Lucy/Search/TopDocs.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Simple:
     file: lib/Lucy/Simple.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Store::FSFileHandle:
     file: lib/Lucy/Store/FSFileHandle.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Store::FSFolder:
     file: lib/Lucy/Store/FSFolder.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Store::FileHandle:
     file: lib/Lucy/Store/FileHandle.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Store::Folder:
     file: lib/Lucy/Store/Folder.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Store::InStream:
     file: lib/Lucy/Store/InStream.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Store::Lock:
     file: lib/Lucy/Store/Lock.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Store::LockErr:
     file: lib/Lucy/Store/LockErr.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Store::LockFactory:
     file: lib/Lucy/Store/LockFactory.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Store::OutStream:
     file: lib/Lucy/Store/OutStream.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Store::RAMFile:
     file: lib/Lucy/Store/RAMFile.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Store::RAMFileHandle:
     file: lib/Lucy/Store/RAMFileHandle.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Store::RAMFolder:
     file: lib/Lucy/Store/RAMFolder.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Test:
     file: lib/Lucy/Test.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Test::TestCharmonizer:
     file: lib/Lucy/Test.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Test::Util::BBSortEx:
     file: lib/Lucy/Test/Util/BBSortEx.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Util::Debug:
     file: lib/Lucy/Util/Debug.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Util::IndexFileNames:
     file: lib/Lucy/Util/IndexFileNames.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Util::Json:
     file: lib/Lucy/Util/Json.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Util::MemoryPool:
     file: lib/Lucy/Util/MemoryPool.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Util::PriorityQueue:
     file: lib/Lucy/Util/PriorityQueue.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Util::SortExternal:
     file: lib/Lucy/Util/SortExternal.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Util::Stepper:
     file: lib/Lucy/Util/Stepper.pm
-    version: 0.003002
+    version: 0.003003
   Lucy::Util::StringHelper:
     file: lib/Lucy/Util/StringHelper.pm
-    version: 0.003002
+    version: 0.003003
   LucyX::Index::ByteBufDocReader:
     file: lib/LucyX/Index/ByteBufDocReader.pm
-    version: 0.003002
+    version: 0.003003
   LucyX::Index::ByteBufDocWriter:
     file: lib/LucyX/Index/ByteBufDocWriter.pm
-    version: 0.003002
+    version: 0.003003
   LucyX::Index::LongFieldSim:
     file: lib/LucyX/Index/LongFieldSim.pm
-    version: 0.003002
+    version: 0.003003
   LucyX::Index::ZlibDocReader:
     file: lib/LucyX/Index/ZlibDocReader.pm
-    version: 0.003002
+    version: 0.003003
   LucyX::Index::ZlibDocWriter:
     file: lib/LucyX/Index/ZlibDocWriter.pm
-    version: 0.003002
+    version: 0.003003
   LucyX::Remote::ClusterSearcher:
     file: lib/LucyX/Remote/ClusterSearcher.pm
-    version: 0.003002
+    version: 0.003003
   LucyX::Remote::SearchClient:
     file: lib/LucyX/Remote/SearchClient.pm
-    version: 0.003002
+    version: 0.003003
   LucyX::Remote::SearchServer:
     file: lib/LucyX/Remote/SearchServer.pm
-    version: 0.003002
+    version: 0.003003
   LucyX::Search::Filter:
     file: lib/LucyX/Search/Filter.pm
-    version: 0.003002
+    version: 0.003003
   LucyX::Search::FilterCompiler:
     file: lib/LucyX/Search/Filter.pm
-    version: 0.003002
+    version: 0.003003
   LucyX::Search::FilterMatcher:
     file: lib/LucyX/Search/Filter.pm
-    version: 0.003002
+    version: 0.003003
   LucyX::Search::MockMatcher:
     file: lib/LucyX/Search/MockMatcher.pm
-    version: 0.003002
+    version: 0.003003
   LucyX::Search::ProximityQuery:
     file: lib/LucyX/Search/ProximityQuery.pm
-    version: 0.003002
+    version: 0.003003
 requires:
   perl: v5.8.3
 resources:
-  license: http://www.apache.org/licenses/LICENSE-2.0.txt
-version: v0.3.2
+  license: http://apache.org/licenses/LICENSE-2.0
+version: v0.3.3

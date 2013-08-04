@@ -16,6 +16,7 @@
 
 #define CHAZ_USE_SHORT_NAMES
 
+#include <errno.h>
 #include <string.h>
 #include <stdlib.h>
 #include "Charmonizer/Core/Util.h"
@@ -167,11 +168,11 @@ CC_compile_exe(const char *source_path, const char *exe_name,
     /* TODO: Key this off the compiler supplied as argument, not the compiler
      * used to compile Charmonizer. */
     sprintf(junk, "%s.obj", exe_name);
-    remove(junk);
+    Util_remove_and_verify(junk);
     sprintf(junk, "%s.ilk", exe_name);
-    remove(junk);
+    Util_remove_and_verify(junk);
     sprintf(junk, "%s.pdb", exe_name);
-    remove(junk);
+    Util_remove_and_verify(junk);
 #endif
 
     /* See if compilation was successful.  Remove the source file. */
@@ -242,7 +243,7 @@ CC_test_compile(const char *source, size_t source_len) {
     }
     compile_succeeded = CC_compile_obj(TRY_SOURCE_PATH, TRY_BASENAME,
                                        source, source_len);
-    remove(try_obj_name);
+    Util_remove_and_verify(try_obj_name);
     return compile_succeeded;
 }
 
@@ -271,9 +272,9 @@ CC_capture_output(const char *source, size_t source_len, size_t *output_len) {
     }
 
     /* Remove all the files we just created. */
-    remove(TRY_SOURCE_PATH);
-    OS_remove_exe(TRY_BASENAME);
-    remove(TARGET_PATH);
+    Util_remove_and_verify(TRY_SOURCE_PATH);
+    Util_remove_and_verify(try_exe_name);
+    Util_remove_and_verify(TARGET_PATH);
 
     return captured_output;
 }
