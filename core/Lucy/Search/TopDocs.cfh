@@ -21,7 +21,7 @@ parcel Lucy;
  * A TopDocs object encapsulates the highest-scoring N documents and their
  * associated scores.
  */
-class Lucy::Search::TopDocs inherits Lucy::Object::Obj {
+class Lucy::Search::TopDocs inherits Clownfish::Obj {
 
     VArray *match_docs;
     uint32_t   total_hits;
@@ -56,7 +56,7 @@ class Lucy::Search::TopDocs inherits Lucy::Object::Obj {
     Serialize(TopDocs *self, OutStream *outstream);
 
     public incremented TopDocs*
-    Deserialize(TopDocs *self, InStream *instream);
+    Deserialize(decremented TopDocs *self, InStream *instream);
 
     public void
     Destroy(TopDocs *self);

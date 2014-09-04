@@ -22,89 +22,128 @@
 #include "Lucy/Search/Searcher.h"
 #include "Lucy/Store/InStream.h"
 #include "Lucy/Store/OutStream.h"
+#include "Lucy/Util/Freezer.h"
 
 LeafQuery*
-LeafQuery_new(const CharBuf *field, const CharBuf *text) {
-    LeafQuery *self = (LeafQuery*)VTable_Make_Obj(LEAFQUERY);
+LeafQuery_new(String *field, String *text) {
+    LeafQuery *self = (LeafQuery*)Class_Make_Obj(LEAFQUERY);
     return LeafQuery_init(self, field, text);
 }
 
 LeafQuery*
-LeafQuery_init(LeafQuery *self, const CharBuf *field, const CharBuf *text) {
+LeafQuery_init(LeafQuery *self, String *field, String *text) {
+    LeafQueryIVARS *const ivars = LeafQuery_IVARS(self);
     Query_init((Query*)self, 1.0f);
-    self->field       = field ? CB_Clone(field) : NULL;
-    self->text        = CB_Clone(text);
+    ivars->field       = field ? Str_Clone(field) : NULL;
+    ivars->text        = Str_Clone(text);
     return self;
 }
 
 void
-LeafQuery_destroy(LeafQuery *self) {
-    DECREF(self->field);
-    DECREF(self->text);
+LeafQuery_Destroy_IMP(LeafQuery *self) {
+    LeafQueryIVARS *const ivars = LeafQuery_IVARS(self);
+    DECREF(ivars->field);
+    DECREF(ivars->text);
     SUPER_DESTROY(self, LEAFQUERY);
 }
 
-CharBuf*
-LeafQuery_get_field(LeafQuery *self) {
-    return self->field;
+String*
+LeafQuery_Get_Field_IMP(LeafQuery *self) {
+    return LeafQuery_IVARS(self)->field;
 }
 
-CharBuf*
-LeafQuery_get_text(LeafQuery *self) {
-    return self->text;
+String*
+LeafQuery_Get_Text_IMP(LeafQuery *self) {
+    return LeafQuery_IVARS(self)->text;
 }
 
-bool_t
-LeafQuery_equals(LeafQuery *self, Obj *other) {
-    LeafQuery *twin = (LeafQuery*)other;
-    if (twin == self)                  { return true; }
+bool
+LeafQuery_Equals_IMP(LeafQuery *self, Obj *other) {
+    if ((LeafQuery*)other == self)     { return true; }
     if (!Obj_Is_A(other, LEAFQUERY))   { return false; }
-    if (self->boost != twin->boost)    { return false; }
-    if (!!self->field ^ !!twin->field) { return false; }
-    if (self->field) {
-        if (!CB_Equals(self->field, (Obj*)twin->field)) { return false; }
+    LeafQueryIVARS *const ivars = LeafQuery_IVARS(self);
+    LeafQueryIVARS *const ovars = LeafQuery_IVARS((LeafQuery*)other);
+    if (ivars->boost != ovars->boost)    { return false; }
+    if (!!ivars->field ^ !!ovars->field) { return false; }
+    if (ivars->field) {
+        if (!Str_Equals(ivars->field, (Obj*)ovars->field)) { return false; }
     }
-    if (!CB_Equals(self->text, (Obj*)twin->text)) { return false; }
+    if (!Str_Equals(ivars->text, (Obj*)ovars->text)) { return false; }
     return true;
 }
 
-CharBuf*
-LeafQuery_to_string(LeafQuery *self) {
-    if (self->field) {
-        return CB_newf("%o:%o", self->field, self->text);
+String*
+LeafQuery_To_String_IMP(LeafQuery *self) {
+    LeafQueryIVARS *const ivars = LeafQuery_IVARS(self);
+    if (ivars->field) {
+        return Str_newf("%o:%o", ivars->field, ivars->text);
     }
     else {
-        return CB_Clone(self->text);
+        return Str_Clone(ivars->text);
     }
 }
 
 void
-LeafQuery_serialize(LeafQuery *self, OutStream *outstream) {
-    if (self->field) {
+LeafQuery_Serialize_IMP(LeafQuery *self, OutStream *outstream) {
+    LeafQueryIVARS *const ivars = LeafQuery_IVARS(self);
+    if (ivars->field) {
         OutStream_Write_U8(outstream, true);
-        CB_Serialize(self->field, outstream);
+        Freezer_serialize_string(ivars->field, outstream);
     }
     else {
         OutStream_Write_U8(outstream, false);
     }
-    CB_Serialize(self->text, outstream);
-    OutStream_Write_F32(outstream, self->boost);
+    Freezer_serialize_string(ivars->text, outstream);
+    OutStream_Write_F32(outstream, ivars->boost);
 }
 
 LeafQuery*
-LeafQuery_deserialize(LeafQuery *self, InStream *instream) {
-    self = self ? self : (LeafQuery*)VTable_Make_Obj(LEAFQUERY);
-    self->field = InStream_Read_U8(instream)
-                  ? CB_deserialize(NULL, instream)
-                  : NULL;
-    self->text  = CB_deserialize(NULL, instream);
-    self->boost = InStream_Read_F32(instream);
+LeafQuery_Deserialize_IMP(LeafQuery *self, InStream *instream) {
+    LeafQueryIVARS *const ivars = LeafQuery_IVARS(self);
+    if (InStream_Read_U8(instream)) {
+        ivars->field = Freezer_read_string(instream);
+    }
+    else {
+        ivars->field = NULL;
+    }
+    ivars->text = Freezer_read_string(instream);
+    ivars->boost = InStream_Read_F32(instream);
     return self;
 }
 
+Obj*
+LeafQuery_Dump_IMP(LeafQuery *self) {
+    LeafQueryIVARS *ivars = LeafQuery_IVARS(self);
+    LeafQuery_Dump_t super_dump
+        = SUPER_METHOD_PTR(LEAFQUERY, LUCY_LeafQuery_Dump);
+    Hash *dump = (Hash*)CERTIFY(super_dump(self), HASH);
+    if (ivars->field) {
+        Hash_Store_Utf8(dump, "field", 5, Freezer_dump((Obj*)ivars->field));
+    }
+    Hash_Store_Utf8(dump, "text", 4, Freezer_dump((Obj*)ivars->text));
+    return (Obj*)dump;
+}
+
+Obj*
+LeafQuery_Load_IMP(LeafQuery *self, Obj *dump) {
+    Hash *source = (Hash*)CERTIFY(dump, HASH);
+    LeafQuery_Load_t super_load
+        = SUPER_METHOD_PTR(LEAFQUERY, LUCY_LeafQuery_Load);
+    LeafQuery *loaded = (LeafQuery*)super_load(self, dump);
+    LeafQueryIVARS *loaded_ivars = LeafQuery_IVARS(loaded);
+    Obj *field = Hash_Fetch_Utf8(source, "field", 5);
+    if (field) {
+        loaded_ivars->field
+            = (String*)CERTIFY(Freezer_load(field), STRING);
+    }
+    Obj *text = CERTIFY(Hash_Fetch_Utf8(source, "text", 4), OBJ);
+    loaded_ivars->text = (String*)CERTIFY(Freezer_load(text), STRING);
+    return (Obj*)loaded;
+}
+
 Compiler*
-LeafQuery_make_compiler(LeafQuery *self, Searcher *searcher, float boost,
-                        bool_t subordinate) {
+LeafQuery_Make_Compiler_IMP(LeafQuery *self, Searcher *searcher, float boost,
+                            bool subordinate) {
     UNUSED_VAR(self);
     UNUSED_VAR(searcher);
     UNUSED_VAR(boost);

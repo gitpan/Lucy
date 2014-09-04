@@ -23,7 +23,7 @@ parcel Lucy;
  * L<Lucy::Search::PolySearcher>.
  */
 
-class Lucy::Search::Searcher inherits Lucy::Object::Obj {
+public class Lucy::Search::Searcher inherits Clownfish::Obj {
 
     Schema      *schema;
     QueryParser *qparser;
@@ -53,7 +53,7 @@ class Lucy::Search::Searcher inherits Lucy::Object::Obj {
      * @param term The term to look up.
      */
     public abstract uint32_t
-    Doc_Freq(Searcher *self, const CharBuf *field, Obj *term);
+    Doc_Freq(Searcher *self, String *field, Obj *term);
 
     /** If the supplied object is a Query, return it; if it's a query string,
      * create a QueryParser and parse it to produce a query against all

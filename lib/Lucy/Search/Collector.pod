@@ -71,11 +71,9 @@ B<doc_id> - A segment document id.
 
 
 
-
-
 =head1 INHERITANCE
 
-Lucy::Search::Collector isa L<Lucy::Object::Obj>.
+Lucy::Search::Collector isa Clownfish::Obj.
 
 
 =cut

@@ -17,9 +17,6 @@
 parcel Lucy;
 
 class Lucy::Plan::TextType inherits Lucy::Plan::FieldType {
-    incremented CharBuf*
-    Make_Blank(TextType *self);
-
     incremented TermStepper*
     Make_Term_Stepper(TextType *self);
 
@@ -30,6 +27,8 @@ class Lucy::Plan::TextType inherits Lucy::Plan::FieldType {
 class Lucy::Index::TermStepper::TextTermStepper
     inherits Lucy::Index::TermStepper {
 
+    String *string;
+
     inert incremented TextTermStepper*
     new();
 
@@ -37,13 +36,19 @@ class Lucy::Index::TermStepper::TextTermStepper
     init(TextTermStepper *self);
 
     public void
+    Destroy(TextTermStepper *self);
+
+    public void
     Reset(TextTermStepper *self);
 
     /**
-     * @param value A CharBuf.
+     * @param value A String or CharBuf.
      */
     public void
     Set_Value(TextTermStepper *self, Obj *value = NULL);
+
+    public nullable Obj*
+    Get_Value(TextTermStepper *self);
 
     public void
     Write_Key_Frame(TextTermStepper *self, OutStream *outstream, Obj *value);

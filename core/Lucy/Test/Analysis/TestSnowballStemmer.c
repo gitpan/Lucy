@@ -14,19 +14,27 @@
  * limitations under the License.
  */
 
-#define C_LUCY_TESTSNOWBALLSTEMMER
+#define C_TESTLUCY_TESTSNOWBALLSTEMMER
+#define TESTLUCY_USE_SHORT_NAMES
 #include "Lucy/Util/ToolSet.h"
 
+#include "Clownfish/TestHarness/TestBatchRunner.h"
 #include "Lucy/Test.h"
 #include "Lucy/Test/Analysis/TestSnowballStemmer.h"
 #include "Lucy/Analysis/SnowballStemmer.h"
 #include "Lucy/Store/FSFolder.h"
+#include "Lucy/Test/TestUtils.h"
 #include "Lucy/Util/Json.h"
 
+TestSnowballStemmer*
+TestSnowStemmer_new() {
+    return (TestSnowballStemmer*)Class_Make_Obj(TESTSNOWBALLSTEMMER);
+}
+
 static void
-test_Dump_Load_and_Equals(TestBatch *batch) {
-    CharBuf *EN = (CharBuf*)ZCB_WRAP_STR("en", 2);
-    CharBuf *ES = (CharBuf*)ZCB_WRAP_STR("es", 2);
+test_Dump_Load_and_Equals(TestBatchRunner *runner) {
+    String *EN = (String*)SSTR_WRAP_UTF8("en", 2);
+    String *ES = (String*)SSTR_WRAP_UTF8("es", 2);
     SnowballStemmer *stemmer = SnowStemmer_new(EN);
     SnowballStemmer *other   = SnowStemmer_new(ES);
     Obj *dump       = (Obj*)SnowStemmer_Dump(stemmer);
@@ -34,13 +42,13 @@ test_Dump_Load_and_Equals(TestBatch *batch) {
     SnowballStemmer *clone       = (SnowballStemmer*)SnowStemmer_Load(other, dump);
     SnowballStemmer *other_clone = (SnowballStemmer*)SnowStemmer_Load(other, other_dump);
 
-    TEST_FALSE(batch,
+    TEST_FALSE(runner,
                SnowStemmer_Equals(stemmer, (Obj*)other),
                "Equals() false with different language");
-    TEST_TRUE(batch,
+    TEST_TRUE(runner,
               SnowStemmer_Equals(stemmer, (Obj*)clone),
               "Dump => Load round trip");
-    TEST_TRUE(batch,
+    TEST_TRUE(runner,
               SnowStemmer_Equals(other, (Obj*)other_clone),
               "Dump => Load round trip");
 
@@ -53,37 +61,28 @@ test_Dump_Load_and_Equals(TestBatch *batch) {
 }
 
 static void
-test_stemming(TestBatch *batch) {
-    CharBuf  *path           = CB_newf("modules");
-    FSFolder *modules_folder = FSFolder_new(path);
-    if (!FSFolder_Check(modules_folder)) {
-        DECREF(modules_folder);
-        CB_setf(path, "../modules");
-        modules_folder = FSFolder_new(path);
-        if (!FSFolder_Check(modules_folder)) {
-            THROW(ERR, "Can't open modules folder");
-        }
-    }
-    CB_setf(path, "analysis/snowstem/source/test/tests.json");
+test_stemming(TestBatchRunner *runner) {
+    FSFolder *modules_folder = TestUtils_modules_folder();
+    String *path = Str_newf("analysis/snowstem/source/test/tests.json");
     Hash *tests = (Hash*)Json_slurp_json((Folder*)modules_folder, path);
     if (!tests) { RETHROW(Err_get_error()); }
 
-    CharBuf *iso;
+    String *iso;
     Hash *lang_data;
     Hash_Iterate(tests);
     while (Hash_Next(tests, (Obj**)&iso, (Obj**)&lang_data)) {
-        VArray *words = (VArray*)Hash_Fetch_Str(lang_data, "words", 5);
-        VArray *stems = (VArray*)Hash_Fetch_Str(lang_data, "stems", 5);
+        VArray *words = (VArray*)Hash_Fetch_Utf8(lang_data, "words", 5);
+        VArray *stems = (VArray*)Hash_Fetch_Utf8(lang_data, "stems", 5);
         SnowballStemmer *stemmer = SnowStemmer_new(iso);
         for (uint32_t i = 0, max = VA_Get_Size(words); i < max; i++) {
-            CharBuf *word  = (CharBuf*)VA_Fetch(words, i);
-            VArray  *got   = SnowStemmer_Split(stemmer, word);
-            CharBuf *stem  = (CharBuf*)VA_Fetch(got, 0);
-            TEST_TRUE(batch,
+            String *word  = (String*)VA_Fetch(words, i);
+            VArray *got   = SnowStemmer_Split(stemmer, word);
+            String *stem  = (String*)VA_Fetch(got, 0);
+            TEST_TRUE(runner,
                       stem
-                      && CB_Is_A(stem, CHARBUF)
-                      && CB_Equals(stem, VA_Fetch(stems, i)),
-                      "Stem %s: %s", CB_Get_Ptr8(iso), CB_Get_Ptr8(word)
+                      && Str_Is_A(stem, STRING)
+                      && Str_Equals(stem, VA_Fetch(stems, i)),
+                      "Stem %s: %s", Str_Get_Ptr8(iso), Str_Get_Ptr8(word)
                      );
             DECREF(got);
         }
@@ -96,15 +95,10 @@ test_stemming(TestBatch *batch) {
 }
 
 void
-TestSnowStemmer_run_tests() {
-    TestBatch *batch = TestBatch_new(153);
-
-    TestBatch_Plan(batch);
-
-    test_Dump_Load_and_Equals(batch);
-    test_stemming(batch);
-
-    DECREF(batch);
+TestSnowStemmer_Run_IMP(TestSnowballStemmer *self, TestBatchRunner *runner) {
+    TestBatchRunner_Plan(runner, (TestBatch*)self, 153);
+    test_Dump_Load_and_Equals(runner);
+    test_stemming(runner);
 }
 
 

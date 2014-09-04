@@ -38,11 +38,11 @@ parcel Lucy;
  * SharedLock is considered fully released when no lock files with a given
  * lock name are left.
  */
-class Lucy::Store::SharedLock cnick ShLock
+class Lucy::Store::SharedLock nickname ShLock
     inherits Lucy::Store::LockFileLock {
 
     inert incremented SharedLock*
-    new(Folder *folder, const CharBuf *name, const CharBuf *host,
+    new(Folder *folder, String *name, String *host,
         int32_t timeout = 0, int32_t interval = 100);
 
     /**
@@ -55,19 +55,19 @@ class Lucy::Store::SharedLock cnick ShLock
      * @param interval Time in milliseconds between retries.
      */
     public inert SharedLock*
-    init(SharedLock *self, Folder *folder, const CharBuf *name,
-         const CharBuf *host, int32_t timeout = 0, int32_t interval = 100);
+    init(SharedLock *self, Folder *folder, String *name,
+         String *host, int32_t timeout = 0, int32_t interval = 100);
 
-    public bool_t
+    public bool
     Shared(SharedLock *self);
 
-    public bool_t
+    public bool
     Request(SharedLock *self);
 
     public void
     Release(SharedLock *self);
 
-    public bool_t
+    public bool
     Is_Locked(SharedLock *self);
 
     public void

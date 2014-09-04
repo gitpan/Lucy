@@ -30,7 +30,7 @@ parcel Lucy;
  * available filehandles.
  */
 
-class Lucy::Store::CompoundFileReader cnick CFReader
+class Lucy::Store::CompoundFileReader nickname CFReader
     inherits Lucy::Store::Folder {
 
     Folder       *real_folder;
@@ -52,7 +52,7 @@ class Lucy::Store::CompoundFileReader cnick CFReader
     Get_Real_Folder(CompoundFileReader *self);
 
     void
-    Set_Path(CompoundFileReader *self, const CharBuf *path);
+    Set_Path(CompoundFileReader *self, String *path);
 
     public void
     Close(CompoundFileReader *self);
@@ -60,27 +60,27 @@ class Lucy::Store::CompoundFileReader cnick CFReader
     public void
     Destroy(CompoundFileReader *self);
 
-    bool_t
-    Local_Delete(CompoundFileReader *self, const CharBuf *name);
+    bool
+    Local_Delete(CompoundFileReader *self, String *name);
 
-    bool_t
-    Local_Exists(CompoundFileReader *self, const CharBuf *name);
+    bool
+    Local_Exists(CompoundFileReader *self, String *name);
 
-    bool_t
-    Local_Is_Directory(CompoundFileReader *self, const CharBuf *name);
+    bool
+    Local_Is_Directory(CompoundFileReader *self, String *name);
 
     incremented nullable FileHandle*
-    Local_Open_FileHandle(CompoundFileReader *self, const CharBuf *name,
+    Local_Open_FileHandle(CompoundFileReader *self, String *name,
                           uint32_t flags);
 
     incremented nullable InStream*
-    Local_Open_In(CompoundFileReader *self, const CharBuf *name);
+    Local_Open_In(CompoundFileReader *self, String *name);
 
-    bool_t
-    Local_MkDir(CompoundFileReader *self, const CharBuf *name);
+    bool
+    Local_MkDir(CompoundFileReader *self, String *name);
 
     nullable Folder*
-    Local_Find_Folder(CompoundFileReader *self, const CharBuf *name);
+    Local_Find_Folder(CompoundFileReader *self, String *name);
 
     incremented nullable DirHandle*
     Local_Open_Dir(CompoundFileReader *self);
@@ -88,7 +88,7 @@ class Lucy::Store::CompoundFileReader cnick CFReader
 
 /** DirHandle for CompoundFileReader.
  */
-class Lucy::Store::CFReaderDirHandle cnick CFReaderDH
+class Lucy::Store::CFReaderDirHandle nickname CFReaderDH
     inherits Lucy::Store::DirHandle {
 
     CompoundFileReader *cf_reader;
@@ -101,13 +101,13 @@ class Lucy::Store::CFReaderDirHandle cnick CFReaderDH
     inert CFReaderDirHandle*
     init(CFReaderDirHandle *self, CompoundFileReader *cf_reader);
 
-    bool_t
+    bool
     Next(CFReaderDirHandle *self);
 
-    bool_t
+    bool
     Entry_Is_Dir(CFReaderDirHandle *self);
 
-    bool_t
+    bool
     Close(CFReaderDirHandle *self);
 }
 

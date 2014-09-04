@@ -59,11 +59,9 @@ term using seek().
 
 
 
-
-
 =head1 INHERITANCE
 
-Lucy::Index::PostingListReader isa L<Lucy::Index::DataReader> isa L<Lucy::Object::Obj>.
+Lucy::Index::PostingListReader isa L<Lucy::Index::DataReader> isa Clownfish::Obj.
 
 
 =cut

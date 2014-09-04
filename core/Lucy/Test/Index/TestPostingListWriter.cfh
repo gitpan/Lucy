@@ -14,13 +14,16 @@
  * limitations under the License.
  */
 
-parcel Lucy;
+parcel TestLucy;
 
-inert class Lucy::Test::Index::TestPostingListWriter
-    cnick TestPListWriter {
+class Lucy::Test::Index::TestPostingListWriter nickname TestPListWriter
+    inherits Clownfish::TestHarness::TestBatch {
 
-    inert void
-    run_tests();
+    inert incremented TestPostingListWriter*
+    new();
+
+    void
+    Run(TestPostingListWriter *self, TestBatchRunner *runner);
 }
 
 

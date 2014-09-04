@@ -18,20 +18,20 @@ parcel Lucy;
 
 /** Writer for a term dictionary.
  */
-class Lucy::Index::LexiconWriter cnick LexWriter
+class Lucy::Index::LexiconWriter nickname LexWriter
     inherits Lucy::Index::DataWriter {
 
     TermStepper      *term_stepper;
     TermStepper      *tinfo_stepper;
-    CharBuf          *dat_file;
-    CharBuf          *ix_file;
-    CharBuf          *ixix_file;
+    String           *dat_file;
+    String           *ix_file;
+    String           *ixix_file;
     OutStream        *dat_out;
     OutStream        *ix_out;
     OutStream        *ixix_out;
     Hash             *counts;
     Hash             *ix_counts;
-    bool_t            temp_mode;
+    bool              temp_mode;
     int32_t           index_interval;
     int32_t           skip_interval;
     int32_t           count;
@@ -60,7 +60,7 @@ class Lucy::Index::LexiconWriter cnick LexWriter
     /** Prepare to write terms to a temporary file.
      */
     void
-    Enter_Temp_Mode(LexiconWriter *self, const CharBuf *field,
+    Enter_Temp_Mode(LexiconWriter *self, String *field,
                     OutStream *temp_outstream);
 
     /** Stop writing terms to temp file.  Abandon (but don't close) the file.
@@ -72,7 +72,7 @@ class Lucy::Index::LexiconWriter cnick LexWriter
      * field number).
      */
     void
-    Add_Term(LexiconWriter* self, CharBuf* term_text, TermInfo* tinfo);
+    Add_Term(LexiconWriter* self, Obj* term_text, TermInfo* tinfo);
 
     public void
     Add_Segment(LexiconWriter *self, SegReader *reader,

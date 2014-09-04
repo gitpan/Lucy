@@ -15,16 +15,14 @@ of the un-tarred Reuters collection.
 
     ./extract_reuters.plx /path/to/reuters_collection
 
-Filepaths are hard-coded, and the assumption is that the apps will be run from
-within the benchmarks/ directory.  Each of the indexing apps takes four
-optional command line arguments: 
+Each of the indexing apps takes four optional command line arguments: 
 
   * The number of documents to index.
   * The number of times to repeat the indexing process.
   * The increment, or number of docs to add during each index writer instance.
   * Whether or not the main text should be stored and highlightable.
 
-    $ perl -Mblib indexers/lucy_indexer.plx \
+    $ perl -Mblib=../../perl indexers/lucy_indexer.plx \
     > --docs=1000 --reps=6 --increment=10 --store=1
 
     $ java -server -Xmx500M -XX:CompileThreshold=100 LuceneIndexer \

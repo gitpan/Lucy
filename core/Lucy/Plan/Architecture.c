@@ -41,7 +41,7 @@
 
 Architecture*
 Arch_new() {
-    Architecture *self = (Architecture*)VTable_Make_Obj(ARCHITECTURE);
+    Architecture *self = (Architecture*)Class_Make_Obj(ARCHITECTURE);
     return Arch_init(self);
 }
 
@@ -50,8 +50,8 @@ Arch_init(Architecture *self) {
     return self;
 }
 
-bool_t
-Arch_equals(Architecture *self, Obj *other) {
+bool
+Arch_Equals_IMP(Architecture *self, Obj *other) {
     Architecture *twin = (Architecture*)other;
     if (twin == self)                   { return true; }
     if (!Obj_Is_A(other, ARCHITECTURE)) { return false; }
@@ -59,7 +59,7 @@ Arch_equals(Architecture *self, Obj *other) {
 }
 
 void
-Arch_init_seg_writer(Architecture *self, SegWriter *writer) {
+Arch_Init_Seg_Writer_IMP(Architecture *self, SegWriter *writer) {
     Arch_Register_Lexicon_Writer(self, writer);
     Arch_Register_Posting_List_Writer(self, writer);
     Arch_Register_Sort_Writer(self, writer);
@@ -69,7 +69,7 @@ Arch_init_seg_writer(Architecture *self, SegWriter *writer) {
 }
 
 void
-Arch_register_lexicon_writer(Architecture *self, SegWriter *writer) {
+Arch_Register_Lexicon_Writer_IMP(Architecture *self, SegWriter *writer) {
     Schema        *schema     = SegWriter_Get_Schema(writer);
     Snapshot      *snapshot   = SegWriter_Get_Snapshot(writer);
     Segment       *segment    = SegWriter_Get_Segment(writer);
@@ -77,18 +77,18 @@ Arch_register_lexicon_writer(Architecture *self, SegWriter *writer) {
     LexiconWriter *lex_writer
         = LexWriter_new(schema, snapshot, segment, polyreader);
     UNUSED_VAR(self);
-    SegWriter_Register(writer, VTable_Get_Name(LEXICONWRITER),
+    SegWriter_Register(writer, Class_Get_Name(LEXICONWRITER),
                        (DataWriter*)lex_writer);
 }
 
 void
-Arch_register_posting_list_writer(Architecture *self, SegWriter *writer) {
+Arch_Register_Posting_List_Writer_IMP(Architecture *self, SegWriter *writer) {
     Schema        *schema     = SegWriter_Get_Schema(writer);
     Snapshot      *snapshot   = SegWriter_Get_Snapshot(writer);
     Segment       *segment    = SegWriter_Get_Segment(writer);
     PolyReader    *polyreader = SegWriter_Get_PolyReader(writer);
     LexiconWriter *lex_writer = (LexiconWriter*)SegWriter_Fetch(
-                                    writer, VTable_Get_Name(LEXICONWRITER));
+                                    writer, Class_Get_Name(LEXICONWRITER));
     UNUSED_VAR(self);
     if (!lex_writer) {
         THROW(ERR, "Can't fetch a LexiconWriter");
@@ -97,14 +97,14 @@ Arch_register_posting_list_writer(Architecture *self, SegWriter *writer) {
         PostingListWriter *plist_writer
             = PListWriter_new(schema, snapshot, segment, polyreader,
                               lex_writer);
-        SegWriter_Register(writer, VTable_Get_Name(POSTINGLISTWRITER),
+        SegWriter_Register(writer, Class_Get_Name(POSTINGLISTWRITER),
                            (DataWriter*)plist_writer);
         SegWriter_Add_Writer(writer, (DataWriter*)INCREF(plist_writer));
     }
 }
 
 void
-Arch_register_doc_writer(Architecture *self, SegWriter *writer) {
+Arch_Register_Doc_Writer_IMP(Architecture *self, SegWriter *writer) {
     Schema     *schema     = SegWriter_Get_Schema(writer);
     Snapshot   *snapshot   = SegWriter_Get_Snapshot(writer);
     Segment    *segment    = SegWriter_Get_Segment(writer);
@@ -112,13 +112,13 @@ Arch_register_doc_writer(Architecture *self, SegWriter *writer) {
     DocWriter  *doc_writer
         = DocWriter_new(schema, snapshot, segment, polyreader);
     UNUSED_VAR(self);
-    SegWriter_Register(writer, VTable_Get_Name(DOCWRITER),
+    SegWriter_Register(writer, Class_Get_Name(DOCWRITER),
                        (DataWriter*)doc_writer);
     SegWriter_Add_Writer(writer, (DataWriter*)INCREF(doc_writer));
 }
 
 void
-Arch_register_sort_writer(Architecture *self, SegWriter *writer) {
+Arch_Register_Sort_Writer_IMP(Architecture *self, SegWriter *writer) {
     Schema     *schema     = SegWriter_Get_Schema(writer);
     Snapshot   *snapshot   = SegWriter_Get_Snapshot(writer);
     Segment    *segment    = SegWriter_Get_Segment(writer);
@@ -126,13 +126,13 @@ Arch_register_sort_writer(Architecture *self, SegWriter *writer) {
     SortWriter *sort_writer
         = SortWriter_new(schema, snapshot, segment, polyreader);
     UNUSED_VAR(self);
-    SegWriter_Register(writer, VTable_Get_Name(SORTWRITER),
+    SegWriter_Register(writer, Class_Get_Name(SORTWRITER),
                        (DataWriter*)sort_writer);
     SegWriter_Add_Writer(writer, (DataWriter*)INCREF(sort_writer));
 }
 
 void
-Arch_register_highlight_writer(Architecture *self, SegWriter *writer) {
+Arch_Register_Highlight_Writer_IMP(Architecture *self, SegWriter *writer) {
     Schema     *schema     = SegWriter_Get_Schema(writer);
     Snapshot   *snapshot   = SegWriter_Get_Snapshot(writer);
     Segment    *segment    = SegWriter_Get_Segment(writer);
@@ -140,13 +140,13 @@ Arch_register_highlight_writer(Architecture *self, SegWriter *writer) {
     HighlightWriter *hl_writer
         = HLWriter_new(schema, snapshot, segment, polyreader);
     UNUSED_VAR(self);
-    SegWriter_Register(writer, VTable_Get_Name(HIGHLIGHTWRITER),
+    SegWriter_Register(writer, Class_Get_Name(HIGHLIGHTWRITER),
                        (DataWriter*)hl_writer);
     SegWriter_Add_Writer(writer, (DataWriter*)INCREF(hl_writer));
 }
 
 void
-Arch_register_deletions_writer(Architecture *self, SegWriter *writer) {
+Arch_Register_Deletions_Writer_IMP(Architecture *self, SegWriter *writer) {
     Schema     *schema     = SegWriter_Get_Schema(writer);
     Snapshot   *snapshot   = SegWriter_Get_Snapshot(writer);
     Segment    *segment    = SegWriter_Get_Segment(writer);
@@ -154,13 +154,13 @@ Arch_register_deletions_writer(Architecture *self, SegWriter *writer) {
     DefaultDeletionsWriter *del_writer
         = DefDelWriter_new(schema, snapshot, segment, polyreader);
     UNUSED_VAR(self);
-    SegWriter_Register(writer, VTable_Get_Name(DELETIONSWRITER),
+    SegWriter_Register(writer, Class_Get_Name(DELETIONSWRITER),
                        (DataWriter*)del_writer);
     SegWriter_Set_Del_Writer(writer, (DeletionsWriter*)del_writer);
 }
 
 void
-Arch_init_seg_reader(Architecture *self, SegReader *reader) {
+Arch_Init_Seg_Reader_IMP(Architecture *self, SegReader *reader) {
     Arch_Register_Doc_Reader(self, reader);
     Arch_Register_Lexicon_Reader(self, reader);
     Arch_Register_Posting_List_Reader(self, reader);
@@ -170,7 +170,7 @@ Arch_init_seg_reader(Architecture *self, SegReader *reader) {
 }
 
 void
-Arch_register_doc_reader(Architecture *self, SegReader *reader) {
+Arch_Register_Doc_Reader_IMP(Architecture *self, SegReader *reader) {
     Schema     *schema   = SegReader_Get_Schema(reader);
     Folder     *folder   = SegReader_Get_Folder(reader);
     VArray     *segments = SegReader_Get_Segments(reader);
@@ -179,29 +179,29 @@ Arch_register_doc_reader(Architecture *self, SegReader *reader) {
     DefaultDocReader *doc_reader
         = DefDocReader_new(schema, folder, snapshot, segments, seg_tick);
     UNUSED_VAR(self);
-    SegReader_Register(reader, VTable_Get_Name(DOCREADER),
+    SegReader_Register(reader, Class_Get_Name(DOCREADER),
                        (DataReader*)doc_reader);
 }
 
 void
-Arch_register_posting_list_reader(Architecture *self, SegReader *reader) {
+Arch_Register_Posting_List_Reader_IMP(Architecture *self, SegReader *reader) {
     Schema    *schema   = SegReader_Get_Schema(reader);
     Folder    *folder   = SegReader_Get_Folder(reader);
     VArray    *segments = SegReader_Get_Segments(reader);
     Snapshot  *snapshot = SegReader_Get_Snapshot(reader);
     int32_t    seg_tick = SegReader_Get_Seg_Tick(reader);
     LexiconReader *lex_reader = (LexiconReader*)SegReader_Obtain(
-                                    reader, VTable_Get_Name(LEXICONREADER));
+                                    reader, Class_Get_Name(LEXICONREADER));
     DefaultPostingListReader *plist_reader
         = DefPListReader_new(schema, folder, snapshot, segments, seg_tick,
                              lex_reader);
     UNUSED_VAR(self);
-    SegReader_Register(reader, VTable_Get_Name(POSTINGLISTREADER),
+    SegReader_Register(reader, Class_Get_Name(POSTINGLISTREADER),
                        (DataReader*)plist_reader);
 }
 
 void
-Arch_register_lexicon_reader(Architecture *self, SegReader *reader) {
+Arch_Register_Lexicon_Reader_IMP(Architecture *self, SegReader *reader) {
     Schema    *schema   = SegReader_Get_Schema(reader);
     Folder    *folder   = SegReader_Get_Folder(reader);
     VArray    *segments = SegReader_Get_Segments(reader);
@@ -210,12 +210,12 @@ Arch_register_lexicon_reader(Architecture *self, SegReader *reader) {
     DefaultLexiconReader *lex_reader
         = DefLexReader_new(schema, folder, snapshot, segments, seg_tick);
     UNUSED_VAR(self);
-    SegReader_Register(reader, VTable_Get_Name(LEXICONREADER),
+    SegReader_Register(reader, Class_Get_Name(LEXICONREADER),
                        (DataReader*)lex_reader);
 }
 
 void
-Arch_register_sort_reader(Architecture *self, SegReader *reader) {
+Arch_Register_Sort_Reader_IMP(Architecture *self, SegReader *reader) {
     Schema     *schema   = SegReader_Get_Schema(reader);
     Folder     *folder   = SegReader_Get_Folder(reader);
     VArray     *segments = SegReader_Get_Segments(reader);
@@ -224,12 +224,12 @@ Arch_register_sort_reader(Architecture *self, SegReader *reader) {
     DefaultSortReader *sort_reader
         = DefSortReader_new(schema, folder, snapshot, segments, seg_tick);
     UNUSED_VAR(self);
-    SegReader_Register(reader, VTable_Get_Name(SORTREADER),
+    SegReader_Register(reader, Class_Get_Name(SORTREADER),
                        (DataReader*)sort_reader);
 }
 
 void
-Arch_register_highlight_reader(Architecture *self, SegReader *reader) {
+Arch_Register_Highlight_Reader_IMP(Architecture *self, SegReader *reader) {
     Schema     *schema   = SegReader_Get_Schema(reader);
     Folder     *folder   = SegReader_Get_Folder(reader);
     VArray     *segments = SegReader_Get_Segments(reader);
@@ -238,12 +238,12 @@ Arch_register_highlight_reader(Architecture *self, SegReader *reader) {
     DefaultHighlightReader* hl_reader
         = DefHLReader_new(schema, folder, snapshot, segments, seg_tick);
     UNUSED_VAR(self);
-    SegReader_Register(reader, VTable_Get_Name(HIGHLIGHTREADER),
+    SegReader_Register(reader, Class_Get_Name(HIGHLIGHTREADER),
                        (DataReader*)hl_reader);
 }
 
 void
-Arch_register_deletions_reader(Architecture *self, SegReader *reader) {
+Arch_Register_Deletions_Reader_IMP(Architecture *self, SegReader *reader) {
     Schema     *schema   = SegReader_Get_Schema(reader);
     Folder     *folder   = SegReader_Get_Folder(reader);
     VArray     *segments = SegReader_Get_Segments(reader);
@@ -252,24 +252,24 @@ Arch_register_deletions_reader(Architecture *self, SegReader *reader) {
     DefaultDeletionsReader* del_reader
         = DefDelReader_new(schema, folder, snapshot, segments, seg_tick);
     UNUSED_VAR(self);
-    SegReader_Register(reader, VTable_Get_Name(DELETIONSREADER),
+    SegReader_Register(reader, Class_Get_Name(DELETIONSREADER),
                        (DataReader*)del_reader);
 }
 
 Similarity*
-Arch_make_similarity(Architecture *self) {
+Arch_Make_Similarity_IMP(Architecture *self) {
     UNUSED_VAR(self);
     return Sim_new();
 }
 
 int32_t
-Arch_index_interval(Architecture *self) {
+Arch_Index_Interval_IMP(Architecture *self) {
     UNUSED_VAR(self);
     return 128;
 }
 
 int32_t
-Arch_skip_interval(Architecture *self) {
+Arch_Skip_Interval_IMP(Architecture *self) {
     UNUSED_VAR(self);
     return 16;
 }

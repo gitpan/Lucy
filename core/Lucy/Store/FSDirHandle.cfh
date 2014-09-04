@@ -18,31 +18,30 @@ parcel Lucy;
 
 /** File system DirHandle.
  */
-class Lucy::Store::FSDirHandle cnick FSDH
+class Lucy::Store::FSDirHandle nickname FSDH
     inherits Lucy::Store::DirHandle {
 
     void    *sys_dirhandle;
     void    *sys_dir_entry;
-    CharBuf *fullpath;
     Err     *saved_error;
-    bool_t   delayed_iter;
+    bool     delayed_iter;
 
     inert incremented nullable FSDirHandle*
-    open(const CharBuf *path);
+    open(String *path);
 
     inert nullable FSDirHandle*
-    do_open(FSDirHandle *self, const CharBuf *path);
+    do_open(FSDirHandle *self, String *path);
 
-    bool_t
+    bool
     Next(FSDirHandle *self);
 
-    bool_t
+    bool
     Entry_Is_Dir(FSDirHandle *self);
 
-    bool_t
+    bool
     Entry_Is_Symlink(FSDirHandle *self);
 
-    bool_t
+    bool
     Close(FSDirHandle *self);
 
     public void

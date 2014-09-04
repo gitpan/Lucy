@@ -15,20 +15,11 @@
 
 package Lucy::Store::RAMFileHandle;
 use Lucy;
-our $VERSION = '0.003003';
+our $VERSION = '0.004000';
 $VERSION = eval $VERSION;
 
 1;
 
 __END__
-
-__BINDING__
-
-Clownfish::CFC::Binding::Perl::Class->register(
-    parcel            => "Lucy",
-    class_name        => "Lucy::Store::RAMFileHandle",
-    bind_methods      => [qw( Get_File )],
-    bind_constructors => ['_open|do_open'],
-);
 
 

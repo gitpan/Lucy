@@ -22,8 +22,7 @@ parcel Lucy;
  * or more fields, each of which has a value.
  */
 
-public class Lucy::Document::Doc inherits Lucy::Object::Obj
-    : dumpable {
+public class Lucy::Document::Doc inherits Clownfish::Obj {
 
     void        *fields;
     int32_t      doc_id;
@@ -52,7 +51,7 @@ public class Lucy::Document::Doc inherits Lucy::Object::Obj
     /** Store a field value in the Doc.
      */
     void
-    Store(Doc *self, const CharBuf *field, Obj *value);
+    Store(Doc *self, String *field, Obj *value);
 
     /** Set the doc's field's attribute.
      */
@@ -74,19 +73,19 @@ public class Lucy::Document::Doc inherits Lucy::Object::Obj
      * return the interior object.  Callers must check to verify the kind of
      * object returned.
      */
-    nullable Obj*
-    Extract(Doc *self, CharBuf *field, ViewCharBuf *target);
+    nullable incremented Obj*
+    Extract(Doc *self, String *field);
 
     /* Unimplemented methods.
      */
-    public bool_t
+    public bool
     Equals(Doc *self, Obj *other);
 
     public void
     Serialize(Doc *self, OutStream *outstream);
 
     public incremented Doc*
-    Deserialize(Doc *self, InStream *instream);
+    Deserialize(decremented Doc *self, InStream *instream);
 
     public incremented Hash*
     Dump(Doc *self);

@@ -15,21 +15,11 @@
 
 package Lucy::Analysis::Analyzer;
 use Lucy;
-our $VERSION = '0.003003';
+our $VERSION = '0.004000';
 $VERSION = eval $VERSION;
 
 1;
 
 __END__
-
-__BINDING__
-
-Clownfish::CFC::Binding::Perl::Class->register(
-    parcel            => "Lucy",
-    class_name        => "Lucy::Analysis::Analyzer",
-    bind_methods      => [qw( Transform Transform_Text Split )],
-    bind_constructors => ["new"],
-    make_pod          => { synopsis => "    # Abstract base class.\n", }
-);
 
 

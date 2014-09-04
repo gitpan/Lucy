@@ -15,29 +15,11 @@
 
 package Lucy::Util::PriorityQueue;
 use Lucy;
-our $VERSION = '0.003003';
+our $VERSION = '0.004000';
 $VERSION = eval $VERSION;
 
 1;
 
 __END__
-
-__BINDING__
-
-Clownfish::CFC::Binding::Perl::Class->register(
-    parcel       => "Lucy",
-    class_name   => "Lucy::Util::PriorityQueue",
-    bind_methods => [
-        qw(
-            Less_Than
-            Insert
-            Pop
-            Pop_All
-            Peek
-            Get_Size
-            )
-    ],
-    bind_constructors => ["new"],
-);
 
 

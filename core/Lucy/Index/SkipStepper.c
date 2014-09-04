@@ -26,41 +26,44 @@
 
 SkipStepper*
 SkipStepper_new() {
-    SkipStepper *self = (SkipStepper*)VTable_Make_Obj(SKIPSTEPPER);
+    SkipStepper *self = (SkipStepper*)Class_Make_Obj(SKIPSTEPPER);
+    SkipStepperIVARS *const ivars = SkipStepper_IVARS(self);
 
     // Init.
-    self->doc_id   = 0;
-    self->filepos  = 0;
+    ivars->doc_id   = 0;
+    ivars->filepos  = 0;
 
     return self;
 }
 
 void
-SkipStepper_set_id_and_filepos(SkipStepper *self, int32_t doc_id,
-                               int64_t filepos) {
-    self->doc_id  = doc_id;
-    self->filepos = filepos;
+SkipStepper_Set_ID_And_Filepos_IMP(SkipStepper *self, int32_t doc_id,
+                                   int64_t filepos) {
+    SkipStepperIVARS *const ivars = SkipStepper_IVARS(self);
+    ivars->doc_id  = doc_id;
+    ivars->filepos = filepos;
 }
 
 void
-SkipStepper_read_record(SkipStepper *self, InStream *instream) {
-    self->doc_id   += InStream_Read_C32(instream);
-    self->filepos  += InStream_Read_C64(instream);
+SkipStepper_Read_Record_IMP(SkipStepper *self, InStream *instream) {
+    SkipStepperIVARS *const ivars = SkipStepper_IVARS(self);
+    ivars->doc_id   += InStream_Read_C32(instream);
+    ivars->filepos  += InStream_Read_C64(instream);
 }
 
-CharBuf*
-SkipStepper_to_string(SkipStepper *self) {
-    char *ptr = (char*)MALLOCATE(60);
-    size_t len = sprintf(ptr, "skip doc: %u file pointer: %" I64P,
-                         self->doc_id, self->filepos);
-    return CB_new_steal_from_trusted_str(ptr, len, 60);
+String*
+SkipStepper_To_String_IMP(SkipStepper *self) {
+    SkipStepperIVARS *const ivars = SkipStepper_IVARS(self);
+    return Str_newf("skip doc: %u32 file pointer: %i64", ivars->doc_id,
+                    ivars->filepos);
 }
 
 void
-SkipStepper_write_record(SkipStepper *self, OutStream *outstream,
-                         int32_t last_doc_id, int64_t last_filepos) {
-    const int32_t delta_doc_id = self->doc_id - last_doc_id;
-    const int64_t delta_filepos = self->filepos - last_filepos;
+SkipStepper_Write_Record_IMP(SkipStepper *self, OutStream *outstream,
+                             int32_t last_doc_id, int64_t last_filepos) {
+    SkipStepperIVARS *const ivars = SkipStepper_IVARS(self);
+    const int32_t delta_doc_id = ivars->doc_id - last_doc_id;
+    const int64_t delta_filepos = ivars->filepos - last_filepos;
 
     // Write delta doc id.
     OutStream_Write_C32(outstream, delta_doc_id);

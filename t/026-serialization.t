@@ -16,13 +16,13 @@
 use strict;
 use warnings;
 
-use Test::More tests => 7;
+use Test::More tests => 5;
 
 package BasicObj;
-use base qw( Lucy::Object::Obj );
+use base qw( Lucy::Search::Query );
 
 package MyObj;
-use base qw( Lucy::Object::Obj );
+use base qw( Lucy::Search::Query );
 
 my %extra;
 
@@ -72,9 +72,6 @@ run_test_cycle( $obj, sub { ref( $_[0] ) } );
 my $subclassed_obj = MyObj->new("bar");
 run_test_cycle( $subclassed_obj, sub { shift->get_extra } );
 
-my $bb = Lucy::Object::ByteBuf->new("foo");
-run_test_cycle( $bb, sub { shift->to_perl } );
-
 SKIP: {
     skip( "Invalid deserialization causes leaks", 1 ) if $ENV{LUCY_VALGRIND};
     my $bad_obj = BadObj->new("Royale With Cheese");
@@ -87,19 +84,22 @@ SKIP: {
 sub run_test_cycle {
     my ( $orig, $transform ) = @_;
     my $class = ref($orig);
+    my $cf_class = $orig->get_class;
 
     my $frozen = freeze($orig);
     my $thawed = thaw($frozen);
     is( $transform->($thawed), $transform->($orig), "$class: freeze/thaw" );
 
+    return unless $class->can("serialize");
+
     my $ram_file = Lucy::Store::RAMFile->new;
     my $outstream = Lucy::Store::OutStream->open( file => $ram_file )
-        or confess Lucy->error;
+        or confess Clownfish->error;
     $orig->serialize($outstream);
     $outstream->close;
     my $instream = Lucy::Store::InStream->open( file => $ram_file )
-        or confess Lucy->error;
-    my $deserialized = $class->deserialize($instream);
+        or confess Clownfish->error;
+    my $deserialized = $cf_class->make_obj->deserialize($instream);
 
     is( $transform->($deserialized),
         $transform->($orig), "$class: call deserialize via class name" );

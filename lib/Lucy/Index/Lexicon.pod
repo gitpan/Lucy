@@ -71,11 +71,9 @@ element.
 
 
 
-
-
 =head1 INHERITANCE
 
-Lucy::Index::Lexicon isa L<Lucy::Object::Obj>.
+Lucy::Index::Lexicon isa Clownfish::Obj.
 
 
 =cut

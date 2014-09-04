@@ -64,8 +64,6 @@ a 10-second write lock timeout will be created.
 
 
 
-
-
 =head1 METHODS
 
 =head2 commit()
@@ -93,7 +91,7 @@ while, as it can involve rewriting large amounts of data.
 
 =head1 INHERITANCE
 
-Lucy::Index::BackgroundMerger isa L<Lucy::Object::Obj>.
+Lucy::Index::BackgroundMerger isa Clownfish::Obj.
 
 
 =cut

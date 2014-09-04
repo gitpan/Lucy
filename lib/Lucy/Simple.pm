@@ -18,13 +18,13 @@ use warnings;
 
 package Lucy::Simple;
 use Lucy;
-our $VERSION = '0.003003';
+our $VERSION = '0.004000';
 $VERSION = eval $VERSION;
 use Carp;
 use Scalar::Util qw( weaken reftype refaddr );
 
 use Lucy::Plan::Schema;
-use Lucy::Analysis::PolyAnalyzer;
+use Lucy::Analysis::EasyAnalyzer;
 use Lucy::Index::Indexer;
 use Lucy::Search::IndexSearcher;
 
@@ -50,11 +50,6 @@ sub new {
         },
         ref($either) || $either;
 
-    # Get type and schema.
-    my $analyzer = Lucy::Analysis::PolyAnalyzer->new( language => $language );
-    $self->{type} = Lucy::Plan::FullTextType->new( analyzer => $analyzer, );
-    my $schema = $self->{schema} = Lucy::Plan::Schema->new;
-
     # Cache the object for later clean-up.
     weaken( $obj_cache{ refaddr $self } = $self );
 
@@ -64,8 +59,26 @@ sub new {
 sub _lazily_create_indexer {
     my $self = shift;
     if ( !defined $self->{indexer} ) {
+        # Get type and schema
+        my $schema;
+        my $reader = Lucy::Index::PolyReader->open( index => $self->{path} );
+        if ( !@{ $reader->seg_readers } ) {
+            # index is empty, create new schema and type
+            $schema = Lucy::Plan::Schema->new;
+            my $analyzer = Lucy::Analysis::EasyAnalyzer->new(
+                language => $self->{language}, );
+            $self->{type}
+                = Lucy::Plan::FullTextType->new( analyzer => $analyzer, );
+        }
+        else {
+            # get schema from reader
+            $schema = $reader->get_schema;
+            my $field = $schema->all_fields->[0];
+            $self->{type} = $schema->fetch_type($field);
+        }
+        $self->{schema}  = $schema;
         $self->{indexer} = Lucy::Index::Indexer->new(
-            schema => $self->{schema},
+            schema => $schema,
             index  => $self->{path},
         );
     }
@@ -73,11 +86,11 @@ sub _lazily_create_indexer {
 
 sub add_doc {
     my ( $self, $hashref ) = @_;
-    my $schema = $self->{schema};
-    my $type   = $self->{type};
     croak("add_doc requires exactly one argument: a hashref")
         unless ( @_ == 2 and reftype($hashref) eq 'HASH' );
     $self->_lazily_create_indexer;
+    my $schema = $self->{schema};
+    my $type   = $self->{type};
     $schema->spec_field( name => $_, type => $type ) for keys %$hashref;
     $self->{indexer}->add_doc($hashref);
 }

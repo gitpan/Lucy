@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-parcel Lucy;
+parcel TestLucy;
 
 /** Mock-object FileHandle for testing InStream/OutStream.
  */
@@ -23,21 +23,21 @@ class Lucy::Store::MockFileHandle inherits Lucy::Store::FileHandle {
     int64_t len;
 
     inert incremented MockFileHandle*
-    new(const CharBuf *path = NULL, int64_t length);
+    new(String *path = NULL, int64_t length);
 
     inert MockFileHandle*
-    init(MockFileHandle *self, const CharBuf *path = NULL, int64_t length);
+    init(MockFileHandle *self, String *path = NULL, int64_t length);
 
-    bool_t
+    bool
     Window(MockFileHandle *self, FileWindow *window, int64_t offset, int64_t len);
 
-    bool_t
+    bool
     Release_Window(MockFileHandle *self, FileWindow *window);
 
     int64_t
     Length(MockFileHandle *self);
 
-    bool_t
+    bool
     Close(MockFileHandle *self);
 }
 

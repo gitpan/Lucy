@@ -8,6 +8,7 @@ build_requires:
   ExtUtils::ParseXS: 2.18
   Module::Build: 0.280801
 configure_requires:
+  Clownfish::CFC::Perl::Build: 0
   Module::Build: 0.280801
 dynamic_config: 1
 generated_by: 'Module::Build version 0.4003, CPAN::Meta::Converter version 2.120921'
@@ -30,170 +31,23 @@ no_index:
     - 'MANIFEST			This list of files'
     - NOTICE
     - buildlib/Lucy/Build.pm
+    - buildlib/Lucy/Build/Binding/Analysis.pm
+    - buildlib/Lucy/Build/Binding/Docs.pm
+    - buildlib/Lucy/Build/Binding/Document.pm
+    - buildlib/Lucy/Build/Binding/Highlight.pm
+    - buildlib/Lucy/Build/Binding/Index.pm
+    - buildlib/Lucy/Build/Binding/Misc.pm
+    - buildlib/Lucy/Build/Binding/Object.pm
+    - buildlib/Lucy/Build/Binding/Plan.pm
+    - buildlib/Lucy/Build/Binding/Search.pm
+    - buildlib/Lucy/Build/Binding/Store.pm
+    - buildlib/Lucy/Build/Binding/Util.pm
     - buildlib/Lucy/Redacted.pm
     - buildlib/Lucy/Test/TestUtils.pm
-    - charmonizer/Makefile
-    - charmonizer/Makefile.MSVC
-    - charmonizer/Makefile.MinGW
-    - charmonizer/README
-    - charmonizer/charmonize.c
-    - charmonizer/src/Charmonizer/Core/Compiler.c
-    - charmonizer/src/Charmonizer/Core/Compiler.h
-    - charmonizer/src/Charmonizer/Core/ConfWriter.c
-    - charmonizer/src/Charmonizer/Core/ConfWriter.h
-    - charmonizer/src/Charmonizer/Core/Defines.h
-    - charmonizer/src/Charmonizer/Core/HeaderChecker.c
-    - charmonizer/src/Charmonizer/Core/HeaderChecker.h
-    - charmonizer/src/Charmonizer/Core/OperatingSystem.c
-    - charmonizer/src/Charmonizer/Core/OperatingSystem.h
-    - charmonizer/src/Charmonizer/Core/Util.c
-    - charmonizer/src/Charmonizer/Core/Util.h
-    - charmonizer/src/Charmonizer/Probe.c
-    - charmonizer/src/Charmonizer/Probe.h
-    - charmonizer/src/Charmonizer/Probe/AtomicOps.c
-    - charmonizer/src/Charmonizer/Probe/AtomicOps.h
-    - charmonizer/src/Charmonizer/Probe/DirManip.c
-    - charmonizer/src/Charmonizer/Probe/DirManip.h
-    - charmonizer/src/Charmonizer/Probe/Floats.c
-    - charmonizer/src/Charmonizer/Probe/Floats.h
-    - charmonizer/src/Charmonizer/Probe/FuncMacro.c
-    - charmonizer/src/Charmonizer/Probe/FuncMacro.h
-    - charmonizer/src/Charmonizer/Probe/Headers.c
-    - charmonizer/src/Charmonizer/Probe/Headers.h
-    - charmonizer/src/Charmonizer/Probe/Integers.c
-    - charmonizer/src/Charmonizer/Probe/Integers.h
-    - charmonizer/src/Charmonizer/Probe/LargeFiles.c
-    - charmonizer/src/Charmonizer/Probe/LargeFiles.h
-    - charmonizer/src/Charmonizer/Probe/Memory.c
-    - charmonizer/src/Charmonizer/Probe/Memory.h
-    - charmonizer/src/Charmonizer/Probe/UnusedVars.c
-    - charmonizer/src/Charmonizer/Probe/UnusedVars.h
-    - charmonizer/src/Charmonizer/Probe/VariadicMacros.c
-    - charmonizer/src/Charmonizer/Probe/VariadicMacros.h
-    - charmonizer/src/Charmonizer/Test.c
-    - charmonizer/src/Charmonizer/Test.h
-    - charmonizer/src/Charmonizer/Test/TestDirManip.c
-    - charmonizer/src/Charmonizer/Test/TestFuncMacro.c
-    - charmonizer/src/Charmonizer/Test/TestHeaders.c
-    - charmonizer/src/Charmonizer/Test/TestIntegers.c
-    - charmonizer/src/Charmonizer/Test/TestLargeFiles.c
-    - charmonizer/src/Charmonizer/Test/TestUnusedVars.c
-    - charmonizer/src/Charmonizer/Test/TestVariadicMacros.c
-    - clownfish/include/CFC.h
-    - clownfish/perl/Build.PL
-    - clownfish/perl/MANIFEST
-    - clownfish/perl/buildlib/Clownfish/CFC/Build.pm
-    - clownfish/perl/lib/Clownfish.pod
-    - clownfish/perl/lib/Clownfish/CFC.pm
-    - clownfish/perl/lib/Clownfish/CFC.xs
-    - clownfish/perl/lib/Clownfish/CFC/Base.pm
-    - clownfish/perl/lib/Clownfish/CFC/Binding/Core.pm
-    - clownfish/perl/lib/Clownfish/CFC/Binding/Core/Aliases.pm
-    - clownfish/perl/lib/Clownfish/CFC/Binding/Core/Class.pm
-    - clownfish/perl/lib/Clownfish/CFC/Binding/Core/File.pm
-    - clownfish/perl/lib/Clownfish/CFC/Binding/Core/Function.pm
-    - clownfish/perl/lib/Clownfish/CFC/Binding/Core/Method.pm
-    - clownfish/perl/lib/Clownfish/CFC/Binding/Perl.pm
-    - clownfish/perl/lib/Clownfish/CFC/Binding/Perl/Class.pm
-    - clownfish/perl/lib/Clownfish/CFC/Binding/Perl/Constructor.pm
-    - clownfish/perl/lib/Clownfish/CFC/Binding/Perl/Method.pm
-    - clownfish/perl/lib/Clownfish/CFC/Binding/Perl/Subroutine.pm
-    - clownfish/perl/lib/Clownfish/CFC/Binding/Perl/TypeMap.pm
-    - clownfish/perl/lib/Clownfish/CFC/CBlock.pm
-    - clownfish/perl/lib/Clownfish/CFC/Class.pm
-    - clownfish/perl/lib/Clownfish/CFC/DocuComment.pm
-    - clownfish/perl/lib/Clownfish/CFC/Dumpable.pm
-    - clownfish/perl/lib/Clownfish/CFC/File.pm
-    - clownfish/perl/lib/Clownfish/CFC/Function.pm
-    - clownfish/perl/lib/Clownfish/CFC/Hierarchy.pm
-    - clownfish/perl/lib/Clownfish/CFC/Method.pm
-    - clownfish/perl/lib/Clownfish/CFC/ParamList.pm
-    - clownfish/perl/lib/Clownfish/CFC/Parcel.pm
-    - clownfish/perl/lib/Clownfish/CFC/Parser.pm
-    - clownfish/perl/lib/Clownfish/CFC/Symbol.pm
-    - clownfish/perl/lib/Clownfish/CFC/Type.pm
-    - clownfish/perl/lib/Clownfish/CFC/Util.pm
-    - clownfish/perl/lib/Clownfish/CFC/Variable.pm
-    - clownfish/perl/t/000-load.t
-    - clownfish/perl/t/001-util.t
-    - clownfish/perl/t/050-docucomment.t
-    - clownfish/perl/t/051-symbol.t
-    - clownfish/perl/t/100-type.t
-    - clownfish/perl/t/101-primitive_type.t
-    - clownfish/perl/t/102-integer_type.t
-    - clownfish/perl/t/103-float_type.t
-    - clownfish/perl/t/104-void_type.t
-    - clownfish/perl/t/105-object_type.t
-    - clownfish/perl/t/106-va_list_type.t
-    - clownfish/perl/t/107-arbitrary_type.t
-    - clownfish/perl/t/108-composite_type.t
-    - clownfish/perl/t/200-function.t
-    - clownfish/perl/t/201-method.t
-    - clownfish/perl/t/202-overridden_method.t
-    - clownfish/perl/t/203-final_method.t
-    - clownfish/perl/t/300-variable.t
-    - clownfish/perl/t/301-param_list.t
-    - clownfish/perl/t/400-class.t
-    - clownfish/perl/t/401-c_block.t
-    - clownfish/perl/t/402-parcel.t
-    - clownfish/perl/t/403-file.t
-    - clownfish/perl/t/500-hierarchy.t
-    - clownfish/perl/t/600-parser.t
-    - clownfish/perl/t/cfsource/Animal.cfh
-    - clownfish/perl/t/cfsource/Animal/Dog.cfh
-    - clownfish/perl/t/cfsource/Animal/Util.cfh
-    - clownfish/perl/typemap
-    - clownfish/ruby/Rakefile
-    - clownfish/src/CFCBase.c
-    - clownfish/src/CFCBase.h
-    - clownfish/src/CFCBindAliases.c
-    - clownfish/src/CFCBindAliases.h
-    - clownfish/src/CFCBindClass.c
-    - clownfish/src/CFCBindClass.h
-    - clownfish/src/CFCBindCore.c
-    - clownfish/src/CFCBindCore.h
-    - clownfish/src/CFCBindFile.c
-    - clownfish/src/CFCBindFile.h
-    - clownfish/src/CFCBindFunction.c
-    - clownfish/src/CFCBindFunction.h
-    - clownfish/src/CFCBindMethod.c
-    - clownfish/src/CFCBindMethod.h
-    - clownfish/src/CFCCBlock.c
-    - clownfish/src/CFCCBlock.h
-    - clownfish/src/CFCClass.c
-    - clownfish/src/CFCClass.h
-    - clownfish/src/CFCDocuComment.c
-    - clownfish/src/CFCDocuComment.h
-    - clownfish/src/CFCDumpable.c
-    - clownfish/src/CFCDumpable.h
-    - clownfish/src/CFCFile.c
-    - clownfish/src/CFCFile.h
-    - clownfish/src/CFCFunction.c
-    - clownfish/src/CFCFunction.h
-    - clownfish/src/CFCHierarchy.c
-    - clownfish/src/CFCHierarchy.h
-    - clownfish/src/CFCLexHeader.c
-    - clownfish/src/CFCLexHeader.h
-    - clownfish/src/CFCLexHeader.l
-    - clownfish/src/CFCMemPool.c
-    - clownfish/src/CFCMemPool.h
-    - clownfish/src/CFCMethod.c
-    - clownfish/src/CFCMethod.h
-    - clownfish/src/CFCParamList.c
-    - clownfish/src/CFCParamList.h
-    - clownfish/src/CFCParcel.c
-    - clownfish/src/CFCParcel.h
-    - clownfish/src/CFCParseHeader.y
-    - clownfish/src/CFCParser.c
-    - clownfish/src/CFCParser.h
-    - clownfish/src/CFCSymbol.c
-    - clownfish/src/CFCSymbol.h
-    - clownfish/src/CFCType.c
-    - clownfish/src/CFCType.h
-    - clownfish/src/CFCUtil.c
-    - clownfish/src/CFCUtil.h
-    - clownfish/src/CFCVariable.c
-    - clownfish/src/CFCVariable.h
+    - buildlib/LucyX/Build/Binding/Search.pm
+    - charmonizer.c
+    - core/Lucy.c
+    - core/Lucy.cfp
     - core/Lucy/Analysis/Analyzer.c
     - core/Lucy/Analysis/Analyzer.cfh
     - core/Lucy/Analysis/CaseFolder.c
@@ -326,31 +180,10 @@ no_index:
     - core/Lucy/Index/TermStepper.cfh
     - core/Lucy/Index/TermVector.c
     - core/Lucy/Index/TermVector.cfh
-    - core/Lucy/Index/ZombieKeyedHash.c
-    - core/Lucy/Index/ZombieKeyedHash.cfh
     - core/Lucy/Object/BitVector.c
     - core/Lucy/Object/BitVector.cfh
-    - core/Lucy/Object/ByteBuf.c
-    - core/Lucy/Object/ByteBuf.cfh
-    - core/Lucy/Object/CharBuf.c
-    - core/Lucy/Object/CharBuf.cfh
-    - core/Lucy/Object/Err.c
-    - core/Lucy/Object/Err.cfh
-    - core/Lucy/Object/Hash.c
-    - core/Lucy/Object/Hash.cfh
-    - core/Lucy/Object/Host.cfh
     - core/Lucy/Object/I32Array.c
     - core/Lucy/Object/I32Array.cfh
-    - core/Lucy/Object/LockFreeRegistry.c
-    - core/Lucy/Object/LockFreeRegistry.cfh
-    - core/Lucy/Object/Num.c
-    - core/Lucy/Object/Num.cfh
-    - core/Lucy/Object/Obj.c
-    - core/Lucy/Object/Obj.cfh
-    - core/Lucy/Object/VArray.c
-    - core/Lucy/Object/VArray.cfh
-    - core/Lucy/Object/VTable.c
-    - core/Lucy/Object/VTable.cfh
     - core/Lucy/Plan/Architecture.c
     - core/Lucy/Plan/Architecture.cfh
     - core/Lucy/Plan/BlobType.c
@@ -421,6 +254,10 @@ no_index:
     - core/Lucy/Search/Query.cfh
     - core/Lucy/Search/QueryParser.c
     - core/Lucy/Search/QueryParser.cfh
+    - core/Lucy/Search/QueryParser/ParserElem.c
+    - core/Lucy/Search/QueryParser/ParserElem.cfh
+    - core/Lucy/Search/QueryParser/QueryLexer.c
+    - core/Lucy/Search/QueryParser/QueryLexer.cfh
     - core/Lucy/Search/RangeMatcher.c
     - core/Lucy/Search/RangeMatcher.cfh
     - core/Lucy/Search/RangeQuery.c
@@ -499,6 +336,8 @@ no_index:
     - core/Lucy/Test/Analysis/TestSnowballStopFilter.cfh
     - core/Lucy/Test/Analysis/TestStandardTokenizer.c
     - core/Lucy/Test/Analysis/TestStandardTokenizer.cfh
+    - core/Lucy/Test/Highlight/TestHeatMap.c
+    - core/Lucy/Test/Highlight/TestHeatMap.cfh
     - core/Lucy/Test/Highlight/TestHighlighter.c
     - core/Lucy/Test/Highlight/TestHighlighter.cfh
     - core/Lucy/Test/Index/TestDocWriter.c
@@ -517,28 +356,20 @@ no_index:
     - core/Lucy/Test/Index/TestSegment.cfh
     - core/Lucy/Test/Index/TestSnapshot.c
     - core/Lucy/Test/Index/TestSnapshot.cfh
+    - core/Lucy/Test/Index/TestSortWriter.c
+    - core/Lucy/Test/Index/TestSortWriter.cfh
+    - core/Lucy/Test/Index/TestTermInfo.c
+    - core/Lucy/Test/Index/TestTermInfo.cfh
     - core/Lucy/Test/Object/TestBitVector.c
     - core/Lucy/Test/Object/TestBitVector.cfh
-    - core/Lucy/Test/Object/TestByteBuf.c
-    - core/Lucy/Test/Object/TestByteBuf.cfh
-    - core/Lucy/Test/Object/TestCharBuf.c
-    - core/Lucy/Test/Object/TestCharBuf.cfh
-    - core/Lucy/Test/Object/TestHash.c
-    - core/Lucy/Test/Object/TestHash.cfh
     - core/Lucy/Test/Object/TestI32Array.c
     - core/Lucy/Test/Object/TestI32Array.cfh
-    - core/Lucy/Test/Object/TestLockFreeRegistry.c
-    - core/Lucy/Test/Object/TestLockFreeRegistry.cfh
-    - core/Lucy/Test/Object/TestNum.c
-    - core/Lucy/Test/Object/TestNum.cfh
-    - core/Lucy/Test/Object/TestObj.c
-    - core/Lucy/Test/Object/TestObj.cfh
-    - core/Lucy/Test/Object/TestVArray.c
-    - core/Lucy/Test/Object/TestVArray.cfh
     - core/Lucy/Test/Plan/TestArchitecture.c
     - core/Lucy/Test/Plan/TestArchitecture.cfh
     - core/Lucy/Test/Plan/TestBlobType.c
     - core/Lucy/Test/Plan/TestBlobType.cfh
+    - core/Lucy/Test/Plan/TestFieldMisc.c
+    - core/Lucy/Test/Plan/TestFieldMisc.cfh
     - core/Lucy/Test/Plan/TestFieldType.c
     - core/Lucy/Test/Plan/TestFieldType.cfh
     - core/Lucy/Test/Plan/TestFullTextType.c
@@ -569,6 +400,10 @@ no_index:
     - core/Lucy/Test/Search/TestReqOptQuery.cfh
     - core/Lucy/Test/Search/TestSeriesMatcher.c
     - core/Lucy/Test/Search/TestSeriesMatcher.cfh
+    - core/Lucy/Test/Search/TestSortSpec.c
+    - core/Lucy/Test/Search/TestSortSpec.cfh
+    - core/Lucy/Test/Search/TestSpan.c
+    - core/Lucy/Test/Search/TestSpan.cfh
     - core/Lucy/Test/Search/TestTermQuery.c
     - core/Lucy/Test/Search/TestTermQuery.cfh
     - core/Lucy/Test/Store/MockFileHandle.c
@@ -605,26 +440,20 @@ no_index:
     - core/Lucy/Test/TestSchema.cfh
     - core/Lucy/Test/TestUtils.c
     - core/Lucy/Test/TestUtils.cfh
-    - core/Lucy/Test/Util/BBSortEx.c
-    - core/Lucy/Test/Util/BBSortEx.cfh
-    - core/Lucy/Test/Util/TestAtomic.c
-    - core/Lucy/Test/Util/TestAtomic.cfh
+    - core/Lucy/Test/Util/TestFreezer.c
+    - core/Lucy/Test/Util/TestFreezer.cfh
     - core/Lucy/Test/Util/TestIndexFileNames.c
     - core/Lucy/Test/Util/TestIndexFileNames.cfh
     - core/Lucy/Test/Util/TestJson.c
     - core/Lucy/Test/Util/TestJson.cfh
-    - core/Lucy/Test/Util/TestMemory.c
-    - core/Lucy/Test/Util/TestMemory.cfh
     - core/Lucy/Test/Util/TestMemoryPool.c
     - core/Lucy/Test/Util/TestMemoryPool.cfh
-    - core/Lucy/Test/Util/TestNumberUtils.c
-    - core/Lucy/Test/Util/TestNumberUtils.cfh
     - core/Lucy/Test/Util/TestPriorityQueue.c
     - core/Lucy/Test/Util/TestPriorityQueue.cfh
-    - core/Lucy/Test/Util/TestStringHelper.c
-    - core/Lucy/Test/Util/TestStringHelper.cfh
-    - core/Lucy/Util/Atomic.c
-    - core/Lucy/Util/Atomic.cfh
+    - core/Lucy/Test/Util/TestSortExternal.c
+    - core/Lucy/Test/Util/TestSortExternal.cfh
+    - core/Lucy/Util/BBSortEx.c
+    - core/Lucy/Util/BBSortEx.cfh
     - core/Lucy/Util/Debug.c
     - core/Lucy/Util/Debug.cfh
     - core/Lucy/Util/Freezer.c
@@ -634,12 +463,8 @@ no_index:
     - core/Lucy/Util/Json.c
     - core/Lucy/Util/Json.cfh
     - core/Lucy/Util/Json/JsonParser.y
-    - core/Lucy/Util/Memory.c
-    - core/Lucy/Util/Memory.cfh
     - core/Lucy/Util/MemoryPool.c
     - core/Lucy/Util/MemoryPool.cfh
-    - core/Lucy/Util/NumberUtils.c
-    - core/Lucy/Util/NumberUtils.cfh
     - core/Lucy/Util/PriorityQueue.c
     - core/Lucy/Util/PriorityQueue.cfh
     - core/Lucy/Util/ProcessID.c
@@ -648,12 +473,8 @@ no_index:
     - core/Lucy/Util/Sleep.cfh
     - core/Lucy/Util/SortExternal.c
     - core/Lucy/Util/SortExternal.cfh
-    - core/Lucy/Util/SortUtils.c
-    - core/Lucy/Util/SortUtils.cfh
     - core/Lucy/Util/Stepper.c
     - core/Lucy/Util/Stepper.cfh
-    - core/Lucy/Util/StringHelper.c
-    - core/Lucy/Util/StringHelper.cfh
     - core/Lucy/Util/ToolSet.h
     - core/LucyX/Search/FilterMatcher.c
     - core/LucyX/Search/FilterMatcher.cfh
@@ -663,6 +484,8 @@ no_index:
     - core/LucyX/Search/ProximityMatcher.cfh
     - core/LucyX/Search/ProximityQuery.c
     - core/LucyX/Search/ProximityQuery.cfh
+    - core/TestLucy.c
+    - core/TestLucy.cfp
     - devel/benchmarks/README.txt
     - devel/benchmarks/extract_reuters.plx
     - devel/benchmarks/indexers/BenchmarkingIndexer.pm
@@ -670,14 +493,19 @@ no_index:
     - devel/benchmarks/indexers/lucy_indexer.plx
     - devel/bin/UnicodeTable.pm
     - devel/bin/format_changes_entry.pl
-    - devel/bin/gen_charmonizer_makefiles.pl
     - devel/bin/gen_word_break_data.pl
     - devel/bin/lucytidy.pl
+    - devel/bin/pod2mdtext.pl
+    - devel/bin/regen_charmonizer.pl
     - devel/bin/release_commands.pl
+    - devel/bin/setup_clownfish_env.sh
+    - devel/bin/setup_env.sh
     - devel/bin/smoke.pl
+    - devel/bin/test_all.sh
     - devel/bin/update_version
     - devel/bin/valgrind_triggers.pl
     - devel/conf/astylerc
+    - devel/conf/clownfish.vim
     - devel/conf/lucyperl.supp
     - devel/conf/perltidyrc
     - devel/conf/rat-excludes
@@ -687,6 +515,7 @@ no_index:
     - lemon/README
     - lemon/lemon.c
     - lemon/lempar.c
+    - lib/Clownfish/Num.pm
     - lib/Lucy.pm
     - lib/Lucy/Analysis/Analyzer.pm
     - lib/Lucy/Analysis/CaseFolder.pm
@@ -750,17 +579,8 @@ no_index:
     - lib/Lucy/InvIndex.pm
     - lib/Lucy/InvIndexer.pm
     - lib/Lucy/Object/BitVector.pm
-    - lib/Lucy/Object/ByteBuf.pm
-    - lib/Lucy/Object/CharBuf.pm
-    - lib/Lucy/Object/Err.pm
-    - lib/Lucy/Object/Hash.pm
-    - lib/Lucy/Object/Host.pm
     - lib/Lucy/Object/I32Array.pm
-    - lib/Lucy/Object/LockFreeRegistry.pm
-    - lib/Lucy/Object/Num.pm
     - lib/Lucy/Object/Obj.pm
-    - lib/Lucy/Object/VArray.pm
-    - lib/Lucy/Object/VTable.pm
     - lib/Lucy/Plan/Architecture.pm
     - lib/Lucy/Plan/BlobType.pm
     - lib/Lucy/Plan/FieldType.pm
@@ -826,7 +646,6 @@ no_index:
     - lib/Lucy/Test.pm
     - lib/Lucy/Test/Object/TestCharBuf.pm
     - lib/Lucy/Test/TestUtils.pm
-    - lib/Lucy/Test/Util/BBSortEx.pm
     - lib/Lucy/Util/BitVector.pm
     - lib/Lucy/Util/Debug.pm
     - lib/Lucy/Util/IndexFileNames.pm
@@ -835,7 +654,6 @@ no_index:
     - lib/Lucy/Util/PriorityQueue.pm
     - lib/Lucy/Util/SortExternal.pm
     - lib/Lucy/Util/Stepper.pm
-    - lib/Lucy/Util/StringHelper.pm
     - lib/LucyX/Search/ProximityQuery.pm
     - modules/analysis/snowstem/devel/update_snowstem.pl
     - modules/analysis/snowstem/source/README
@@ -887,7 +705,7 @@ no_index:
     - modules/unicode/utf8proc/tests.json
     - modules/unicode/utf8proc/utf8proc.c
     - modules/unicode/utf8proc/utf8proc.h
-    - modules/unicode/utf8proc/utf8proc_data.c
+    - modules/unicode/utf8proc/utf8proc_data.h
     - sample/FlatQueryParser.pm
     - sample/PrefixQuery.pm
     - sample/README.txt
@@ -951,11 +769,9 @@ no_index:
     - t/002-lucy.t
     - t/015-sort_external.t
     - t/018-host.t
-    - t/021-vtable.t
     - t/023-stepper.t
     - t/025-debug.t
     - t/026-serialization.t
-    - t/028-sortexrun.t
     - t/050-ramfile.t
     - t/051-fsfile.t
     - t/102-strings_io.t
@@ -971,29 +787,22 @@ no_index:
     - t/204-doc_reader.t
     - t/205-seg_reader.t
     - t/207-seg_lexicon.t
-    - t/208-terminfo.t
     - t/209-seg_lexicon_heavy.t
     - t/210-deldocs.t
     - t/211-seg_posting_list.t
     - t/213-segment_merging.t
-    - t/214-spec_field.t
     - t/215-term_vectors.t
     - t/216-schema.t
     - t/217-poly_lexicon.t
     - t/218-del_merging.t
     - t/219-byte_buf_doc.t
     - t/220-zlib_doc.t
-    - t/221-sort_writer.t
     - t/224-lex_reader.t
     - t/233-background_merger.t
-    - t/302-many_fields.t
     - t/304-verify_utf8.t
     - t/305-indexer.t
     - t/306-dynamic_schema.t
     - t/308-simple.t
-    - t/309-span.t
-    - t/310-heat_map.t
-    - t/311-hl_selection.t
     - t/400-match_posting.t
     - t/501-termquery.t
     - t/502-phrasequery.t
@@ -1004,7 +813,6 @@ no_index:
     - t/508-hits.t
     - t/509-poly_searcher.t
     - t/510-remote_search.t
-    - t/511-sort_spec.t
     - t/513-matcher.t
     - t/514-and_matcher.t
     - t/515-range_query.t
@@ -1026,15 +834,12 @@ no_index:
     - t/604-simple_search.t
     - t/605-store_pos_boost.t
     - t/607-queryparser_multi_field.t
-    - t/610-queryparser_logic.t
-    - t/611-queryparser_syntax.t
     - t/613-proximityquery.t
     - t/701-uscon.t
     - t/999-remove_indexes.t
     - t/binding/016-varray.t
     - t/binding/017-hash.t
     - t/binding/019-obj.t
-    - t/binding/022-bytebuf.t
     - t/binding/029-charbuf.t
     - t/binding/034-err.t
     - t/binding/101-simple_io.t
@@ -1048,21 +853,18 @@ no_index:
     - t/binding/159-easyanalyzer.t
     - t/binding/206-snapshot.t
     - t/binding/303-highlighter.t
+    - t/binding/310-heat_map.t
     - t/binding/506-collector.t
+    - t/binding/511-sort_spec.t
     - t/binding/702-sample.t
     - t/binding/800-stack.t
-    - t/charmonizer/001-integers.t
-    - t/charmonizer/002-func_macro.t
-    - t/charmonizer/003-headers.t
-    - t/charmonizer/004-large_files.t
-    - t/charmonizer/005-unused_vars.t
-    - t/charmonizer/006-variadic_macros.t
-    - t/charmonizer/007-dirmanip.t
     - t/core/012-priority_queue.t
     - t/core/013-bit_vector.t
+    - t/core/015-sort_external.t
     - t/core/016-varray.t
     - t/core/017-hash.t
     - t/core/019-obj.t
+    - t/core/020-err.t
     - t/core/022-bytebuf.t
     - t/core/024-memory_pool.t
     - t/core/029-charbuf.t
@@ -1097,11 +899,14 @@ no_index:
     - t/core/157-normalizer.t
     - t/core/158-standard_tokenizer.t
     - t/core/206-snapshot.t
+    - t/core/208-terminfo.t
+    - t/core/214-field_misc.t
     - t/core/216-schema.t
     - t/core/220-doc_writer.t
     - t/core/221-highlight_writer.t
     - t/core/222-posting_list_writer.t
     - t/core/223-seg_writer.t
+    - t/core/224-sort_writer.t
     - t/core/225-polyreader.t
     - t/core/230-full_text_type.t
     - t/core/231-blob_type.t
@@ -1109,8 +914,11 @@ no_index:
     - t/core/234-field_type.t
     - t/core/301-segment.t
     - t/core/303-highlighter.t
+    - t/core/309-span.t
+    - t/core/310-heat_map.t
     - t/core/501-termquery.t
     - t/core/502-phrasequery.t
+    - t/core/511-sort_spec.t
     - t/core/515-range_query.t
     - t/core/523-and_query.t
     - t/core/525-match_all_query.t
@@ -1120,477 +928,426 @@ no_index:
     - t/core/529-no_match_query.t
     - t/core/530-series_matcher.t
     - t/core/531-or_query.t
-    - xs/Lucy/Analysis/CaseFolder.c
+    - t/core/610-queryparser_logic.t
+    - t/core/611-queryparser_syntax.t
     - xs/Lucy/Analysis/RegexTokenizer.c
     - xs/Lucy/Document/Doc.c
     - xs/Lucy/Index/DocReader.c
     - xs/Lucy/Index/Inverter.c
-    - xs/Lucy/Index/PolyReader.c
-    - xs/Lucy/Index/SegReader.c
-    - xs/Lucy/Object/Err.c
-    - xs/Lucy/Object/Host.c
-    - xs/Lucy/Object/LockFreeRegistry.c
-    - xs/Lucy/Object/Obj.c
-    - xs/Lucy/Object/VTable.c
-    - xs/Lucy/Store/FSFolder.c
-    - xs/XSBind.c
-    - xs/XSBind.h
 provides:
   Lucy:
     file: lib/Lucy.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Analysis::Analyzer:
     file: lib/Lucy/Analysis/Analyzer.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Analysis::CaseFolder:
     file: lib/Lucy/Analysis/CaseFolder.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Analysis::EasyAnalyzer:
     file: lib/Lucy/Analysis/EasyAnalyzer.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Analysis::Inversion:
     file: lib/Lucy/Analysis/Inversion.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Analysis::Normalizer:
     file: lib/Lucy/Analysis/Normalizer.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Analysis::PolyAnalyzer:
     file: lib/Lucy/Analysis/PolyAnalyzer.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Analysis::RegexTokenizer:
     file: lib/Lucy/Analysis/RegexTokenizer.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Analysis::SnowballStemmer:
     file: lib/Lucy/Analysis/SnowballStemmer.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Analysis::SnowballStopFilter:
     file: lib/Lucy/Analysis/SnowballStopFilter.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Analysis::StandardTokenizer:
     file: lib/Lucy/Analysis/StandardTokenizer.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Analysis::Token:
     file: lib/Lucy/Analysis/Token.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Document::Doc:
     file: lib/Lucy/Document/Doc.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Document::HitDoc:
     file: lib/Lucy/Document/HitDoc.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Highlight::HeatMap:
     file: lib/Lucy/Highlight/HeatMap.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Highlight::Highlighter:
     file: lib/Lucy/Highlight/Highlighter.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::BackgroundMerger:
     file: lib/Lucy/Index/BackgroundMerger.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::DataReader:
     file: lib/Lucy/Index/DataReader.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::DataWriter:
     file: lib/Lucy/Index/DataWriter.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::DeletionsReader:
     file: lib/Lucy/Index/DeletionsReader.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::DeletionsWriter:
     file: lib/Lucy/Index/DeletionsWriter.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::DocReader:
     file: lib/Lucy/Index/DocReader.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::DocVector:
     file: lib/Lucy/Index/DocVector.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::DocWriter:
     file: lib/Lucy/Index/DocWriter.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::FilePurger:
     file: lib/Lucy/Index/FilePurger.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::HighlightReader:
     file: lib/Lucy/Index/HighlightReader.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::HighlightWriter:
     file: lib/Lucy/Index/HighlightWriter.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::IndexManager:
     file: lib/Lucy/Index/IndexManager.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::IndexReader:
     file: lib/Lucy/Index/IndexReader.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::Indexer:
     file: lib/Lucy/Index/Indexer.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::Inverter:
     file: lib/Lucy/Index/Inverter.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::Lexicon:
     file: lib/Lucy/Index/Lexicon.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::LexiconReader:
     file: lib/Lucy/Index/LexiconReader.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::LexiconWriter:
     file: lib/Lucy/Index/LexiconWriter.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::PolyLexicon:
     file: lib/Lucy/Index/PolyLexicon.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::PolyReader:
     file: lib/Lucy/Index/PolyReader.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::Posting:
     file: lib/Lucy/Index/Posting.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::Posting::MatchPosting:
     file: lib/Lucy/Index/Posting/MatchPosting.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::Posting::RichPosting:
     file: lib/Lucy/Index/Posting/RichPosting.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::Posting::ScorePosting:
     file: lib/Lucy/Index/Posting/ScorePosting.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::PostingList:
     file: lib/Lucy/Index/PostingList.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::PostingListReader:
     file: lib/Lucy/Index/PostingListReader.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::PostingListWriter:
     file: lib/Lucy/Index/PostingListWriter.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::SegLexicon:
     file: lib/Lucy/Index/SegLexicon.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::SegPostingList:
     file: lib/Lucy/Index/SegPostingList.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::SegReader:
     file: lib/Lucy/Index/SegReader.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::SegWriter:
     file: lib/Lucy/Index/SegWriter.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::Segment:
     file: lib/Lucy/Index/Segment.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::Similarity:
     file: lib/Lucy/Index/Similarity.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::Snapshot:
     file: lib/Lucy/Index/Snapshot.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::SortCache:
     file: lib/Lucy/Index/SortCache.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::SortReader:
     file: lib/Lucy/Index/SortReader.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::SortWriter:
     file: lib/Lucy/Index/SortWriter.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::TermInfo:
     file: lib/Lucy/Index/TermInfo.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Index::TermVector:
     file: lib/Lucy/Index/TermVector.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Object::BitVector:
     file: lib/Lucy/Object/BitVector.pm
-    version: 0.003003
-  Lucy::Object::ByteBuf:
-    file: lib/Lucy/Object/ByteBuf.pm
-    version: 0.003003
-  Lucy::Object::CharBuf:
-    file: lib/Lucy/Object/CharBuf.pm
-    version: 0.003003
-  Lucy::Object::Err:
-    file: lib/Lucy/Object/Err.pm
-    version: 0.003003
-  Lucy::Object::Hash:
-    file: lib/Lucy/Object/Hash.pm
-    version: 0.003003
-  Lucy::Object::Host:
-    file: lib/Lucy/Object/Host.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Object::I32Array:
     file: lib/Lucy/Object/I32Array.pm
-    version: 0.003003
-  Lucy::Object::LockFreeRegistry:
-    file: lib/Lucy/Object/LockFreeRegistry.pm
-    version: 0.003003
-  Lucy::Object::Num:
-    file: lib/Lucy/Object/Num.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Object::Obj:
     file: lib/Lucy/Object/Obj.pm
-    version: 0.003003
-  Lucy::Object::VArray:
-    file: lib/Lucy/Object/VArray.pm
-    version: 0.003003
-  Lucy::Object::VTable:
-    file: lib/Lucy/Object/VTable.pm
-    version: 0.003003
-  Lucy::Object::ViewByteBuf:
-    file: lib/Lucy.pm
-    version: 0.003003
-  Lucy::Object::ViewCharBuf:
-    file: lib/Lucy.pm
-    version: 0.003003
-  Lucy::Object::ZombieCharBuf:
-    file: lib/Lucy.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Plan::Architecture:
     file: lib/Lucy/Plan/Architecture.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Plan::BlobType:
     file: lib/Lucy/Plan/BlobType.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Plan::FieldType:
     file: lib/Lucy/Plan/FieldType.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Plan::Float32Type:
     file: lib/Lucy/Plan/Float32Type.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Plan::Float64Type:
     file: lib/Lucy/Plan/Float64Type.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Plan::FullTextType:
     file: lib/Lucy/Plan/FullTextType.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Plan::Int32Type:
     file: lib/Lucy/Plan/Int32Type.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Plan::Int64Type:
     file: lib/Lucy/Plan/Int64Type.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Plan::Schema:
     file: lib/Lucy/Plan/Schema.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Plan::StringType:
     file: lib/Lucy/Plan/StringType.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Search::ANDMatcher:
     file: lib/Lucy/Search/ANDMatcher.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Search::ANDQuery:
     file: lib/Lucy/Search/ANDQuery.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Search::BitVecMatcher:
     file: lib/Lucy/Search/BitVecMatcher.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Search::Collector:
     file: lib/Lucy/Search/Collector.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Search::Collector::BitCollector:
     file: lib/Lucy/Search/Collector/BitCollector.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Search::Collector::SortCollector:
     file: lib/Lucy/Search/Collector/SortCollector.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Search::Compiler:
     file: lib/Lucy/Search/Compiler.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Search::HitQueue:
     file: lib/Lucy/Search/HitQueue.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Search::Hits:
     file: lib/Lucy/Search/Hits.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Search::IndexSearcher:
     file: lib/Lucy/Search/IndexSearcher.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Search::LeafQuery:
     file: lib/Lucy/Search/LeafQuery.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Search::MatchAllQuery:
     file: lib/Lucy/Search/MatchAllQuery.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Search::MatchDoc:
     file: lib/Lucy/Search/MatchDoc.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Search::Matcher:
     file: lib/Lucy/Search/Matcher.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Search::NOTMatcher:
     file: lib/Lucy/Search/NOTMatcher.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Search::NOTQuery:
     file: lib/Lucy/Search/NOTQuery.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Search::NoMatchQuery:
     file: lib/Lucy/Search/NoMatchQuery.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Search::ORQuery:
     file: lib/Lucy/Search/ORQuery.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Search::ORScorer:
     file: lib/Lucy/Search/ORScorer.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Search::PhraseQuery:
     file: lib/Lucy/Search/PhraseQuery.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Search::PolyCompiler:
     file: lib/Lucy/Search/PolyCompiler.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Search::PolyQuery:
     file: lib/Lucy/Search/PolyQuery.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Search::PolySearcher:
     file: lib/Lucy/Search/PolySearcher.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Search::Query:
     file: lib/Lucy/Search/Query.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Search::QueryParser:
     file: lib/Lucy/Search/QueryParser.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Search::RangeQuery:
     file: lib/Lucy/Search/RangeQuery.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Search::RequiredOptionalMatcher:
     file: lib/Lucy/Search/RequiredOptionalMatcher.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Search::RequiredOptionalQuery:
     file: lib/Lucy/Search/RequiredOptionalQuery.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Search::Searcher:
     file: lib/Lucy/Search/Searcher.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Search::SortRule:
     file: lib/Lucy/Search/SortRule.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Search::SortSpec:
     file: lib/Lucy/Search/SortSpec.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Search::Span:
     file: lib/Lucy/Search/Span.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Search::TermQuery:
     file: lib/Lucy/Search/TermQuery.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Search::TopDocs:
     file: lib/Lucy/Search/TopDocs.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Simple:
     file: lib/Lucy/Simple.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Store::FSFileHandle:
     file: lib/Lucy/Store/FSFileHandle.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Store::FSFolder:
     file: lib/Lucy/Store/FSFolder.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Store::FileHandle:
     file: lib/Lucy/Store/FileHandle.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Store::Folder:
     file: lib/Lucy/Store/Folder.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Store::InStream:
     file: lib/Lucy/Store/InStream.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Store::Lock:
     file: lib/Lucy/Store/Lock.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Store::LockErr:
     file: lib/Lucy/Store/LockErr.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Store::LockFactory:
     file: lib/Lucy/Store/LockFactory.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Store::OutStream:
     file: lib/Lucy/Store/OutStream.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Store::RAMFile:
     file: lib/Lucy/Store/RAMFile.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Store::RAMFileHandle:
     file: lib/Lucy/Store/RAMFileHandle.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Store::RAMFolder:
     file: lib/Lucy/Store/RAMFolder.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Test:
     file: lib/Lucy/Test.pm
-    version: 0.003003
-  Lucy::Test::TestCharmonizer:
-    file: lib/Lucy/Test.pm
-    version: 0.003003
-  Lucy::Test::Util::BBSortEx:
-    file: lib/Lucy/Test/Util/BBSortEx.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Util::Debug:
     file: lib/Lucy/Util/Debug.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Util::IndexFileNames:
     file: lib/Lucy/Util/IndexFileNames.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Util::Json:
     file: lib/Lucy/Util/Json.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Util::MemoryPool:
     file: lib/Lucy/Util/MemoryPool.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Util::PriorityQueue:
     file: lib/Lucy/Util/PriorityQueue.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Util::SortExternal:
     file: lib/Lucy/Util/SortExternal.pm
-    version: 0.003003
+    version: 0.004000
   Lucy::Util::Stepper:
     file: lib/Lucy/Util/Stepper.pm
-    version: 0.003003
-  Lucy::Util::StringHelper:
-    file: lib/Lucy/Util/StringHelper.pm
-    version: 0.003003
+    version: 0.004000
   LucyX::Index::ByteBufDocReader:
     file: lib/LucyX/Index/ByteBufDocReader.pm
-    version: 0.003003
+    version: 0.004000
   LucyX::Index::ByteBufDocWriter:
     file: lib/LucyX/Index/ByteBufDocWriter.pm
-    version: 0.003003
+    version: 0.004000
   LucyX::Index::LongFieldSim:
     file: lib/LucyX/Index/LongFieldSim.pm
-    version: 0.003003
+    version: 0.004000
   LucyX::Index::ZlibDocReader:
     file: lib/LucyX/Index/ZlibDocReader.pm
-    version: 0.003003
+    version: 0.004000
   LucyX::Index::ZlibDocWriter:
     file: lib/LucyX/Index/ZlibDocWriter.pm
-    version: 0.003003
+    version: 0.004000
   LucyX::Remote::ClusterSearcher:
     file: lib/LucyX/Remote/ClusterSearcher.pm
-    version: 0.003003
+    version: 0.004000
   LucyX::Remote::SearchClient:
     file: lib/LucyX/Remote/SearchClient.pm
-    version: 0.003003
+    version: 0.004000
   LucyX::Remote::SearchServer:
     file: lib/LucyX/Remote/SearchServer.pm
-    version: 0.003003
+    version: 0.004000
   LucyX::Search::Filter:
     file: lib/LucyX/Search/Filter.pm
-    version: 0.003003
+    version: 0.004000
   LucyX::Search::FilterCompiler:
     file: lib/LucyX/Search/Filter.pm
-    version: 0.003003
+    version: 0.004000
   LucyX::Search::FilterMatcher:
     file: lib/LucyX/Search/Filter.pm
-    version: 0.003003
+    version: 0.004000
   LucyX::Search::MockMatcher:
     file: lib/LucyX/Search/MockMatcher.pm
-    version: 0.003003
+    version: 0.004000
   LucyX::Search::ProximityQuery:
     file: lib/LucyX/Search/ProximityQuery.pm
-    version: 0.003003
+    version: 0.004000
 requires:
+  Clownfish: 0
   perl: v5.8.3
 resources:
-  license: http://apache.org/licenses/LICENSE-2.0
-version: v0.3.3
+  bugtracker: https://issues.apache.org/jira/browse/LUCY
+  homepage: http://lucy.apache.org
+  repository: https://git-wip-us.apache.org/repos/asf/lucy.git
+version: v0.4.0

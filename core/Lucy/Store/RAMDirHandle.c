@@ -24,63 +24,68 @@
 
 RAMDirHandle*
 RAMDH_new(RAMFolder *folder) {
-    RAMDirHandle *self = (RAMDirHandle*)VTable_Make_Obj(RAMDIRHANDLE);
+    RAMDirHandle *self = (RAMDirHandle*)Class_Make_Obj(RAMDIRHANDLE);
     return RAMDH_init(self, folder);
 }
 
 RAMDirHandle*
 RAMDH_init(RAMDirHandle *self, RAMFolder *folder) {
     DH_init((DirHandle*)self, RAMFolder_Get_Path(folder));
-    self->folder = (RAMFolder*)INCREF(folder);
-    self->elems  = Hash_Keys(self->folder->entries);
-    self->tick   = -1;
+    RAMDirHandleIVARS *const ivars = RAMDH_IVARS(self);
+    ivars->folder = (RAMFolder*)INCREF(folder);
+    ivars->elems  = Hash_Keys(RAMFolder_IVARS(ivars->folder)->entries);
+    ivars->tick   = -1;
     return self;
 }
 
-bool_t
-RAMDH_close(RAMDirHandle *self) {
-    if (self->elems) {
-        VA_Dec_RefCount(self->elems);
-        self->elems = NULL;
+bool
+RAMDH_Close_IMP(RAMDirHandle *self) {
+    RAMDirHandleIVARS *const ivars = RAMDH_IVARS(self);
+    if (ivars->elems) {
+        DECREF(ivars->elems);
+        ivars->elems = NULL;
     }
-    if (self->folder) {
-        RAMFolder_Dec_RefCount(self->folder);
-        self->folder = NULL;
+    if (ivars->folder) {
+        DECREF(ivars->folder);
+        ivars->folder = NULL;
     }
     return true;
 }
 
-bool_t
-RAMDH_next(RAMDirHandle *self) {
-    if (self->elems) {
-        self->tick++;
-        if (self->tick < (int32_t)VA_Get_Size(self->elems)) {
-            CharBuf *path = (CharBuf*)CERTIFY(
-                                VA_Fetch(self->elems, self->tick), CHARBUF);
-            CB_Mimic(self->entry, (Obj*)path);
+bool
+RAMDH_Next_IMP(RAMDirHandle *self) {
+    RAMDirHandleIVARS *const ivars = RAMDH_IVARS(self);
+    if (ivars->elems) {
+        ivars->tick++;
+        if (ivars->tick < (int32_t)VA_Get_Size(ivars->elems)) {
+            String *path = (String*)CERTIFY(
+                                VA_Fetch(ivars->elems, ivars->tick), STRING);
+            DECREF(ivars->entry);
+            ivars->entry = (String*)INCREF(path);
             return true;
         }
         else {
-            self->tick--;
+            ivars->tick--;
             return false;
         }
     }
     return false;
 }
 
-bool_t
-RAMDH_entry_is_dir(RAMDirHandle *self) {
-    if (self->elems) {
-        CharBuf *name = (CharBuf*)VA_Fetch(self->elems, self->tick);
+bool
+RAMDH_Entry_Is_Dir_IMP(RAMDirHandle *self) {
+    RAMDirHandleIVARS *const ivars = RAMDH_IVARS(self);
+    if (ivars->elems) {
+        String *name = (String*)VA_Fetch(ivars->elems, ivars->tick);
         if (name) {
-            return RAMFolder_Local_Is_Directory(self->folder, name);
+            return RAMFolder_Local_Is_Directory(ivars->folder, name);
         }
     }
     return false;
 }
 
-bool_t
-RAMDH_entry_is_symlink(RAMDirHandle *self) {
+bool
+RAMDH_Entry_Is_Symlink_IMP(RAMDirHandle *self) {
     UNUSED_VAR(self);
     return false;
 }

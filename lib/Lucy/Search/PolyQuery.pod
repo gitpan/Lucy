@@ -50,11 +50,9 @@ which may be walked.
 
 
 
-
-
 =head1 INHERITANCE
 
-Lucy::Search::PolyQuery isa L<Lucy::Search::Query> isa L<Lucy::Object::Obj>.
+Lucy::Search::PolyQuery isa L<Lucy::Search::Query> isa Clownfish::Obj.
 
 
 =cut

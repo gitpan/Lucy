@@ -92,11 +92,9 @@ C<< upper_term >> should be included in the results.
 
 
 
-
-
 =head1 INHERITANCE
 
-Lucy::Search::RangeQuery isa L<Lucy::Search::Query> isa L<Lucy::Object::Obj>.
+Lucy::Search::RangeQuery isa L<Lucy::Search::Query> isa Clownfish::Obj.
 
 
 =cut

@@ -14,11 +14,16 @@
  * limitations under the License.
  */
 
-parcel Lucy;
+parcel TestLucy;
 
-inert class Lucy::Test::Analysis::TestNormalizer {
-    inert void
-    run_tests();
+class Lucy::Test::Analysis::TestNormalizer
+    inherits Clownfish::TestHarness::TestBatch {
+
+    inert incremented TestNormalizer*
+    new();
+
+    void
+    Run(TestNormalizer *self, TestBatchRunner *runner);
 }
 
 

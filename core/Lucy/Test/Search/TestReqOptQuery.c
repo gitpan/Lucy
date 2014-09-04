@@ -14,18 +14,26 @@
  * limitations under the License.
  */
 
-#define C_LUCY_TESTREQOPTQUERY
+#define C_TESTLUCY_TESTREQOPTQUERY
+#define TESTLUCY_USE_SHORT_NAMES
 #include "Lucy/Util/ToolSet.h"
 #include <math.h>
 
+#include "Clownfish/TestHarness/TestBatchRunner.h"
 #include "Lucy/Test.h"
 #include "Lucy/Test/TestUtils.h"
 #include "Lucy/Test/Search/TestReqOptQuery.h"
 #include "Lucy/Search/RequiredOptionalQuery.h"
 #include "Lucy/Search/LeafQuery.h"
+#include "Lucy/Util/Freezer.h"
+
+TestReqOptQuery*
+TestReqOptQuery_new() {
+    return (TestReqOptQuery*)Class_Make_Obj(TESTREQOPTQUERY);
+}
 
 static void
-test_Dump_Load_and_Equals(TestBatch *batch) {
+test_Dump_Load_and_Equals(TestBatchRunner *runner) {
     Query *a_leaf  = (Query*)TestUtils_make_leaf_query(NULL, "a");
     Query *b_leaf  = (Query*)TestUtils_make_leaf_query(NULL, "b");
     Query *c_leaf  = (Query*)TestUtils_make_leaf_query(NULL, "c");
@@ -34,16 +42,16 @@ test_Dump_Load_and_Equals(TestBatch *batch) {
     RequiredOptionalQuery *boost_differs = ReqOptQuery_new(a_leaf, b_leaf);
     Obj *dump = (Obj*)ReqOptQuery_Dump(query);
     RequiredOptionalQuery *clone
-        = (RequiredOptionalQuery*)Obj_Load(dump, dump);
+        = (RequiredOptionalQuery*)Freezer_load(dump);
 
-    TEST_FALSE(batch, ReqOptQuery_Equals(query, (Obj*)kids_differ),
+    TEST_FALSE(runner, ReqOptQuery_Equals(query, (Obj*)kids_differ),
                "Different kids spoil Equals");
-    TEST_TRUE(batch, ReqOptQuery_Equals(query, (Obj*)boost_differs),
+    TEST_TRUE(runner, ReqOptQuery_Equals(query, (Obj*)boost_differs),
               "Equals with identical boosts");
     ReqOptQuery_Set_Boost(boost_differs, 1.5);
-    TEST_FALSE(batch, ReqOptQuery_Equals(query, (Obj*)boost_differs),
+    TEST_FALSE(runner, ReqOptQuery_Equals(query, (Obj*)boost_differs),
                "Different boost spoils Equals");
-    TEST_TRUE(batch, ReqOptQuery_Equals(query, (Obj*)clone),
+    TEST_TRUE(runner, ReqOptQuery_Equals(query, (Obj*)clone),
               "Dump => Load round trip");
 
     DECREF(a_leaf);
@@ -57,11 +65,9 @@ test_Dump_Load_and_Equals(TestBatch *batch) {
 }
 
 void
-TestReqOptQuery_run_tests() {
-    TestBatch *batch = TestBatch_new(4);
-    TestBatch_Plan(batch);
-    test_Dump_Load_and_Equals(batch);
-    DECREF(batch);
+TestReqOptQuery_Run_IMP(TestReqOptQuery *self, TestBatchRunner *runner) {
+    TestBatchRunner_Plan(runner, (TestBatch*)self, 4);
+    test_Dump_Load_and_Equals(runner);
 }
 
 

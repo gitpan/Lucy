@@ -110,8 +110,6 @@ B<doc_id> - A document id.
 
 =back
 
-
-
 =head1 METHODS
 
 =head2 hits( I<[labeled params]> )
@@ -157,7 +155,7 @@ Accessor for the object's C<< schema >> member.
 
 =head1 INHERITANCE
 
-Lucy::Search::Searcher isa L<Lucy::Object::Obj>.
+Lucy::Search::Searcher isa Clownfish::Obj.
 
 
 =cut

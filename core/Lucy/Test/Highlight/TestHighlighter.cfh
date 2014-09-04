@@ -14,11 +14,16 @@
  * limitations under the License.
  */
 
-parcel Lucy;
+parcel TestLucy;
 
-inert class Lucy::Test::Highlight::TestHighlighter {
-    inert void
-    run_tests();
+class Lucy::Test::Highlight::TestHighlighter
+    inherits Clownfish::TestHarness::TestBatch {
+
+    inert incremented TestHighlighter*
+    new();
+
+    void
+    Run(TestHighlighter *self, TestBatchRunner *runner);
 }
 
 

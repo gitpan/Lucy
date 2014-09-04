@@ -22,7 +22,7 @@
 Token*
 Token_new(const char* text, size_t len, uint32_t start_offset,
           uint32_t end_offset, float boost, int32_t pos_inc) {
-    Token *self = (Token*)VTable_Make_Obj(TOKEN);
+    Token *self = (Token*)Class_Make_Obj(TOKEN);
     return Token_init(self, text, len, start_offset, end_offset, boost,
                       pos_inc);
 }
@@ -30,34 +30,39 @@ Token_new(const char* text, size_t len, uint32_t start_offset,
 Token*
 Token_init(Token *self, const char* text, size_t len, uint32_t start_offset,
            uint32_t end_offset, float boost, int32_t pos_inc) {
+    TokenIVARS *const ivars = Token_IVARS(self);
+
     // Allocate and assign.
-    self->text      = (char*)MALLOCATE(len + 1);
-    self->text[len] = '\0';
-    memcpy(self->text, text, len);
+    ivars->text      = (char*)MALLOCATE(len + 1);
+    ivars->text[len] = '\0';
+    memcpy(ivars->text, text, len);
 
     // Assign.
-    self->len          = len;
-    self->start_offset = start_offset;
-    self->end_offset   = end_offset;
-    self->boost        = boost;
-    self->pos_inc      = pos_inc;
+    ivars->len          = len;
+    ivars->start_offset = start_offset;
+    ivars->end_offset   = end_offset;
+    ivars->boost        = boost;
+    ivars->pos_inc      = pos_inc;
 
     // Init.
-    self->pos = -1;
+    ivars->pos = -1;
 
     return self;
 }
 
 void
-Token_destroy(Token *self) {
-    FREEMEM(self->text);
+Token_Destroy_IMP(Token *self) {
+    TokenIVARS *const ivars = Token_IVARS(self);
+    FREEMEM(ivars->text);
     SUPER_DESTROY(self, TOKEN);
 }
 
 int
 Token_compare(void *context, const void *va, const void *vb) {
-    Token *const a = *((Token**)va);
-    Token *const b = *((Token**)vb);
+    Token *const token_a = *((Token**)va);
+    Token *const token_b = *((Token**)vb);
+    TokenIVARS *const a = Token_IVARS(token_a);
+    TokenIVARS *const b = Token_IVARS(token_b);
     size_t min_len = a->len < b->len ? a->len : b->len;
     int comparison = memcmp(a->text, b->text, min_len);
     UNUSED_VAR(context);
@@ -75,44 +80,50 @@ Token_compare(void *context, const void *va, const void *vb) {
 }
 
 uint32_t
-Token_get_start_offset(Token *self) {
-    return self->start_offset;
+Token_Get_Start_Offset_IMP(Token *self) {
+    return Token_IVARS(self)->start_offset;
 }
 
 uint32_t
-Token_get_end_offset(Token *self) {
-    return self->end_offset;
+Token_Get_End_Offset_IMP(Token *self) {
+    return Token_IVARS(self)->end_offset;
 }
 
 float
-Token_get_boost(Token *self) {
-    return self->boost;
+Token_Get_Boost_IMP(Token *self) {
+    return Token_IVARS(self)->boost;
 }
 
 int32_t
-Token_get_pos_inc(Token *self) {
-    return self->pos_inc;
+Token_Get_Pos_Inc_IMP(Token *self) {
+    return Token_IVARS(self)->pos_inc;
+}
+
+int32_t
+Token_Get_Pos_IMP(Token *self) {
+    return Token_IVARS(self)->pos;
 }
 
 char*
-Token_get_text(Token *self) {
-    return self->text;
+Token_Get_Text_IMP(Token *self) {
+    return Token_IVARS(self)->text;
 }
 
 size_t
-Token_get_len(Token *self) {
-    return self->len;
+Token_Get_Len_IMP(Token *self) {
+    return Token_IVARS(self)->len;
 }
 
 void
-Token_set_text(Token *self, char *text, size_t len) {
-    if (len > self->len) {
-        FREEMEM(self->text);
-        self->text = (char*)MALLOCATE(len + 1);
+Token_Set_Text_IMP(Token *self, char *text, size_t len) {
+    TokenIVARS *const ivars = Token_IVARS(self);
+    if (len > ivars->len) {
+        FREEMEM(ivars->text);
+        ivars->text = (char*)MALLOCATE(len + 1);
     }
-    memcpy(self->text, text, len);
-    self->text[len] = '\0';
-    self->len = len;
+    memcpy(ivars->text, text, len);
+    ivars->text[len] = '\0';
+    ivars->len = len;
 }
 
 

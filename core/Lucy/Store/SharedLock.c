@@ -27,135 +27,143 @@
 #include "Lucy/Store/OutStream.h"
 
 SharedLock*
-ShLock_new(Folder *folder, const CharBuf *name, const CharBuf *host,
+ShLock_new(Folder *folder, String *name, String *host,
            int32_t timeout, int32_t interval) {
-    SharedLock *self = (SharedLock*)VTable_Make_Obj(SHAREDLOCK);
+    SharedLock *self = (SharedLock*)Class_Make_Obj(SHAREDLOCK);
     return ShLock_init(self, folder, name, host, timeout, interval);
 }
 
 SharedLock*
-ShLock_init(SharedLock *self, Folder *folder, const CharBuf *name,
-            const CharBuf *host, int32_t timeout, int32_t interval) {
+ShLock_init(SharedLock *self, Folder *folder, String *name,
+            String *host, int32_t timeout, int32_t interval) {
     LFLock_init((LockFileLock*)self, folder, name, host, timeout, interval);
+    SharedLockIVARS *const ivars = ShLock_IVARS(self);
 
     // Override.
-    DECREF(self->lock_path);
-    self->lock_path = (CharBuf*)INCREF(&EMPTY);
+    DECREF(ivars->lock_path);
+    ivars->lock_path = Str_newf("");
 
     return self;
 }
 
-bool_t
-ShLock_shared(SharedLock *self) {
+bool
+ShLock_Shared_IMP(SharedLock *self) {
     UNUSED_VAR(self);
     return true;
 }
 
-bool_t
-ShLock_request(SharedLock *self) {
+bool
+ShLock_Request_IMP(SharedLock *self) {
+    SharedLockIVARS *const ivars = ShLock_IVARS(self);
     uint32_t i = 0;
-    ShLock_request_t super_request
-        = (ShLock_request_t)SUPER_METHOD(SHAREDLOCK, ShLock, Request);
+    ShLock_Request_t super_request
+        = SUPER_METHOD_PTR(SHAREDLOCK, LUCY_ShLock_Request);
 
-    // EMPTY lock_path indicates whether this particular instance is locked.
-    if (self->lock_path != (CharBuf*)&EMPTY
-        && Folder_Exists(self->folder, self->lock_path)
+    // Empty lock_path indicates whether this particular instance is locked.
+    if (ivars->lock_path
+        && !Str_Equals_Utf8(ivars->lock_path, "", 0)
+        && Folder_Exists(ivars->folder, ivars->lock_path)
        ) {
         // Don't allow double obtain.
-        Err_set_error((Err*)LockErr_new(CB_newf("Lock already obtained via '%o'",
-                                                self->lock_path)));
+        Err_set_error((Err*)LockErr_new(Str_newf("Lock already obtained via '%o'",
+                                                 ivars->lock_path)));
         return false;
     }
 
-    DECREF(self->lock_path);
-    self->lock_path = CB_new(CB_Get_Size(self->name) + 10);
     do {
-        CB_setf(self->lock_path, "locks/%o-%u32.lock", self->name, ++i);
-    } while (Folder_Exists(self->folder, self->lock_path));
+        DECREF(ivars->lock_path);
+        ivars->lock_path = Str_newf("locks/%o-%u32.lock", ivars->name, ++i);
+    } while (Folder_Exists(ivars->folder, ivars->lock_path));
 
-    bool_t success = super_request(self);
+    bool success = super_request(self);
     if (!success) { ERR_ADD_FRAME(Err_get_error()); }
     return success;
 }
 
 void
-ShLock_release(SharedLock *self) {
-    if (self->lock_path != (CharBuf*)&EMPTY) {
-        ShLock_release_t super_release
-            = (ShLock_release_t)SUPER_METHOD(SHAREDLOCK, ShLock, Release);
+ShLock_Release_IMP(SharedLock *self) {
+    SharedLockIVARS *const ivars = ShLock_IVARS(self);
+    if (ivars->lock_path && !Str_Equals_Utf8(ivars->lock_path, "", 0)) {
+        ShLock_Release_t super_release
+            = SUPER_METHOD_PTR(SHAREDLOCK, LUCY_ShLock_Release);
         super_release(self);
 
         // Empty out lock_path.
-        DECREF(self->lock_path);
-        self->lock_path = (CharBuf*)INCREF(&EMPTY);
+        DECREF(ivars->lock_path);
+        ivars->lock_path = Str_newf("");
     }
 }
 
 
 void
-ShLock_clear_stale(SharedLock *self) {
-    DirHandle *dh;
-    CharBuf   *entry;
-    CharBuf   *candidate = NULL;
-    CharBuf   *lock_dir_name = (CharBuf*)ZCB_WRAP_STR("locks", 5);
+ShLock_Clear_Stale_IMP(SharedLock *self) {
+    SharedLockIVARS *const ivars = ShLock_IVARS(self);
 
-    if (Folder_Find_Folder(self->folder, lock_dir_name)) {
-        dh = Folder_Open_Dir(self->folder, lock_dir_name);
-        if (!dh) { RETHROW(INCREF(Err_get_error())); }
-        entry = DH_Get_Entry(dh);
-    }
-    else {
+    String *lock_dir_name = (String*)SSTR_WRAP_UTF8("locks", 5);
+    if (!Folder_Find_Folder(ivars->folder, lock_dir_name)) {
         return;
     }
 
+    DirHandle *dh = Folder_Open_Dir(ivars->folder, lock_dir_name);
+    if (!dh) { RETHROW(INCREF(Err_get_error())); }
+
     // Take a stab at any file that begins with our lock name.
     while (DH_Next(dh)) {
-        if (CB_Starts_With(entry, self->name)
-            && CB_Ends_With_Str(entry, ".lock", 5)
+        String *entry = DH_Get_Entry(dh);
+        if (Str_Starts_With(entry, ivars->name)
+            && Str_Ends_With_Utf8(entry, ".lock", 5)
            ) {
-            candidate = candidate ? candidate : CB_new(0);
-            CB_setf(candidate, "%o/%o", lock_dir_name, entry);
+            String *candidate = Str_newf("%o/%o", lock_dir_name, entry);
             ShLock_Maybe_Delete_File(self, candidate, false, true);
+            DECREF(candidate);
         }
+        DECREF(entry);
     }
 
-    DECREF(candidate);
     DECREF(dh);
 }
 
-bool_t
-ShLock_is_locked(SharedLock *self) {
-    DirHandle *dh;
-    CharBuf   *entry;
+bool
+ShLock_Is_Locked_IMP(SharedLock *self) {
+    SharedLockIVARS *const ivars = ShLock_IVARS(self);
 
-    CharBuf *lock_dir_name = (CharBuf*)ZCB_WRAP_STR("locks", 5);
-    if (Folder_Find_Folder(self->folder, lock_dir_name)) {
-        dh = Folder_Open_Dir(self->folder, lock_dir_name);
-        if (!dh) { RETHROW(INCREF(Err_get_error())); }
-        entry = DH_Get_Entry(dh);
-    }
-    else {
+    String *lock_dir_name = (String*)SSTR_WRAP_UTF8("locks", 5);
+    if (!Folder_Find_Folder(ivars->folder, lock_dir_name)) {
         return false;
     }
 
+    DirHandle *dh = Folder_Open_Dir(ivars->folder, lock_dir_name);
+    if (!dh) { RETHROW(INCREF(Err_get_error())); }
+
     while (DH_Next(dh)) {
+        String *entry = DH_Get_Entry(dh);
         // Translation:  $locked = 1 if $entry =~ /^\Q$name-\d+\.lock$/
-        if (CB_Starts_With(entry, self->name)
-            && CB_Ends_With_Str(entry, ".lock", 5)
-           ) {
-            ZombieCharBuf *scratch = ZCB_WRAP(entry);
-            ZCB_Chop(scratch, sizeof(".lock") - 1);
-            while (isdigit(ZCB_Code_Point_From(scratch, 1))) {
-                ZCB_Chop(scratch, 1);
-            }
-            if (ZCB_Code_Point_From(scratch, 1) == '-') {
-                ZCB_Chop(scratch, 1);
-                if (ZCB_Equals(scratch, (Obj*)self->name)) {
-                    DECREF(dh);
-                    return true;
+        if (Str_Starts_With(entry, ivars->name)) {
+            StringIterator *iter = Str_Top(entry);
+            StrIter_Advance(iter, Str_Length(ivars->name));
+            int32_t code_point = StrIter_Next(iter);
+            if (code_point == '-') {
+                code_point = StrIter_Next(iter);
+                if (code_point != STRITER_DONE && isdigit(code_point)) {
+                    while (STRITER_DONE != (code_point = StrIter_Next(iter))) {
+                        if (!isdigit(code_point)) { break; }
+                    }
+                    if (code_point == '.'
+                        && StrIter_Starts_With_Utf8(iter, "lock", 4)
+                    ) {
+                        StrIter_Advance(iter, 4);
+                        if (!StrIter_Has_Next(iter)) {
+                            DECREF(iter);
+                            DECREF(entry);
+                            DECREF(dh);
+                            return true;
+                        }
+                    }
                 }
             }
+            DECREF(iter);
         }
+        DECREF(entry);
     }
 
     DECREF(dh);

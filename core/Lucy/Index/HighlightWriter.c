@@ -16,7 +16,6 @@
 
 #define C_LUCY_HIGHLIGHTWRITER
 #define C_LUCY_DEFAULTHIGHLIGHTWRITER
-#define C_LUCY_TOKEN
 #include "Lucy/Util/ToolSet.h"
 
 #include <stdio.h>
@@ -36,6 +35,7 @@
 #include "Lucy/Store/Folder.h"
 #include "Lucy/Store/OutStream.h"
 #include "Lucy/Store/InStream.h"
+#include "Lucy/Util/Freezer.h"
 
 static OutStream*
 S_lazy_init(HighlightWriter *self);
@@ -46,7 +46,7 @@ HighlightWriter*
 HLWriter_new(Schema *schema, Snapshot *snapshot, Segment *segment,
              PolyReader *polyreader) {
     HighlightWriter *self
-        = (HighlightWriter*)VTable_Make_Obj(HIGHLIGHTWRITER);
+        = (HighlightWriter*)Class_Make_Obj(HIGHLIGHTWRITER);
     return HLWriter_init(self, schema, snapshot, segment, polyreader);
 }
 
@@ -58,42 +58,45 @@ HLWriter_init(HighlightWriter *self, Schema *schema, Snapshot *snapshot,
 }
 
 void
-HLWriter_destroy(HighlightWriter *self) {
-    DECREF(self->dat_out);
-    DECREF(self->ix_out);
+HLWriter_Destroy_IMP(HighlightWriter *self) {
+    HighlightWriterIVARS *const ivars = HLWriter_IVARS(self);
+    DECREF(ivars->dat_out);
+    DECREF(ivars->ix_out);
     SUPER_DESTROY(self, HIGHLIGHTWRITER);
 }
 
 static OutStream*
 S_lazy_init(HighlightWriter *self) {
-    if (!self->dat_out) {
-        Segment  *segment  = self->segment;
-        Folder   *folder   = self->folder;
-        CharBuf  *seg_name = Seg_Get_Name(segment);
+    HighlightWriterIVARS *const ivars = HLWriter_IVARS(self);
+    if (!ivars->dat_out) {
+        Segment  *segment  = ivars->segment;
+        Folder   *folder   = ivars->folder;
+        String   *seg_name = Seg_Get_Name(segment);
 
         // Open outstreams.
-        CharBuf *ix_file = CB_newf("%o/highlight.ix", seg_name);
-        self->ix_out = Folder_Open_Out(folder, ix_file);
+        String *ix_file = Str_newf("%o/highlight.ix", seg_name);
+        ivars->ix_out = Folder_Open_Out(folder, ix_file);
         DECREF(ix_file);
-        if (!self->ix_out) { RETHROW(INCREF(Err_get_error())); }
+        if (!ivars->ix_out) { RETHROW(INCREF(Err_get_error())); }
 
-        CharBuf *dat_file = CB_newf("%o/highlight.dat", seg_name);
-        self->dat_out = Folder_Open_Out(folder, dat_file);
+        String *dat_file = Str_newf("%o/highlight.dat", seg_name);
+        ivars->dat_out = Folder_Open_Out(folder, dat_file);
         DECREF(dat_file);
-        if (!self->dat_out) { RETHROW(INCREF(Err_get_error())); }
+        if (!ivars->dat_out) { RETHROW(INCREF(Err_get_error())); }
 
         // Go past invalid doc 0.
-        OutStream_Write_I64(self->ix_out, 0);
+        OutStream_Write_I64(ivars->ix_out, 0);
     }
 
-    return self->dat_out;
+    return ivars->dat_out;
 }
 
 void
-HLWriter_add_inverted_doc(HighlightWriter *self, Inverter *inverter,
-                          int32_t doc_id) {
+HLWriter_Add_Inverted_Doc_IMP(HighlightWriter *self, Inverter *inverter,
+                              int32_t doc_id) {
+    HighlightWriterIVARS *const ivars = HLWriter_IVARS(self);
     OutStream *dat_out = S_lazy_init(self);
-    OutStream *ix_out  = self->ix_out;
+    OutStream *ix_out  = ivars->ix_out;
     int64_t    filepos = OutStream_Tell(dat_out);
     uint32_t num_highlightable = 0;
     int32_t expected = (int32_t)(OutStream_Tell(ix_out) / 8);
@@ -124,23 +127,22 @@ HLWriter_add_inverted_doc(HighlightWriter *self, Inverter *inverter,
         if (FType_Is_A(type, FULLTEXTTYPE)
             && FullTextType_Highlightable((FullTextType*)type)
            ) {
-            CharBuf   *field     = Inverter_Get_Field_Name(inverter);
+            String    *field     = Inverter_Get_Field_Name(inverter);
             Inversion *inversion = Inverter_Get_Inversion(inverter);
             ByteBuf   *tv_buf    = HLWriter_TV_Buf(self, inversion);
-            CB_Serialize(field, dat_out);
-            BB_Serialize(tv_buf, dat_out);
+            Freezer_serialize_string(field, dat_out);
+            Freezer_serialize_bytebuf(tv_buf, dat_out);
             DECREF(tv_buf);
         }
     }
 }
 
 ByteBuf*
-HLWriter_tv_buf(HighlightWriter *self, Inversion *inversion) {
-    char       *last_text = "";
+HLWriter_TV_Buf_IMP(HighlightWriter *self, Inversion *inversion) {
+    const char *last_text = "";
     size_t      last_len = 0;
     ByteBuf    *tv_buf = BB_new(20 + Inversion_Get_Size(inversion) * 8);
     uint32_t    num_postings = 0;
-    char       *dest;
     Token     **tokens;
     uint32_t    freq;
     UNUSED_VAR(self);
@@ -151,15 +153,18 @@ HLWriter_tv_buf(HighlightWriter *self, Inversion *inversion) {
     Inversion_Reset(inversion);
     while ((tokens = Inversion_Next_Cluster(inversion, &freq)) != NULL) {
         Token *token = *tokens;
-        int32_t overlap = StrHelp_overlap(last_text, token->text,
-                                          last_len, token->len);
+        char *const   token_text = Token_Get_Text(token);
+        const int32_t token_len  = Token_Get_Len(token);
+
+        int32_t overlap = StrHelp_overlap(last_text, token_text,
+                                          last_len, token_len);
         char *ptr;
         char *orig;
         size_t old_size = BB_Get_Size(tv_buf);
         size_t new_size = old_size
                           + C32_MAX_BYTES      // overlap
                           + C32_MAX_BYTES      // length of string diff
-                          + (token->len - overlap) // diff char data
+                          + (token_len - overlap)        // diff char data
                           + C32_MAX_BYTES                // num prox
                           + (C32_MAX_BYTES * freq * 3);  // pos data
 
@@ -173,23 +178,22 @@ HLWriter_tv_buf(HighlightWriter *self, Inversion *inversion) {
 
         // Append the string diff to the tv_buf.
         NumUtil_encode_c32(overlap, &ptr);
-        NumUtil_encode_c32((token->len - overlap), &ptr);
-        memcpy(ptr, (token->text + overlap), (token->len - overlap));
-        ptr += token->len - overlap;
+        NumUtil_encode_c32((token_len - overlap), &ptr);
+        memcpy(ptr, (token_text + overlap), (token_len - overlap));
+        ptr += token_len - overlap;
 
         // Save text and text_len for comparison next loop.
-        last_text = token->text;
-        last_len  = token->len;
+        last_text = token_text;
+        last_len  = token_len;
 
         // Append the number of positions for this term.
         NumUtil_encode_c32(freq, &ptr);
 
         do {
             // Add position, start_offset, and end_offset to tv_buf.
-            NumUtil_encode_c32(token->pos, &ptr);
-            NumUtil_encode_c32(token->start_offset, &ptr);
-            NumUtil_encode_c32(token->end_offset, &ptr);
-
+            NumUtil_encode_c32(Token_Get_Pos(token), &ptr);
+            NumUtil_encode_c32(Token_Get_Start_Offset(token), &ptr);
+            NumUtil_encode_c32(Token_Get_End_Offset(token), &ptr);
         } while (--freq && (token = *++tokens));
 
         // Set new byte length.
@@ -197,15 +201,16 @@ HLWriter_tv_buf(HighlightWriter *self, Inversion *inversion) {
     }
 
     // Go back and start the term vector string with the posting count.
-    dest = BB_Get_Buf(tv_buf);
+    char *dest = BB_Get_Buf(tv_buf);
     NumUtil_encode_padded_c32(num_postings, &dest);
 
     return tv_buf;
 }
 
 void
-HLWriter_add_segment(HighlightWriter *self, SegReader *reader,
-                     I32Array *doc_map) {
+HLWriter_Add_Segment_IMP(HighlightWriter *self, SegReader *reader,
+                         I32Array *doc_map) {
+    HighlightWriterIVARS *const ivars = HLWriter_IVARS(self);
     int32_t doc_max = SegReader_Doc_Max(reader);
 
     if (doc_max == 0) {
@@ -215,10 +220,10 @@ HLWriter_add_segment(HighlightWriter *self, SegReader *reader,
     else {
         DefaultHighlightReader *hl_reader
             = (DefaultHighlightReader*)CERTIFY(
-                  SegReader_Obtain(reader, VTable_Get_Name(HIGHLIGHTREADER)),
+                  SegReader_Obtain(reader, Class_Get_Name(HIGHLIGHTREADER)),
                   DEFAULTHIGHLIGHTREADER);
         OutStream *dat_out = S_lazy_init(self);
-        OutStream *ix_out  = self->ix_out;
+        OutStream *ix_out  = ivars->ix_out;
         int32_t    orig;
         ByteBuf   *bb = BB_new(0);
 
@@ -242,23 +247,24 @@ HLWriter_add_segment(HighlightWriter *self, SegReader *reader,
 }
 
 void
-HLWriter_finish(HighlightWriter *self) {
-    if (self->dat_out) {
+HLWriter_Finish_IMP(HighlightWriter *self) {
+    HighlightWriterIVARS *const ivars = HLWriter_IVARS(self);
+    if (ivars->dat_out) {
         // Write one final file pointer, so that we can derive the length of
         // the last record.
-        int64_t end = OutStream_Tell(self->dat_out);
-        OutStream_Write_I64(self->ix_out, end);
+        int64_t end = OutStream_Tell(ivars->dat_out);
+        OutStream_Write_I64(ivars->ix_out, end);
 
         // Close down the output streams.
-        OutStream_Close(self->dat_out);
-        OutStream_Close(self->ix_out);
-        Seg_Store_Metadata_Str(self->segment, "highlight", 9,
-                               (Obj*)HLWriter_Metadata(self));
+        OutStream_Close(ivars->dat_out);
+        OutStream_Close(ivars->ix_out);
+        Seg_Store_Metadata_Utf8(ivars->segment, "highlight", 9,
+                                (Obj*)HLWriter_Metadata(self));
     }
 }
 
 int32_t
-HLWriter_format(HighlightWriter *self) {
+HLWriter_Format_IMP(HighlightWriter *self) {
     UNUSED_VAR(self);
     return HLWriter_current_file_format;
 }

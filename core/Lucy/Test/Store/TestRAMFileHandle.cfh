@@ -14,11 +14,16 @@
  * limitations under the License.
  */
 
-parcel Lucy;
+parcel TestLucy;
 
-inert class Lucy::Test::Store::TestRAMFileHandle cnick TestRAMFH {
-    inert void
-    run_tests();
+class Lucy::Test::Store::TestRAMFileHandle nickname TestRAMFH
+    inherits Clownfish::TestHarness::TestBatch {
+
+    inert incremented TestRAMFileHandle*
+    new();
+
+    void
+    Run(TestRAMFileHandle *self, TestBatchRunner *runner);
 }
 
 

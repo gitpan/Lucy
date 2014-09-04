@@ -114,8 +114,6 @@ Every writer must specify a file format revision number, which should
 increment each time the format changes. Responsibility for revision
 checking is left to the companion DataReader.
 
-
-
 =head1 METHODS
 
 =head2 delete_segment(reader)
@@ -187,7 +185,7 @@ Accessor for "folder" member var.
 
 =head1 INHERITANCE
 
-Lucy::Index::DataWriter isa L<Lucy::Object::Obj>.
+Lucy::Index::DataWriter isa Clownfish::Obj.
 
 
 =cut

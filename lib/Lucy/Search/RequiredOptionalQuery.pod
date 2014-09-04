@@ -59,8 +59,6 @@ B<optional_query> - Query which should match.
 
 
 
-
-
 =head1 METHODS
 
 =head2 get_required_query()
@@ -83,7 +81,7 @@ Setter for the optional Query.
 
 =head1 INHERITANCE
 
-Lucy::Search::RequiredOptionalQuery isa L<Lucy::Search::PolyQuery> isa L<Lucy::Search::Query> isa L<Lucy::Object::Obj>.
+Lucy::Search::RequiredOptionalQuery isa L<Lucy::Search::PolyQuery> isa L<Lucy::Search::Query> isa Clownfish::Obj.
 
 
 =cut

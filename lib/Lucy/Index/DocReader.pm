@@ -15,34 +15,11 @@
 
 package Lucy::Index::DocReader;
 use Lucy;
-our $VERSION = '0.003003';
+our $VERSION = '0.004000';
 $VERSION = eval $VERSION;
 
 1;
 
 __END__
-
-__BINDING__
-
-my $synopsis = <<'END_SYNOPSIS';
-    my $doc_reader = $seg_reader->obtain("Lucy::Index::DocReader");
-    my $doc        = $doc_reader->fetch_doc($doc_id);
-END_SYNOPSIS
-
-Clownfish::CFC::Binding::Perl::Class->register(
-    parcel            => "Lucy",
-    class_name        => "Lucy::Index::DocReader",
-    bind_constructors => ["new"],
-    bind_methods      => [qw( Fetch_Doc )],
-    make_pod          => {
-        synopsis => $synopsis,
-        methods  => [qw( fetch_doc aggregator )],
-    },
-);
-Clownfish::CFC::Binding::Perl::Class->register(
-    parcel            => "Lucy",
-    class_name        => "Lucy::Index::DefaultDocReader",
-    bind_constructors => ["new"],
-);
 
 

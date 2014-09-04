@@ -19,11 +19,11 @@ parcel Lucy;
 /** Term freq and positional data.
  */
 
-class Lucy::Index::TermVector cnick TV
-    inherits Lucy::Object::Obj {
+class Lucy::Index::TermVector nickname TV
+    inherits Clownfish::Obj {
 
-    CharBuf *field;
-    CharBuf *text;
+    String *field;
+    String *text;
     uint32_t num_pos;
     I32Array  *positions;
     I32Array  *start_offsets;
@@ -33,11 +33,11 @@ class Lucy::Index::TermVector cnick TV
      * start_offsets, and end_offsets arrays.
      */
     inert incremented TermVector*
-    new(const CharBuf *field, const CharBuf *text, I32Array *positions,
+    new(String *field, String *text, I32Array *positions,
         I32Array *start_offsets, I32Array *end_offsets);
 
     inert TermVector*
-    init(TermVector *self, const CharBuf *field, const CharBuf *text,
+    init(TermVector *self, String *field, String *text,
          I32Array *positions, I32Array *start_offsets, I32Array *end_offsets);
 
     I32Array*
@@ -50,9 +50,9 @@ class Lucy::Index::TermVector cnick TV
     Get_End_Offsets(TermVector *self);
 
     public incremented TermVector*
-    Deserialize(TermVector *self, InStream *instream);
+    Deserialize(decremented TermVector *self, InStream *instream);
 
-    public bool_t
+    public bool
     Equals(TermVector *self, Obj *other);
 
     public void

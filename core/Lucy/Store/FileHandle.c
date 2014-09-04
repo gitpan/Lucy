@@ -22,9 +22,10 @@
 int32_t FH_object_count = 0;
 
 FileHandle*
-FH_do_open(FileHandle *self, const CharBuf *path, uint32_t flags) {
-    self->path    = path ? CB_Clone(path) : CB_new(0);
-    self->flags   = flags;
+FH_do_open(FileHandle *self, String *path, uint32_t flags) {
+    FileHandleIVARS *const ivars = FH_IVARS(self);
+    ivars->path    = path ? Str_Clone(path) : Str_new_from_trusted_utf8("", 0);
+    ivars->flags   = flags;
 
     // Track number of live FileHandles released into the wild.
     FH_object_count++;
@@ -34,30 +35,33 @@ FH_do_open(FileHandle *self, const CharBuf *path, uint32_t flags) {
 }
 
 void
-FH_destroy(FileHandle *self) {
+FH_Destroy_IMP(FileHandle *self) {
+    FileHandleIVARS *const ivars = FH_IVARS(self);
     FH_Close(self);
-    DECREF(self->path);
+    DECREF(ivars->path);
     SUPER_DESTROY(self, FILEHANDLE);
 
     // Decrement count of FileHandle objects in existence.
     FH_object_count--;
 }
 
-bool_t
-FH_grow(FileHandle *self, int64_t length) {
+bool
+FH_Grow_IMP(FileHandle *self, int64_t length) {
     UNUSED_VAR(self);
     UNUSED_VAR(length);
     return true;
 }
 
 void
-FH_set_path(FileHandle *self, const CharBuf *path) {
-    CB_Mimic(self->path, (Obj*)path);
+FH_Set_Path_IMP(FileHandle *self, String *path) {
+    FileHandleIVARS *const ivars = FH_IVARS(self);
+    DECREF(ivars->path);
+    ivars->path = Str_Clone(path);
 }
 
-CharBuf*
-FH_get_path(FileHandle *self) {
-    return self->path;
+String*
+FH_Get_Path_IMP(FileHandle *self) {
+    return FH_IVARS(self)->path;
 }
 
 

@@ -18,7 +18,7 @@ use warnings;
 
 package LucyX::Search::MockMatcher;
 use Lucy;
-our $VERSION = '0.003003';
+our $VERSION = '0.004000';
 $VERSION = eval $VERSION;
 
 sub new {
@@ -30,7 +30,7 @@ sub new {
     if ( ref( $args{scores} ) eq 'ARRAY' ) {
         confess("Mismatch between scores and doc_ids array sizes")
             unless scalar @{ $args{scores} } == $size;
-        $scores = Lucy::Object::ByteBuf->new(
+        $scores = Clownfish::ByteBuf->new(
             pack( "f$size", @{ $args{scores} } ) );
     }
 
@@ -44,15 +44,7 @@ sub new {
 
 __END__
 
-__BINDING__
 
-Clownfish::CFC::Binding::Perl::Class->register(
-    parcel       => "Lucy",
-    class_name   => "LucyX::Search::MockMatcher",
-    bind_constructors => ["_new|init"],
-);
-
-__POD__
 
 =head1 NAME
 

@@ -39,11 +39,9 @@ the file system holding a collection of files.
 
 
 
-
-
 =head1 INHERITANCE
 
-Lucy::Store::Folder isa L<Lucy::Object::Obj>.
+Lucy::Store::Folder isa Clownfish::Obj.
 
 
 =cut

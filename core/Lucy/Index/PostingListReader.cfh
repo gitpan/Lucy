@@ -21,7 +21,7 @@ parcel Lucy;
  * PostingListReaders produce L<PostingList|Lucy::Index::PostingList>
  * objects which convey document matching information.
  */
-class Lucy::Index::PostingListReader cnick PListReader
+public class Lucy::Index::PostingListReader nickname PListReader
     inherits Lucy::Index::DataReader {
 
     inert PostingListReader*
@@ -37,7 +37,7 @@ class Lucy::Index::PostingListReader cnick PListReader
      * term using Seek().
      */
     public abstract incremented nullable PostingList*
-    Posting_List(PostingListReader *self, const CharBuf *field = NULL,
+    Posting_List(PostingListReader *self, String *field = NULL,
                  Obj *term = NULL);
 
     abstract LexiconReader*
@@ -50,7 +50,7 @@ class Lucy::Index::PostingListReader cnick PListReader
     Aggregator(PostingListReader *self, VArray *readers, I32Array *offsets);
 }
 
-class Lucy::Index::DefaultPostingListReader cnick DefPListReader
+class Lucy::Index::DefaultPostingListReader nickname DefPListReader
     inherits Lucy::Index::PostingListReader {
 
     LexiconReader *lex_reader;
@@ -65,7 +65,7 @@ class Lucy::Index::DefaultPostingListReader cnick DefPListReader
          LexiconReader *lex_reader);
 
     public incremented nullable SegPostingList*
-    Posting_List(DefaultPostingListReader *self, const CharBuf *field = NULL,
+    Posting_List(DefaultPostingListReader *self, String *field = NULL,
                  Obj *term = NULL);
 
     LexiconReader*

@@ -36,7 +36,7 @@ parcel Lucy;
  * file once the after the doc id is written.
  */
 
-class Lucy::Index::RawPosting cnick RawPost
+class Lucy::Index::RawPosting nickname RawPost
     inherits Lucy::Index::Posting {
 
     uint32_t  freq;
@@ -48,7 +48,7 @@ class Lucy::Index::RawPosting cnick RawPost
      */
     inert incremented RawPosting*
     new(void *pre_allocated_memory, int32_t doc_id, uint32_t freq,
-        char *term_text, size_t term_text_len);
+        const char *term_text, size_t term_text_len);
 
     uint32_t
     Get_RefCount(RawPosting* self);
@@ -59,13 +59,16 @@ class Lucy::Index::RawPosting cnick RawPost
     uint32_t
     Dec_RefCount(RawPosting* self);
 
+    public int32_t
+    Compare_To(RawPosting *self, Obj *other);
+
     /** Throws an error.
      */
     public void
     Destroy(RawPosting *self);
 }
 
-class Lucy::Index::Posting::RawPostingWriter cnick RawPostWriter
+class Lucy::Index::Posting::RawPostingWriter nickname RawPostWriter
     inherits Lucy::Index::Posting::PostingWriter {
 
     OutStream *outstream;
@@ -91,13 +94,4 @@ class Lucy::Index::Posting::RawPostingWriter cnick RawPostWriter
     void
     Write_Posting(RawPostingWriter *self, RawPosting *posting);
 }
-
-__C__
-extern lucy_RawPosting LUCY_RAWPOSTING_BLANK;
-
-#ifdef LUCY_USE_SHORT_NAMES
-  #define RAWPOSTING_BLANK         LUCY_RAWPOSTING_BLANK
-#endif
-__END_C__
-
 

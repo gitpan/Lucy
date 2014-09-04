@@ -14,19 +14,24 @@
  * limitations under the License.
  */
 
-#define C_LUCY_TESTHIGHLIGHTWRITER
+#define C_TESTLUCY_TESTHIGHLIGHTWRITER
+#define TESTLUCY_USE_SHORT_NAMES
 #include "Lucy/Util/ToolSet.h"
 
+#include "Clownfish/TestHarness/TestBatchRunner.h"
 #include "Lucy/Test.h"
 #include "Lucy/Test/Index/TestHighlightWriter.h"
 #include "Lucy/Index/HighlightWriter.h"
 
+TestHighlightWriter*
+TestHLWriter_new() {
+    return (TestHighlightWriter*)Class_Make_Obj(TESTHIGHLIGHTWRITER);
+}
+
 void
-TestHLWriter_run_tests() {
-    TestBatch *batch = TestBatch_new(1);
-    TestBatch_Plan(batch);
-    PASS(batch, "Placeholder");
-    DECREF(batch);
+TestHLWriter_Run_IMP(TestHighlightWriter *self, TestBatchRunner *runner) {
+    TestBatchRunner_Plan(runner, (TestBatch*)self, 1);
+    PASS(runner, "Placeholder");
 }
 
 

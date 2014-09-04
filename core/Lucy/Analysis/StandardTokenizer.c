@@ -34,15 +34,18 @@
  * in devel/bin.
  */
 
-#define WB_ASingle        1
-#define WB_ALetter        2
-#define WB_Numeric        3
-#define WB_Katakana       4
-#define WB_ExtendNumLet   5
-#define WB_Extend_Format  6
-#define WB_MidNumLet      7
-#define WB_MidLetter      8
-#define WB_MidNum         9
+#define WB_ASingle          1
+#define WB_ALetter          2
+#define WB_Hebrew_Letter    3
+#define WB_Numeric          4
+#define WB_Katakana         5
+#define WB_ExtendNumLet     6
+#define WB_Extend_Format    7
+#define WB_Single_Quote     8
+#define WB_Double_Quote     9
+#define WB_MidNumLet       10
+#define WB_MidLetter       11
+#define WB_MidNum          12
 
 #include "WordBreak.tab"
 
@@ -70,7 +73,7 @@ S_skip_extend_format(const char *text, size_t len, lucy_StringIter *iter);
 
 StandardTokenizer*
 StandardTokenizer_new() {
-    StandardTokenizer *self = (StandardTokenizer*)VTable_Make_Obj(STANDARDTOKENIZER);
+    StandardTokenizer *self = (StandardTokenizer*)Class_Make_Obj(STANDARDTOKENIZER);
     return StandardTokenizer_init(self);
 }
 
@@ -81,32 +84,34 @@ StandardTokenizer_init(StandardTokenizer *self) {
 }
 
 Inversion*
-StandardTokenizer_transform(StandardTokenizer *self, Inversion *inversion) {
+StandardTokenizer_Transform_IMP(StandardTokenizer *self, Inversion *inversion) {
     Inversion *new_inversion = Inversion_new(NULL);
     Token *token;
 
     while (NULL != (token = Inversion_Next(inversion))) {
-        StandardTokenizer_Tokenize_Str(self, token->text, token->len,
-                                       new_inversion);
+        TokenIVARS *const token_ivars = Token_IVARS(token);
+        StandardTokenizer_Tokenize_Utf8(self, token_ivars->text,
+                                        token_ivars->len, new_inversion);
     }
 
     return new_inversion;
 }
 
 Inversion*
-StandardTokenizer_transform_text(StandardTokenizer *self, CharBuf *text) {
+StandardTokenizer_Transform_Text_IMP(StandardTokenizer *self, String *text) {
     Inversion *new_inversion = Inversion_new(NULL);
-    StandardTokenizer_Tokenize_Str(self, (char*)CB_Get_Ptr8(text),
-                                   CB_Get_Size(text), new_inversion);
+    StandardTokenizer_Tokenize_Utf8(self, Str_Get_Ptr8(text),
+                                    Str_Get_Size(text), new_inversion);
     return new_inversion;
 }
 
 void
-StandardTokenizer_tokenize_str(StandardTokenizer *self, const char *text,
-                               size_t len, Inversion *inversion) {
-    if (len >= 1 && (uint8_t)text[len - 1] >= 0xC0
-        ||  len >= 2 && (uint8_t)text[len - 2] >= 0xE0
-        ||  len >= 3 && (uint8_t)text[len - 3] >= 0xF0) {
+StandardTokenizer_Tokenize_Utf8_IMP(StandardTokenizer *self, const char *text,
+                                    size_t len, Inversion *inversion) {
+    UNUSED_VAR(self);
+    if ((len >= 1 && (uint8_t)text[len - 1] >= 0xC0)
+        ||  (len >= 2 && (uint8_t)text[len - 2] >= 0xE0)
+        ||  (len >= 3 && (uint8_t)text[len - 3] >= 0xF0)) {
         THROW(ERR, "Invalid UTF-8 sequence");
     }
 
@@ -151,9 +156,9 @@ S_parse_single(const char *text, size_t len, lucy_StringIter *iter,
 }
 
 /*
- * Parse a word starting with an ALetter, Numeric or Katakana character.
- * Advances the iterator and returns the word break property of the current
- * character.
+ * Parse a word starting with an ALetter, Numeric, Katakana, or ExtendNumLet
+ * character. Advances the iterator and returns the word break property of the
+ * current character.
  */
 static int
 S_parse_word(const char *text, size_t len, lucy_StringIter *iter,
@@ -168,27 +173,67 @@ S_parse_word(const char *text, size_t len, lucy_StringIter *iter,
 
         switch (wb) {
             case WB_ALetter:
+            case WB_Hebrew_Letter:
             case WB_Numeric:
                 if (state == WB_Katakana) { goto word_break; }
+                // Rules WB5, WB8, WB9, WB10, and WB13b.
                 break;
             case WB_Katakana:
-                if (state == WB_ALetter || state == WB_Numeric) {
+                if (state != WB_Katakana && state != WB_ExtendNumLet) {
                     goto word_break;
                 }
+                // Rules WB13 and WB13b.
                 break;
             case WB_ExtendNumLet:
+                // Rule WB13a.
                 break;
             case WB_Extend_Format:
-                // keep state
+                // Rule WB4. Keep state.
                 wb = state;
                 break;
+            case WB_Single_Quote:
             case WB_MidNumLet:
             case WB_MidLetter:
             case WB_MidNum:
-                if (state == WB_ALetter && wb != WB_MidNum
-                    ||  state == WB_Numeric && wb != WB_MidLetter) {
+                if (state == WB_ALetter) {
+                    if (wb == WB_MidNum) { goto word_break; }
                     wb = S_skip_extend_format(text, len, iter);
-                    if (wb == state) { break; }
+                    if (wb == WB_ALetter || wb == WB_Hebrew_Letter) {
+                        // Rules WB6 and WB7.
+                        state = wb;
+                        break;
+                    }
+                }
+                else if (state == WB_Hebrew_Letter) {
+                    if (wb == WB_MidNum) { goto word_break; }
+                    if (wb == WB_Single_Quote) {
+                        // Rule WB7a.
+                        ++end.byte_pos;
+                        ++end.char_pos;
+                    }
+                    wb = S_skip_extend_format(text, len, iter);
+                    if (wb == WB_ALetter || wb == WB_Hebrew_Letter) {
+                        // Rules WB6 and WB7.
+                        state = wb;
+                        break;
+                    }
+                }
+                else if (state == WB_Numeric) {
+                    if (wb == WB_MidLetter) { goto word_break; }
+                    wb = S_skip_extend_format(text, len, iter);
+                    if (wb == state) {
+                        // Rules WB11 and WB12.
+                        break;
+                    }
+                }
+                goto word_break;
+            case WB_Double_Quote:
+                if (state == WB_Hebrew_Letter) {
+                    wb = S_skip_extend_format(text, len, iter);
+                    if (wb == state) {
+                        // Rules WB7b and WB7c.
+                        break;
+                    }
                 }
                 goto word_break;
             default:
@@ -290,10 +335,9 @@ S_skip_extend_format(const char *text, size_t len, lucy_StringIter *iter) {
     return wb;
 }
 
-bool_t
-StandardTokenizer_equals(StandardTokenizer *self, Obj *other) {
-    StandardTokenizer *const twin = (StandardTokenizer*)other;
-    if (twin == self)                        { return true; }
+bool
+StandardTokenizer_Equals_IMP(StandardTokenizer *self, Obj *other) {
+    if ((StandardTokenizer*)other == self)   { return true; }
     if (!Obj_Is_A(other, STANDARDTOKENIZER)) { return false; }
     return true;
 }

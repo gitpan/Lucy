@@ -26,8 +26,8 @@ parcel Lucy;
  * As with L<Indexer|Lucy::Index::Indexer>, see
  * L<Lucy::Docs::FileLocking> if your index is on a shared volume.
  */
-class Lucy::Index::BackgroundMerger cnick BGMerger
-    inherits Lucy::Object::Obj {
+public class Lucy::Index::BackgroundMerger nickname BGMerger
+    inherits Clownfish::Obj {
 
     Schema            *schema;
     Folder            *folder;
@@ -40,12 +40,12 @@ class Lucy::Index::BackgroundMerger cnick BGMerger
     FilePurger        *file_purger;
     Lock              *write_lock;
     Lock              *merge_lock;
-    CharBuf           *snapfile;
+    String            *snapfile;
     Hash              *doc_maps;
     int64_t            cutoff;
-    bool_t             optimize;
-    bool_t             needs_commit;
-    bool_t             prepared;
+    bool               optimize;
+    bool               needs_commit;
+    bool               prepared;
 
     public inert incremented BackgroundMerger*
     new(Obj *index, IndexManager *manager = NULL);

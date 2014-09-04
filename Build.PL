@@ -17,16 +17,37 @@ use 5.008003;
 use strict;
 use warnings;
 use lib 'buildlib';
+use File::Spec::Functions qw( catdir );
 use Lucy::Build;
+
+my @BASE_PATH        = Lucy::Build->cf_base_path;
+my $MODULES_DIR      = catdir( @BASE_PATH, 'modules' );
+my $SNOWSTEM_SRC_DIR = catdir( $MODULES_DIR, qw( analysis snowstem source ) );
+my $SNOWSTEM_INC_DIR = catdir( $SNOWSTEM_SRC_DIR, 'include' );
+my $SNOWSTOP_SRC_DIR = catdir( $MODULES_DIR, qw( analysis snowstop source ) );
+my $UCD_INC_DIR      = catdir( $MODULES_DIR, qw( unicode ucd ) );
+my $UTF8PROC_SRC_DIR = catdir( $MODULES_DIR, qw( unicode utf8proc ) );
+my $CORE_SOURCE_DIR  = catdir( @BASE_PATH, 'core' );
+my $XS_SOURCE_DIR    = 'xs';
+
+my @cf_linker_flags = Clownfish::CFC::Perl::Build->cf_linker_flags(
+    'Clownfish',
+);
 
 my $builder = Lucy::Build->new(
     module_name => 'Lucy',
     license     => 'apache',
     dist_author =>
         'The Apache Lucy Project <dev at lucy dot apache dot org>',
-    dist_version       => '0.3.3',
-    requires           => { 'perl' => '5.8.3', },
-    configure_requires => { 'Module::Build' => 0.280801 },
+    dist_version       => '0.4.0',
+    requires           => {
+        'perl'      => '5.8.3',
+        'Clownfish' => undef,
+    },
+    configure_requires => {
+        'Module::Build'               => 0.280801,
+        'Clownfish::CFC::Perl::Build' => undef,
+    },
     build_requires     => {
         'Module::Build'      => 0.280801,
         'ExtUtils::CBuilder' => 0.21,
@@ -37,10 +58,27 @@ my $builder = Lucy::Build->new(
     meta_add   => {
         resources => {
             homepage   => 'http://lucy.apache.org',
-            repository => 'http://git-wip-us.apache.org/repos/asf/lucy.git',
+            repository => 'https://git-wip-us.apache.org/repos/asf/lucy.git',
             bugtracker => 'https://issues.apache.org/jira/browse/LUCY',
         },
     },
+    include_dirs => [
+        $CORE_SOURCE_DIR,
+        $XS_SOURCE_DIR,
+        $SNOWSTEM_INC_DIR,
+        $UCD_INC_DIR,
+        $UTF8PROC_SRC_DIR,
+    ],
+    clownfish_params => {
+        source => [
+            $CORE_SOURCE_DIR,
+            $XS_SOURCE_DIR,
+            $SNOWSTEM_SRC_DIR,
+            $SNOWSTOP_SRC_DIR,
+            $UTF8PROC_SRC_DIR,
+        ],
+    },
+    extra_linker_flags => [ @cf_linker_flags ],
     add_to_cleanup => [
         qw(
             Lucy-*

@@ -23,7 +23,7 @@ Lucy::Analysis::PolyAnalyzer - Multiple Analyzers in series.
 
     my $schema = Lucy::Plan::Schema->new;
     my $polyanalyzer = Lucy::Analysis::PolyAnalyzer->new( 
-        language => 'en',
+        analyzers => \@analyzers,
     );
     my $type = Lucy::Plan::FullTextType->new(
         analyzer => $polyanalyzer,
@@ -42,6 +42,9 @@ language, in which case a PolyAnalyzer consisting of a
 L<CaseFolder|Lucy::Analysis::CaseFolder>, a
 L<RegexTokenizer|Lucy::Analysis::RegexTokenizer>, and a
 L<SnowballStemmer|Lucy::Analysis::SnowballStemmer> will be generated for you.
+
+The language parameter is DEPRECATED. Use
+L<EasyAnalyzer|Lucy::Analysis::EasyAnalyzer> instead.
 
 Supported languages:
 
@@ -65,23 +68,18 @@ Supported languages:
 
 =head2 new( I<[labeled params]> )
 
-    my $analyzer = Lucy::Analysis::PolyAnalyzer->new(
-        language  => 'es',
-    );
-    
-    # or...
-
-    my $case_folder  = Lucy::Analysis::CaseFolder->new;
-    my $tokenizer    = Lucy::Analysis::RegexTokenizer->new;
+    my $tokenizer    = Lucy::Analysis::StandardTokenizer->new;
+    my $normalizer   = Lucy::Analysis::Normalizer->new;
     my $stemmer      = Lucy::Analysis::SnowballStemmer->new( language => 'en' );
     my $polyanalyzer = Lucy::Analysis::PolyAnalyzer->new(
-        analyzers => [ $case_folder, $whitespace_tokenizer, $stemmer, ], );
+        analyzers => [ $tokenizer, $normalizer, $stemmer, ], );
 
 =over
 
 =item *
 
 B<language> - An ISO code from the list of supported languages.
+DEPRECATED, use L<EasyAnalyzer|Lucy::Analysis::EasyAnalyzer> instead.
 
 =item *
 
@@ -89,12 +87,10 @@ B<analyzers> - An array of Analyzers.  The order of the analyzers
 matters.  Don't put a SnowballStemmer before a RegexTokenizer (can't stem whole
 documents or paragraphs -- just individual words), or a SnowballStopFilter
 after a SnowballStemmer (stemmed words, e.g. "themselv", will not appear in a
-stoplist).  In general, the sequence should be: normalize, tokenize,
+stoplist).  In general, the sequence should be: tokenize, normalize,
 stopalize, stem.
 
 =back
-
-
 
 
 
@@ -108,7 +104,7 @@ Getter for "analyzers" member.
 
 =head1 INHERITANCE
 
-Lucy::Analysis::PolyAnalyzer isa L<Lucy::Analysis::Analyzer> isa L<Lucy::Object::Obj>.
+Lucy::Analysis::PolyAnalyzer isa L<Lucy::Analysis::Analyzer> isa Clownfish::Obj.
 
 
 =cut

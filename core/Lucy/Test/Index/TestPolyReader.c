@@ -14,15 +14,22 @@
  * limitations under the License.
  */
 
-#define C_LUCY_TESTPOLYREADER
+#define C_TESTLUCY_TESTPOLYREADER
+#define TESTLUCY_USE_SHORT_NAMES
 #include "Lucy/Util/ToolSet.h"
 
+#include "Clownfish/TestHarness/TestBatchRunner.h"
 #include "Lucy/Test.h"
 #include "Lucy/Test/Index/TestPolyReader.h"
 #include "Lucy/Index/PolyReader.h"
 
+TestPolyReader*
+TestPolyReader_new() {
+    return (TestPolyReader*)Class_Make_Obj(TESTPOLYREADER);
+}
+
 static void
-test_sub_tick(TestBatch *batch) {
+test_sub_tick(TestBatchRunner *runner) {
     size_t num_segs = 255;
     int32_t *ints = (int32_t*)MALLOCATE(num_segs * sizeof(int32_t));
     size_t i;
@@ -33,18 +40,14 @@ test_sub_tick(TestBatch *batch) {
     for (i = 1; i < num_segs; i++) {
         if (PolyReader_sub_tick(offsets, i) != i - 1) { break; }
     }
-    TEST_INT_EQ(batch, i, num_segs, "got all sub_tick() calls right");
+    TEST_INT_EQ(runner, i, num_segs, "got all sub_tick() calls right");
     DECREF(offsets);
     FREEMEM(ints);
 }
 
 void
-TestPolyReader_run_tests() {
-    TestBatch *batch = TestBatch_new(1);
-    TestBatch_Plan(batch);
-
-    test_sub_tick(batch);
-
-    DECREF(batch);
+TestPolyReader_Run_IMP(TestPolyReader *self, TestBatchRunner *runner) {
+    TestBatchRunner_Plan(runner, (TestBatch*)self, 1);
+    test_sub_tick(runner);
 }
 

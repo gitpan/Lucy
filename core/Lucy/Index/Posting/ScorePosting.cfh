@@ -22,7 +22,7 @@ parcel Lucy;
  * term-document pairing used by MatchPosting is supplemented by additional
  * frequency, position, and weighting information.
  */
-class Lucy::Index::Posting::ScorePosting cnick ScorePost
+class Lucy::Index::Posting::ScorePosting nickname ScorePost
     inherits Lucy::Index::Posting::MatchPosting {
 
     float     weight;
@@ -44,7 +44,7 @@ class Lucy::Index::Posting::ScorePosting cnick ScorePost
 
     incremented RawPosting*
     Read_Raw(ScorePosting *self, InStream *instream, int32_t last_doc_id,
-             CharBuf *term_text, MemoryPool *mem_pool);
+             String *term_text, MemoryPool *mem_pool);
 
     void
     Add_Inversion_To_Pool(ScorePosting *self, PostingPool *post_pool,
@@ -57,13 +57,13 @@ class Lucy::Index::Posting::ScorePosting cnick ScorePost
 
     incremented ScorePostingMatcher*
     Make_Matcher(ScorePosting *self, Similarity *sim, PostingList *plist,
-                 Compiler *compiler, bool_t need_score);
+                 Compiler *compiler, bool need_score);
 
     nullable uint32_t*
     Get_Prox(ScorePosting *self);
 }
 
-class Lucy::Index::Posting::ScorePostingMatcher cnick ScorePostMatcher
+class Lucy::Index::Posting::ScorePostingMatcher nickname ScorePostMatcher
     inherits Lucy::Search::TermMatcher {
 
     float *score_cache;

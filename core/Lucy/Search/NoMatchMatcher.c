@@ -24,7 +24,7 @@
 
 NoMatchMatcher*
 NoMatchMatcher_new() {
-    NoMatchMatcher *self = (NoMatchMatcher*)VTable_Make_Obj(NOMATCHMATCHER);
+    NoMatchMatcher *self = (NoMatchMatcher*)Class_Make_Obj(NOMATCHMATCHER);
     return NoMatchMatcher_init(self);
 }
 
@@ -34,13 +34,13 @@ NoMatchMatcher_init(NoMatchMatcher *self) {
 }
 
 int32_t
-NoMatchMatcher_next(NoMatchMatcher* self) {
+NoMatchMatcher_Next_IMP(NoMatchMatcher* self) {
     UNUSED_VAR(self);
     return 0;
 }
 
 int32_t
-NoMatchMatcher_advance(NoMatchMatcher* self, int32_t target) {
+NoMatchMatcher_Advance_IMP(NoMatchMatcher* self, int32_t target) {
     UNUSED_VAR(self);
     UNUSED_VAR(target);
     return 0;

@@ -18,9 +18,9 @@ use warnings;
 
 package LucyX::Index::ZlibDocReader;
 use base qw( Lucy::Index::DocReader );
-our $VERSION = '0.003003';
+our $VERSION = '0.004000';
 $VERSION = eval $VERSION;
-use Lucy::Util::StringHelper qw( utf8_valid utf8_flag_on );
+use Clownfish::Util::StringHelper qw( utf8_valid utf8_flag_on );
 use Compress::Zlib qw( uncompress );
 use Carp;
 
@@ -47,9 +47,9 @@ sub new {
         my $ix_filename  = $segment->get_name . "/zdocs.ix";
         my $folder       = $self->get_folder;
         $ix_in{$$self} = $folder->open_in($ix_filename)
-            or confess Lucy->error;
+            or confess Clownfish->error;
         $dat_in{$$self} = $folder->open_in($dat_filename)
-            or confess Lucy->error;
+            or confess Clownfish->error;
 
         # Remember which fields are binary.
         my $schema = $self->get_schema;

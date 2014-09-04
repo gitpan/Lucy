@@ -23,8 +23,7 @@ parcel Lucy;
  * which matches against another part of the query will be ranked higher than
  * a document which matches only via the MatchAllQuery.
  */
-abstract class Lucy::Search::MatchAllQuery
-    inherits Lucy::Search::Query : dumpable {
+public class Lucy::Search::MatchAllQuery inherits Lucy::Search::Query {
 
     inert incremented MatchAllQuery*
     new();
@@ -34,15 +33,15 @@ abstract class Lucy::Search::MatchAllQuery
     public inert MatchAllQuery*
     init(MatchAllQuery *self);
 
-    public bool_t
+    public bool
     Equals(MatchAllQuery *self, Obj *other);
 
-    public incremented CharBuf*
+    public incremented String*
     To_String(MatchAllQuery *self);
 
     public incremented Compiler*
     Make_Compiler(MatchAllQuery *self, Searcher *searcher, float boost,
-                  bool_t subordinate = false);
+                  bool subordinate = false);
 }
 
 class Lucy::Search::MatchAllCompiler
@@ -57,10 +56,7 @@ class Lucy::Search::MatchAllCompiler
 
     public incremented nullable Matcher*
     Make_Matcher(MatchAllCompiler *self, SegReader *reader,
-                 bool_t need_score);
-
-    public incremented MatchAllCompiler*
-    Deserialize(MatchAllCompiler *self, InStream *instream);
+                 bool need_score);
 }
 
 

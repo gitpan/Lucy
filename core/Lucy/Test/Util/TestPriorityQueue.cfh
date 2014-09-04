@@ -14,21 +14,26 @@
  * limitations under the License.
  */
 
-parcel Lucy;
+parcel TestLucy;
 
-class Lucy::Test::Util::NumPriorityQueue cnick NumPriQ
+class Lucy::Test::Util::NumPriorityQueue nickname NumPriQ
     inherits Lucy::Util::PriorityQueue {
 
     inert incremented NumPriorityQueue*
     new(uint32_t max_size);
 
-    bool_t
+    bool
     Less_Than(NumPriorityQueue *self, Obj *a, Obj *b);
 }
 
-inert class Lucy::Test::Util::TestPriorityQueue cnick TestPriQ {
-    inert void
-    run_tests();
+class Lucy::Test::Util::TestPriorityQueue nickname TestPriQ
+    inherits Clownfish::TestHarness::TestBatch {
+
+    inert incremented TestPriorityQueue*
+    new();
+
+    void
+    Run(TestPriorityQueue *self, TestBatchRunner *runner);
 }
 
 

@@ -61,8 +61,6 @@ invalid doc id).
 
 
 
-
-
 =head1 METHODS
 
 =head2 set_doc_id(doc_id)
@@ -81,7 +79,7 @@ Return the Doc's backing fields hash.
 
 =head1 INHERITANCE
 
-Lucy::Document::Doc isa L<Lucy::Object::Obj>.
+Lucy::Document::Doc isa Clownfish::Obj.
 
 
 =cut

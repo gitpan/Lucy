@@ -16,7 +16,7 @@
 
 parcel Lucy;
 
-/** Unicode normalization, case folding and accent stripping
+/** Unicode normalization, case folding and accent stripping.
  *
  * Normalizer is an L<Analyzer|Lucy::Analysis::Analyzer> which normalizes
  * tokens to one of the Unicode normalization forms. Optionally, it
@@ -27,14 +27,13 @@ parcel Lucy;
  * because it might add or remove characters.
  */
 
-class Lucy::Analysis::Normalizer
-    inherits Lucy::Analysis::Analyzer : dumpable {
+public class Lucy::Analysis::Normalizer inherits Lucy::Analysis::Analyzer {
 
     int options;
 
     inert incremented Normalizer*
-    new(const CharBuf *normalization_form = NULL, bool_t case_fold = true,
-        bool_t strip_accents = false);
+    new(String *normalization_form = NULL, bool case_fold = true,
+        bool strip_accents = false);
 
     /**
      * @param normalization_form Unicode normalization form, can be one of
@@ -43,8 +42,8 @@ class Lucy::Analysis::Normalizer
      * @param strip_accents Strip accents, default is false.
      */
     public inert Normalizer*
-    init(Normalizer *self, const CharBuf *normalization_form = NULL,
-        bool_t case_fold = true, bool_t strip_accents = false);
+    init(Normalizer *self, String *normalization_form = NULL,
+        bool case_fold = true, bool strip_accents = false);
 
     public incremented Inversion*
     Transform(Normalizer *self, Inversion *inversion);
@@ -55,7 +54,7 @@ class Lucy::Analysis::Normalizer
     public incremented Normalizer*
     Load(Normalizer *self, Obj *dump);
 
-    public bool_t
+    public bool
     Equals(Normalizer *self, Obj *other);
 }
 

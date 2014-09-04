@@ -28,12 +28,12 @@ parcel Lucy;
  * factory methods.
  */
 
-class Lucy::Index::SegReader inherits Lucy::Index::IndexReader {
+public class Lucy::Index::SegReader inherits Lucy::Index::IndexReader {
 
     int32_t  doc_max;
     int32_t  del_count;
     int64_t  seg_num;
-    CharBuf *seg_name;
+    String  *seg_name;
 
     inert incremented SegReader*
     new(Schema *schema, Folder *folder, Snapshot *snapshot = NULL,
@@ -55,14 +55,6 @@ class Lucy::Index::SegReader inherits Lucy::Index::IndexReader {
     public void
     Destroy(SegReader *self);
 
-    /** Constructor helper.
-     *
-     * @return either NULL indicating success, or a CharBuf with an error
-     * message.
-     */
-    incremented CharBuf*
-    Try_Init_Components(SegReader *self);
-
     /** Add a component to the SegReader.  Using the same <code>api</code> key
      * twice is an error.
      *
@@ -71,12 +63,12 @@ class Lucy::Index::SegReader inherits Lucy::Index::IndexReader {
      * @param component A DataReader.
      */
     public void
-    Register(SegReader *self, const CharBuf *api,
+    Register(SegReader *self, String *api,
              decremented DataReader *component);
 
     /** Return the name of the segment.
      */
-    public CharBuf*
+    public String*
     Get_Seg_Name(SegReader *self);
 
     /** Return the number of the segment.

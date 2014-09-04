@@ -14,11 +14,16 @@
  * limitations under the License.
  */
 
-parcel Lucy;
+parcel TestLucy;
 
-inert class Lucy::Test::Plan::TestFullTextType {
-    inert void
-    run_tests();
+class Lucy::Test::Plan::TestFullTextType
+    inherits Clownfish::TestHarness::TestBatch {
+
+    inert incremented TestFullTextType*
+    new();
+
+    void
+    Run(TestFullTextType *self, TestBatchRunner *runner);
 }
 
 

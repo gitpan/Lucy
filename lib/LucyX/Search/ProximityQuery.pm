@@ -15,39 +15,11 @@
 
 package LucyX::Search::ProximityQuery;
 use Lucy;
-our $VERSION = '0.003003';
+our $VERSION = '0.004000';
 $VERSION = eval $VERSION;
 
 1;
 
 __END__
-
-__BINDING__
-
-my $synopsis = <<'END_SYNOPSIS';
-    my $proximity_query = LucyX::Search::ProximityQuery->new( 
-        field  => 'content',
-        terms  => [qw( the who )],
-        within => 10,    # match within 10 positions
-    );
-    my $hits = $searcher->hits( query => $proximity_query );
-END_SYNOPSIS
-
-Clownfish::CFC::Binding::Perl::Class->register(
-    parcel            => "Lucy",
-    class_name        => "LucyX::Search::ProximityQuery",
-    bind_methods      => [qw( Get_Field Get_Terms )],
-    bind_constructors => ["new"],
-    make_pod          => {
-        constructor => { sample => '' },
-        synopsis    => $synopsis,
-        methods     => [qw( get_field get_terms get_within )],
-    },
-);
-Clownfish::CFC::Binding::Perl::Class->register(
-    parcel            => "Lucy",
-    class_name        => "LucyX::Search::ProximityCompiler",
-    bind_constructors => ["do_new"],
-);
 
 

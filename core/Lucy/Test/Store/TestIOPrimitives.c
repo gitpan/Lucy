@@ -14,13 +14,18 @@
  * limitations under the License.
  */
 
-#define C_LUCY_TESTINSTREAM
+#define C_TESTLUCY_TESTINSTREAM
 #define C_LUCY_INSTREAM
 #define C_LUCY_FILEWINDOW
 #include <stdlib.h>
 #include <time.h>
 
+#include "charmony.h"
+
+#define TESTLUCY_USE_SHORT_NAMES
 #include "Lucy/Util/ToolSet.h"
+#include "Clownfish/TestHarness/TestBatchRunner.h"
+#include "Clownfish/TestHarness/TestUtils.h"
 #include "Lucy/Test.h"
 #include "Lucy/Test/TestUtils.h"
 #include "Lucy/Test/Store/TestIOPrimitives.h"
@@ -28,10 +33,15 @@
 #include "Lucy/Store/OutStream.h"
 #include "Lucy/Store/RAMFile.h"
 #include "Lucy/Store/RAMFileHandle.h"
-#include "Lucy/Util/NumberUtils.h"
+#include "Clownfish/Util/NumberUtils.h"
+
+TestIOPrimitives*
+TestIOPrimitives_new() {
+    return (TestIOPrimitives*)Class_Make_Obj(TESTIOPRIMITIVES);
+}
 
 static void
-test_i8(TestBatch *batch) {
+test_i8(TestBatchRunner *runner) {
     RAMFile    *file      = RAMFile_new(NULL, false);
     OutStream  *outstream = OutStream_open((Obj*)file);
     InStream   *instream;
@@ -46,7 +56,7 @@ test_i8(TestBatch *batch) {
     for (i = -128; i < 128; i++) {
         if (InStream_Read_I8(instream) != i) { break; }
     }
-    TEST_INT_EQ(batch, i, 128, "round trip i8 successful for %d out of 256",
+    TEST_INT_EQ(runner, i, 128, "round trip i8 successful for %d out of 256",
                 i + 128);
 
     DECREF(instream);
@@ -55,7 +65,7 @@ test_i8(TestBatch *batch) {
 }
 
 static void
-test_u8(TestBatch *batch) {
+test_u8(TestBatchRunner *runner) {
     RAMFile    *file      = RAMFile_new(NULL, false);
     OutStream  *outstream = OutStream_open((Obj*)file);
     InStream   *instream;
@@ -70,7 +80,7 @@ test_u8(TestBatch *batch) {
     for (i = 0; i < 256; i++) {
         if (InStream_Read_U8(instream) != i) { break; }
     }
-    TEST_INT_EQ(batch, i, 256,
+    TEST_INT_EQ(runner, i, 256,
                 "round trip u8 successful for %d out of 256", i);
 
     DECREF(instream);
@@ -79,18 +89,18 @@ test_u8(TestBatch *batch) {
 }
 
 static void
-test_i32(TestBatch *batch) {
-    int64_t    *ints = TestUtils_random_i64s(NULL, 1000, I32_MIN, I32_MAX);
+test_i32(TestBatchRunner *runner) {
+    int64_t    *ints = TestUtils_random_i64s(NULL, 1000, INT32_MIN, INT32_MAX);
     RAMFile    *file      = RAMFile_new(NULL, false);
     OutStream  *outstream = OutStream_open((Obj*)file);
     InStream   *instream;
     uint32_t i;
 
     // Test boundaries.
-    ints[0] = I32_MIN;
-    ints[1] = I32_MIN + 1;
-    ints[2] = I32_MAX;
-    ints[3] = I32_MAX - 1;
+    ints[0] = INT32_MIN;
+    ints[1] = INT32_MIN + 1;
+    ints[2] = INT32_MAX;
+    ints[3] = INT32_MAX - 1;
 
     for (i = 0; i < 1000; i++) {
         OutStream_Write_I32(outstream, (int32_t)ints[i]);
@@ -101,13 +111,13 @@ test_i32(TestBatch *batch) {
     for (i = 0; i < 1000; i++) {
         int32_t got = InStream_Read_I32(instream);
         if (got != ints[i]) {
-            FAIL(batch, "i32 round trip failed: %ld, %ld", (long)got,
+            FAIL(runner, "i32 round trip failed: %ld, %ld", (long)got,
                  (long)ints[i]);
             break;
         }
     }
     if (i == 1000) {
-        PASS(batch, "i32 round trip");
+        PASS(runner, "i32 round trip");
     }
 
     DECREF(instream);
@@ -117,8 +127,8 @@ test_i32(TestBatch *batch) {
 }
 
 static void
-test_u32(TestBatch *batch) {
-    uint64_t   *ints = TestUtils_random_u64s(NULL, 1000, 0, U32_MAX);
+test_u32(TestBatchRunner *runner) {
+    uint64_t   *ints = TestUtils_random_u64s(NULL, 1000, 0, UINT32_MAX);
     RAMFile    *file      = RAMFile_new(NULL, false);
     OutStream  *outstream = OutStream_open((Obj*)file);
     InStream   *instream;
@@ -127,8 +137,8 @@ test_u32(TestBatch *batch) {
     // Test boundaries.
     ints[0] = 0;
     ints[1] = 1;
-    ints[2] = U32_MAX;
-    ints[3] = U32_MAX - 1;
+    ints[2] = UINT32_MAX;
+    ints[3] = UINT32_MAX - 1;
 
     for (i = 0; i < 1000; i++) {
         OutStream_Write_U32(outstream, (uint32_t)ints[i]);
@@ -139,13 +149,13 @@ test_u32(TestBatch *batch) {
     for (i = 0; i < 1000; i++) {
         uint32_t got = InStream_Read_U32(instream);
         if (got != ints[i]) {
-            FAIL(batch, "u32 round trip failed: %lu, %lu", (unsigned long)got,
+            FAIL(runner, "u32 round trip failed: %lu, %lu", (unsigned long)got,
                  (unsigned long)ints[i]);
             break;
         }
     }
     if (i == 1000) {
-        PASS(batch, "u32 round trip");
+        PASS(runner, "u32 round trip");
     }
 
     DECREF(instream);
@@ -155,18 +165,18 @@ test_u32(TestBatch *batch) {
 }
 
 static void
-test_i64(TestBatch *batch) {
-    int64_t    *ints = TestUtils_random_i64s(NULL, 1000, I64_MIN, I64_MAX);
+test_i64(TestBatchRunner *runner) {
+    int64_t    *ints = TestUtils_random_i64s(NULL, 1000, INT64_MIN, INT64_MAX);
     RAMFile    *file      = RAMFile_new(NULL, false);
     OutStream  *outstream = OutStream_open((Obj*)file);
     InStream   *instream;
     uint32_t i;
 
     // Test boundaries.
-    ints[0] = I64_MIN;
-    ints[1] = I64_MIN + 1;
-    ints[2] = I64_MAX;
-    ints[3] = I64_MAX - 1;
+    ints[0] = INT64_MIN;
+    ints[1] = INT64_MIN + 1;
+    ints[2] = INT64_MAX;
+    ints[3] = INT64_MAX - 1;
 
     for (i = 0; i < 1000; i++) {
         OutStream_Write_I64(outstream, ints[i]);
@@ -177,13 +187,13 @@ test_i64(TestBatch *batch) {
     for (i = 0; i < 1000; i++) {
         int64_t got = InStream_Read_I64(instream);
         if (got != ints[i]) {
-            FAIL(batch, "i64 round trip failed: %" I64P ", %" I64P,
+            FAIL(runner, "i64 round trip failed: %" PRId64 ", %" PRId64,
                  got, ints[i]);
             break;
         }
     }
     if (i == 1000) {
-        PASS(batch, "i64 round trip");
+        PASS(runner, "i64 round trip");
     }
 
     DECREF(instream);
@@ -194,8 +204,8 @@ test_i64(TestBatch *batch) {
 
 
 static void
-test_u64(TestBatch *batch) {
-    uint64_t   *ints = TestUtils_random_u64s(NULL, 1000, 0, U64_MAX);
+test_u64(TestBatchRunner *runner) {
+    uint64_t   *ints = TestUtils_random_u64s(NULL, 1000, 0, UINT64_MAX);
     RAMFile    *file      = RAMFile_new(NULL, false);
     OutStream  *outstream = OutStream_open((Obj*)file);
     InStream   *instream;
@@ -204,8 +214,8 @@ test_u64(TestBatch *batch) {
     // Test boundaries.
     ints[0] = 0;
     ints[1] = 1;
-    ints[2] = U64_MAX;
-    ints[3] = U64_MAX - 1;
+    ints[2] = UINT64_MAX;
+    ints[3] = UINT64_MAX - 1;
 
     for (i = 0; i < 1000; i++) {
         OutStream_Write_U64(outstream, ints[i]);
@@ -216,13 +226,13 @@ test_u64(TestBatch *batch) {
     for (i = 0; i < 1000; i++) {
         uint64_t got = InStream_Read_U64(instream);
         if (got != ints[i]) {
-            FAIL(batch, "u64 round trip failed: %" U64P ", %" U64P,
+            FAIL(runner, "u64 round trip failed: %" PRIu64 ", %" PRIu64,
                  got, ints[i]);
             break;
         }
     }
     if (i == 1000) {
-        PASS(batch, "u64 round trip");
+        PASS(runner, "u64 round trip");
     }
 
     DECREF(instream);
@@ -232,8 +242,8 @@ test_u64(TestBatch *batch) {
 }
 
 static void
-test_c32(TestBatch *batch) {
-    uint64_t   *ints = TestUtils_random_u64s(NULL, 1000, 0, U32_MAX);
+test_c32(TestBatchRunner *runner) {
+    uint64_t   *ints = TestUtils_random_u64s(NULL, 1000, 0, UINT32_MAX);
     RAMFile    *file      = RAMFile_new(NULL, false);
     OutStream  *outstream = OutStream_open((Obj*)file);
     InStream   *instream;
@@ -242,8 +252,8 @@ test_c32(TestBatch *batch) {
     // Test boundaries.
     ints[0] = 0;
     ints[1] = 1;
-    ints[2] = U32_MAX;
-    ints[3] = U32_MAX - 1;
+    ints[2] = UINT32_MAX;
+    ints[3] = UINT32_MAX - 1;
 
     for (i = 0; i < 1000; i++) {
         OutStream_Write_C32(outstream, (uint32_t)ints[i]);
@@ -254,13 +264,13 @@ test_c32(TestBatch *batch) {
     for (i = 0; i < 1000; i++) {
         uint32_t got = InStream_Read_C32(instream);
         if (got != ints[i]) {
-            FAIL(batch, "c32 round trip failed: %lu, %lu", (unsigned long)got,
+            FAIL(runner, "c32 round trip failed: %lu, %lu", (unsigned long)got,
                  (unsigned long)ints[i]);
             break;
         }
     }
     if (i == 1000) {
-        PASS(batch, "c32 round trip");
+        PASS(runner, "c32 round trip");
     }
 
     DECREF(instream);
@@ -270,8 +280,8 @@ test_c32(TestBatch *batch) {
 }
 
 static void
-test_c64(TestBatch *batch) {
-    uint64_t   *ints   = TestUtils_random_u64s(NULL, 1000, 0, U64_MAX);
+test_c64(TestBatchRunner *runner) {
+    uint64_t   *ints   = TestUtils_random_u64s(NULL, 1000, 0, UINT64_MAX);
     RAMFile    *file     = RAMFile_new(NULL, false);
     RAMFile    *raw_file = RAMFile_new(NULL, false);
     OutStream  *outstream     = OutStream_open((Obj*)file);
@@ -283,8 +293,8 @@ test_c64(TestBatch *batch) {
     // Test boundaries.
     ints[0] = 0;
     ints[1] = 1;
-    ints[2] = U64_MAX;
-    ints[3] = U64_MAX - 1;
+    ints[2] = UINT64_MAX;
+    ints[3] = UINT64_MAX - 1;
 
     for (i = 0; i < 1000; i++) {
         OutStream_Write_C64(outstream, ints[i]);
@@ -297,30 +307,30 @@ test_c64(TestBatch *batch) {
     for (i = 0; i < 1000; i++) {
         uint64_t got = InStream_Read_C64(instream);
         if (got != ints[i]) {
-            FAIL(batch, "c64 round trip failed: %" U64P ", %" U64P,
+            FAIL(runner, "c64 round trip failed: %" PRIu64 ", %" PRIu64,
                  got, ints[i]);
             break;
         }
     }
     if (i == 1000) {
-        PASS(batch, "c64 round trip");
+        PASS(runner, "c64 round trip");
     }
 
     raw_instream = InStream_open((Obj*)raw_file);
     for (i = 0; i < 1000; i++) {
         char  buffer[10];
-        char *buf = buffer;
+        const char *buf = buffer;
         size_t size = InStream_Read_Raw_C64(raw_instream, buffer);
         uint64_t got = NumUtil_decode_c64(&buf);
         UNUSED_VAR(size);
         if (got != ints[i]) {
-            FAIL(batch, "Read_Raw_C64 failed: %" U64P ", %" U64P,
+            FAIL(runner, "Read_Raw_C64 failed: %" PRIu64 ", %" PRIu64,
                  got, ints[i]);
             break;
         }
     }
     if (i == 1000) {
-        PASS(batch, "Read_Raw_C64");
+        PASS(runner, "Read_Raw_C64");
     }
 
     DECREF(raw_instream);
@@ -333,7 +343,7 @@ test_c64(TestBatch *batch) {
 }
 
 static void
-test_f32(TestBatch *batch) {
+test_f32(TestBatchRunner *runner) {
     double     *f64s   = TestUtils_random_f64s(NULL, 1000);
     float      *values = (float*)MALLOCATE(1000 * sizeof(float));
     RAMFile    *file      = RAMFile_new(NULL, false);
@@ -359,12 +369,12 @@ test_f32(TestBatch *batch) {
     for (i = 0; i < 1000; i++) {
         float got = InStream_Read_F32(instream);
         if (got != values[i]) {
-            FAIL(batch, "f32 round trip failed: %f, %f", got, values[i]);
+            FAIL(runner, "f32 round trip failed: %f, %f", got, values[i]);
             break;
         }
     }
     if (i == 1000) {
-        PASS(batch, "f32 round trip");
+        PASS(runner, "f32 round trip");
     }
 
     DECREF(instream);
@@ -375,7 +385,7 @@ test_f32(TestBatch *batch) {
 }
 
 static void
-test_f64(TestBatch *batch) {
+test_f64(TestBatchRunner *runner) {
     double     *values = TestUtils_random_f64s(NULL, 1000);
     RAMFile    *file      = RAMFile_new(NULL, false);
     OutStream  *outstream = OutStream_open((Obj*)file);
@@ -395,12 +405,12 @@ test_f64(TestBatch *batch) {
     for (i = 0; i < 1000; i++) {
         double got = InStream_Read_F64(instream);
         if (got != values[i]) {
-            FAIL(batch, "f64 round trip failed: %f, %f", got, values[i]);
+            FAIL(runner, "f64 round trip failed: %f, %f", got, values[i]);
             break;
         }
     }
     if (i == 1000) {
-        PASS(batch, "f64 round trip");
+        PASS(runner, "f64 round trip");
     }
 
     DECREF(instream);
@@ -410,24 +420,19 @@ test_f64(TestBatch *batch) {
 }
 
 void
-TestIOPrimitives_run_tests() {
-    TestBatch *batch = TestBatch_new(11);
-
+TestIOPrimitives_Run_IMP(TestIOPrimitives *self, TestBatchRunner *runner) {
+    TestBatchRunner_Plan(runner, (TestBatch*)self, 11);
     srand((unsigned int)time((time_t*)NULL));
-    TestBatch_Plan(batch);
-
-    test_i8(batch);
-    test_u8(batch);
-    test_i32(batch);
-    test_u32(batch);
-    test_i64(batch);
-    test_u64(batch);
-    test_c32(batch);
-    test_c64(batch);
-    test_f32(batch);
-    test_f64(batch);
-
-    DECREF(batch);
+    test_i8(runner);
+    test_u8(runner);
+    test_i32(runner);
+    test_u32(runner);
+    test_i64(runner);
+    test_u64(runner);
+    test_c32(runner);
+    test_c64(runner);
+    test_f32(runner);
+    test_f64(runner);
 }
 
 

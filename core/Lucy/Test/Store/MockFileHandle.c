@@ -14,49 +14,51 @@
  * limitations under the License.
  */
 
-#define C_LUCY_MOCKFILEHANDLE
+#define C_TESTLUCY_MOCKFILEHANDLE
 #define C_LUCY_FILEWINDOW
+#define TESTLUCY_USE_SHORT_NAMES
 #include "Lucy/Util/ToolSet.h"
 
 #include "Lucy/Test/Store/MockFileHandle.h"
 #include "Lucy/Store/FileWindow.h"
 
 MockFileHandle*
-MockFileHandle_new(const CharBuf *path, int64_t length) {
-    MockFileHandle *self = (MockFileHandle*)VTable_Make_Obj(MOCKFILEHANDLE);
+MockFileHandle_new(String *path, int64_t length) {
+    MockFileHandle *self = (MockFileHandle*)Class_Make_Obj(MOCKFILEHANDLE);
     return MockFileHandle_init(self, path, length);
 }
 
 MockFileHandle*
-MockFileHandle_init(MockFileHandle *self, const CharBuf *path,
+MockFileHandle_init(MockFileHandle *self, String *path,
                     int64_t length) {
     FH_do_open((FileHandle*)self, path, 0);
-    self->len = length;
+    MockFileHandleIVARS *const ivars = MockFileHandle_IVARS(self);
+    ivars->len = length;
     return self;
 }
 
-bool_t
-MockFileHandle_window(MockFileHandle *self, FileWindow *window,
-                      int64_t offset, int64_t len) {
+bool
+MockFileHandle_Window_IMP(MockFileHandle *self, FileWindow *window,
+                          int64_t offset, int64_t len) {
     UNUSED_VAR(self);
     FileWindow_Set_Window(window, NULL, offset, len);
     return true;
 }
 
-bool_t
-MockFileHandle_release_window(MockFileHandle *self, FileWindow *window) {
+bool
+MockFileHandle_Release_Window_IMP(MockFileHandle *self, FileWindow *window) {
     UNUSED_VAR(self);
     FileWindow_Set_Window(window, NULL, 0, 0);
     return true;
 }
 
 int64_t
-MockFileHandle_length(MockFileHandle *self) {
-    return self->len;
+MockFileHandle_Length_IMP(MockFileHandle *self) {
+    return MockFileHandle_IVARS(self)->len;
 }
 
-bool_t
-MockFileHandle_close(MockFileHandle *self) {
+bool
+MockFileHandle_Close_IMP(MockFileHandle *self) {
     UNUSED_VAR(self);
     return true;
 }

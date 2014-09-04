@@ -14,11 +14,16 @@
  * limitations under the License.
  */
 
-parcel Lucy;
+parcel TestLucy;
 
-inert class Lucy::Test::Store::TestFolder {
-    inert void
-    run_tests();
+class Lucy::Test::Store::TestFolder
+    inherits Clownfish::TestHarness::TestBatch {
+
+    inert incremented TestFolder*
+    new();
+
+    void
+    Run(TestFolder *self, TestBatchRunner *runner);
 }
 
 

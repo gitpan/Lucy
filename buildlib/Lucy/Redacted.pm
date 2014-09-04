@@ -17,14 +17,12 @@ use strict;
 use warnings;
 
 package Lucy::Redacted;
-use Exporter;
-BEGIN {
-    our @ISA       = qw( Exporter );
-    our @EXPORT_OK = qw( list );
-}
 
-our $VERSION = '0.003003';
+our $VERSION = '0.004000';
 $VERSION = eval $VERSION;
+
+use Exporter 'import';
+our @EXPORT_OK = qw( list );
 
 # Return a partial list of Lucy classes which were once public but are
 # now either deprecated, removed, or moved.
@@ -37,6 +35,7 @@ sub redacted {
         Lucy::Index::Term
         Lucy::InvIndex
         Lucy::InvIndexer
+        Lucy::Object::Obj
         Lucy::QueryParser::QueryParser
         Lucy::Search::BooleanQuery
         Lucy::Search::QueryFilter
@@ -49,7 +48,7 @@ sub redacted {
 sub hidden {
     return qw(
         Lucy::Analysis::Inversion
-        Lucy::Object::Num
+        Clownfish::Num
         Lucy::Plan::Int32Type
         Lucy::Plan::Int64Type
         Lucy::Plan::Float32Type

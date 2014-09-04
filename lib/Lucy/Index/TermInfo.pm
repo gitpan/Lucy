@@ -15,32 +15,11 @@
 
 package Lucy::Index::TermInfo;
 use Lucy;
-our $VERSION = '0.003003';
+our $VERSION = '0.004000';
 $VERSION = eval $VERSION;
 
 1;
 
 __END__
-
-__BINDING__
-
-Clownfish::CFC::Binding::Perl::Class->register(
-    parcel       => "Lucy",
-    class_name   => "Lucy::Index::TermInfo",
-    bind_methods => [
-        qw(
-            Get_Doc_Freq
-            Get_Lex_FilePos
-            Get_Post_FilePos
-            Get_Skip_FilePos
-            Set_Doc_Freq
-            Set_Lex_FilePos
-            Set_Post_FilePos
-            Set_Skip_FilePos
-            Reset
-            )
-    ],
-    bind_constructors => ["new"],
-);
 
 

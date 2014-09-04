@@ -14,14 +14,21 @@
  * limitations under the License.
  */
 
+#define TESTLUCY_USE_SHORT_NAMES
 #include "Lucy/Util/ToolSet.h"
 
+#include "Clownfish/TestHarness/TestBatchRunner.h"
 #include "Lucy/Test.h"
 #include "Lucy/Test/Index/TestIndexManager.h"
 #include "Lucy/Index/IndexManager.h"
 
+TestIndexManager*
+TestIxManager_new() {
+    return (TestIndexManager*)Class_Make_Obj(TESTINDEXMANAGER);
+}
+
 static void
-test_Choose_Sparse(TestBatch *batch) {
+test_Choose_Sparse(TestBatchRunner *runner) {
     IndexManager *manager = IxManager_new(NULL, NULL);
 
     for (uint32_t num_segs = 2; num_segs < 20; num_segs++) {
@@ -30,14 +37,14 @@ test_Choose_Sparse(TestBatch *batch) {
             I32Arr_Set(doc_counts, j, 1000);
         }
         uint32_t threshold = IxManager_Choose_Sparse(manager, doc_counts);
-        TEST_TRUE(batch, threshold != 1,
+        TEST_TRUE(runner, threshold != 1,
                   "Either don't merge, or merge two segments: %u segs, thresh %u",
                   (unsigned)num_segs, (unsigned)threshold);
 
         if (num_segs != 12 && num_segs != 13) {  // when 2 is correct
             I32Arr_Set(doc_counts, 0, 1);
             threshold = IxManager_Choose_Sparse(manager, doc_counts);
-            TEST_TRUE(batch, threshold != 2,
+            TEST_TRUE(runner, threshold != 2,
                       "Don't include big next seg: %u segs, thresh %u",
                       (unsigned)num_segs, (unsigned)threshold);
         }
@@ -49,10 +56,8 @@ test_Choose_Sparse(TestBatch *batch) {
 }
 
 void
-TestIxManager_run_tests() {
-    TestBatch *batch = TestBatch_new(34);
-    TestBatch_Plan(batch);
-    test_Choose_Sparse(batch);
-    DECREF(batch);
+TestIxManager_Run_IMP(TestIndexManager *self, TestBatchRunner *runner) {
+    TestBatchRunner_Plan(runner, (TestBatch*)self, 34);
+    test_Choose_Sparse(runner);
 }
 

@@ -29,7 +29,7 @@
 
 NOTQuery*
 NOTQuery_new(Query *negated_query) {
-    NOTQuery *self = (NOTQuery*)VTable_Make_Obj(NOTQUERY);
+    NOTQuery *self = (NOTQuery*)Class_Make_Obj(NOTQUERY);
     return NOTQuery_init(self, negated_query);
 }
 
@@ -37,38 +37,43 @@ NOTQuery*
 NOTQuery_init(NOTQuery *self, Query *negated_query) {
     self = (NOTQuery*)PolyQuery_init((PolyQuery*)self, NULL);
     NOTQuery_Set_Boost(self, 0.0f);
-    PolyQuery_add_child((PolyQuery*)self, negated_query);
+    NOTQuery_Add_Child(self, negated_query);
     return self;
 }
 
 Query*
-NOTQuery_get_negated_query(NOTQuery *self) {
-    return (Query*)VA_Fetch(self->children, 0);
+NOTQuery_Get_Negated_Query_IMP(NOTQuery *self) {
+    NOTQueryIVARS *const ivars = NOTQuery_IVARS(self);
+    return (Query*)VA_Fetch(ivars->children, 0);
 }
 
 void
-NOTQuery_set_negated_query(NOTQuery *self, Query *negated_query) {
-    VA_Store(self->children, 0, INCREF(negated_query));
+NOTQuery_Set_Negated_Query_IMP(NOTQuery *self, Query *negated_query) {
+    NOTQueryIVARS *const ivars = NOTQuery_IVARS(self);
+    VA_Store(ivars->children, 0, INCREF(negated_query));
 }
 
-CharBuf*
-NOTQuery_to_string(NOTQuery *self) {
-    CharBuf *neg_string = Obj_To_String(VA_Fetch(self->children, 0));
-    CharBuf *retval = CB_newf("-%o", neg_string);
+String*
+NOTQuery_To_String_IMP(NOTQuery *self) {
+    NOTQueryIVARS *const ivars = NOTQuery_IVARS(self);
+    String *neg_string = Obj_To_String(VA_Fetch(ivars->children, 0));
+    String *retval = Str_newf("-%o", neg_string);
     DECREF(neg_string);
     return retval;
 }
 
-bool_t
-NOTQuery_equals(NOTQuery *self, Obj *other) {
+bool
+NOTQuery_Equals_IMP(NOTQuery *self, Obj *other) {
     if ((NOTQuery*)other == self)   { return true; }
     if (!Obj_Is_A(other, NOTQUERY)) { return false; }
-    return PolyQuery_equals((PolyQuery*)self, other);
+    NOTQuery_Equals_t super_equals
+        = (NOTQuery_Equals_t)SUPER_METHOD_PTR(NOTQUERY, LUCY_NOTQuery_Equals);
+    return super_equals(self, other);
 }
 
 Compiler*
-NOTQuery_make_compiler(NOTQuery *self, Searcher *searcher, float boost,
-                       bool_t subordinate) {
+NOTQuery_Make_Compiler_IMP(NOTQuery *self, Searcher *searcher, float boost,
+                           bool subordinate) {
     NOTCompiler *compiler = NOTCompiler_new(self, searcher, boost);
     if (!subordinate) {
         NOTCompiler_Normalize(compiler);
@@ -80,7 +85,7 @@ NOTQuery_make_compiler(NOTQuery *self, Searcher *searcher, float boost,
 
 NOTCompiler*
 NOTCompiler_new(NOTQuery *parent, Searcher *searcher, float boost) {
-    NOTCompiler *self = (NOTCompiler*)VTable_Make_Obj(NOTCOMPILER);
+    NOTCompiler *self = (NOTCompiler*)Class_Make_Obj(NOTCOMPILER);
     return NOTCompiler_init(self, parent, searcher, boost);
 }
 
@@ -93,14 +98,14 @@ NOTCompiler_init(NOTCompiler *self, NOTQuery *parent, Searcher *searcher,
 }
 
 float
-NOTCompiler_sum_of_squared_weights(NOTCompiler *self) {
+NOTCompiler_Sum_Of_Squared_Weights_IMP(NOTCompiler *self) {
     UNUSED_VAR(self);
     return 0.0f;
 }
 
 VArray*
-NOTCompiler_highlight_spans(NOTCompiler *self, Searcher *searcher,
-                            DocVector *doc_vec, const CharBuf *field) {
+NOTCompiler_Highlight_Spans_IMP(NOTCompiler *self, Searcher *searcher,
+                                DocVector *doc_vec, String *field) {
     UNUSED_VAR(self);
     UNUSED_VAR(searcher);
     UNUSED_VAR(doc_vec);
@@ -109,10 +114,11 @@ NOTCompiler_highlight_spans(NOTCompiler *self, Searcher *searcher,
 }
 
 Matcher*
-NOTCompiler_make_matcher(NOTCompiler *self, SegReader *reader,
-                         bool_t need_score) {
+NOTCompiler_Make_Matcher_IMP(NOTCompiler *self, SegReader *reader,
+                             bool need_score) {
+    NOTCompilerIVARS *const ivars = NOTCompiler_IVARS(self);
     Compiler *negated_compiler
-        = (Compiler*)CERTIFY(VA_Fetch(self->children, 0), COMPILER);
+        = (Compiler*)CERTIFY(VA_Fetch(ivars->children, 0), COMPILER);
     Matcher *negated_matcher
         = Compiler_Make_Matcher(negated_compiler, reader, false);
     UNUSED_VAR(need_score);

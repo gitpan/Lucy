@@ -63,11 +63,9 @@ B<rules> - An array of SortRules.
 
 
 
-
-
 =head1 INHERITANCE
 
-Lucy::Search::SortSpec isa L<Lucy::Object::Obj>.
+Lucy::Search::SortSpec isa Clownfish::Obj.
 
 
 =cut

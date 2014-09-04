@@ -31,13 +31,13 @@ parcel Lucy;
  * practice is safe because InStreams do not modify or rely upon the file
  * position or other state within the FileHandle.
  */
-class Lucy::Store::InStream inherits Lucy::Object::Obj {
+class Lucy::Store::InStream inherits Clownfish::Obj {
 
     int64_t     offset;
     int64_t     len;
-    char       *buf;
-    char       *limit;
-    CharBuf    *filename;
+    const char *buf;
+    const char *limit;
+    String     *filename;
     FileHandle *file_handle;
     FileWindow *window;
 
@@ -62,7 +62,7 @@ class Lucy::Store::InStream inherits Lucy::Object::Obj {
      * @param len Length of the file as seen by the new InStream.
      */
     incremented InStream*
-    Reopen(InStream *self, const CharBuf *filename = NULL, int64_t offset,
+    Reopen(InStream *self, String *filename = NULL, int64_t offset,
            int64_t len);
 
     /** Clone the InStream.  Clones share the same underlying FileHandle and
@@ -115,7 +115,7 @@ class Lucy::Store::InStream inherits Lucy::Object::Obj {
      * @param request Advisory byte size request.
      * @return Pointer to the InStream's internal buffer.
      */
-    final char*
+    final const char*
     Buf(InStream *self, size_t request);
 
     /** Set the buf to a new value, checking for overrun.  The idiom is for
@@ -123,7 +123,7 @@ class Lucy::Store::InStream inherits Lucy::Object::Obj {
      * Advance_Buf() to update the InStream object.
      */
     final void
-    Advance_Buf(InStream *self, char *buf);
+    Advance_Buf(InStream *self, const char *buf);
 
     /** Read <code>len</code> bytes from the InStream into <code>buf</code>.
      */
@@ -190,7 +190,7 @@ class Lucy::Store::InStream inherits Lucy::Object::Obj {
 
     /** Accessor for filename member.
      */
-    CharBuf*
+    String*
     Get_Filename(InStream *self);
 }
 

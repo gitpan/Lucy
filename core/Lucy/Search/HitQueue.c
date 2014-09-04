@@ -38,15 +38,15 @@
 
 HitQueue*
 HitQ_new(Schema *schema, SortSpec *sort_spec, uint32_t wanted) {
-    HitQueue *self = (HitQueue*)VTable_Make_Obj(HITQUEUE);
+    HitQueue *self = (HitQueue*)Class_Make_Obj(HITQUEUE);
     return HitQ_init(self, schema, sort_spec, wanted);
 }
 
 HitQueue*
 HitQ_init(HitQueue *self, Schema *schema, SortSpec *sort_spec,
           uint32_t wanted) {
+    HitQueueIVARS *const ivars = HitQ_IVARS(self);
     if (sort_spec) {
-        uint32_t i;
         VArray   *rules      = SortSpec_Get_Rules(sort_spec);
         uint32_t  num_rules  = VA_Get_Size(rules);
         uint32_t  action_num = 0;
@@ -55,35 +55,35 @@ HitQ_init(HitQueue *self, Schema *schema, SortSpec *sort_spec,
             THROW(ERR, "Can't supply sort_spec without schema");
         }
 
-        self->need_values = false;
-        self->num_actions = num_rules;
-        self->actions     = (uint8_t*)MALLOCATE(num_rules * sizeof(uint8_t));
-        self->field_types = (FieldType**)CALLOCATE(num_rules, sizeof(FieldType*));
+        ivars->need_values = false;
+        ivars->num_actions = num_rules;
+        ivars->actions     = (uint8_t*)MALLOCATE(num_rules * sizeof(uint8_t));
+        ivars->field_types = (FieldType**)CALLOCATE(num_rules, sizeof(FieldType*));
 
-        for (i = 0; i < num_rules; i++) {
+        for (uint32_t i = 0; i < num_rules; i++) {
             SortRule *rule      = (SortRule*)VA_Fetch(rules, i);
             int32_t   rule_type = SortRule_Get_Type(rule);
-            bool_t    reverse   = SortRule_Get_Reverse(rule);
+            bool      reverse   = SortRule_Get_Reverse(rule);
 
             if (rule_type == SortRule_SCORE) {
-                self->actions[action_num++] = reverse
+                ivars->actions[action_num++] = reverse
                                               ? COMPARE_BY_SCORE_REV
                                               : COMPARE_BY_SCORE;
             }
             else if (rule_type == SortRule_DOC_ID) {
-                self->actions[action_num++] = reverse
+                ivars->actions[action_num++] = reverse
                                               ? COMPARE_BY_DOC_ID_REV
                                               : COMPARE_BY_DOC_ID;
             }
             else if (rule_type == SortRule_FIELD) {
-                CharBuf   *field = SortRule_Get_Field(rule);
+                String    *field = SortRule_Get_Field(rule);
                 FieldType *type  = Schema_Fetch_Type(schema, field);
                 if (type) {
-                    self->field_types[action_num] = (FieldType*)INCREF(type);
-                    self->actions[action_num++] = reverse
+                    ivars->field_types[action_num] = (FieldType*)INCREF(type);
+                    ivars->actions[action_num++] = reverse
                                                   ? COMPARE_BY_VALUE_REV
                                                   : COMPARE_BY_VALUE;
-                    self->need_values = true;
+                    ivars->need_values = true;
                 }
                 else {
                     // Skip over fields we don't know how to sort on.
@@ -96,81 +96,90 @@ HitQ_init(HitQueue *self, Schema *schema, SortSpec *sort_spec,
         }
     }
     else {
-        self->num_actions = 2;
-        self->actions     = (uint8_t*)MALLOCATE(self->num_actions * sizeof(uint8_t));
-        self->actions[0]  = COMPARE_BY_SCORE;
-        self->actions[1]  = COMPARE_BY_DOC_ID;
+        ivars->num_actions = 2;
+        ivars->actions     = (uint8_t*)MALLOCATE(ivars->num_actions * sizeof(uint8_t));
+        ivars->actions[0]  = COMPARE_BY_SCORE;
+        ivars->actions[1]  = COMPARE_BY_DOC_ID;
     }
 
     return (HitQueue*)PriQ_init((PriorityQueue*)self, wanted);
 }
 
 void
-HitQ_destroy(HitQueue *self) {
-    FieldType **types = self->field_types;
-    FieldType **const limit = types + self->num_actions - 1;
+HitQ_Destroy_IMP(HitQueue *self) {
+    HitQueueIVARS *const ivars = HitQ_IVARS(self);
+    FieldType **types = ivars->field_types;
+    FieldType **const limit = types + ivars->num_actions - 1;
     for (; types < limit; types++) {
         if (types) { DECREF(*types); }
     }
-    FREEMEM(self->actions);
-    FREEMEM(self->field_types);
+    FREEMEM(ivars->actions);
+    FREEMEM(ivars->field_types);
     SUPER_DESTROY(self, HITQUEUE);
 }
 
 Obj*
-HitQ_jostle(HitQueue *self, Obj *element) {
+HitQ_Jostle_IMP(HitQueue *self, Obj *element) {
+    HitQueueIVARS *const ivars = HitQ_IVARS(self);
     MatchDoc *match_doc = (MatchDoc*)CERTIFY(element, MATCHDOC);
-    HitQ_jostle_t super_jostle
-        = (HitQ_jostle_t)SUPER_METHOD(HITQUEUE, HitQ, Jostle);
-    if (self->need_values) {
-        CERTIFY(match_doc->values, VARRAY);
+    HitQ_Jostle_t super_jostle
+        = SUPER_METHOD_PTR(HITQUEUE, LUCY_HitQ_Jostle);
+    if (ivars->need_values) {
+        MatchDocIVARS *const match_doc_ivars = MatchDoc_IVARS(match_doc);
+        CERTIFY(match_doc_ivars->values, VARRAY);
     }
     return super_jostle(self, element);
 }
 
-static INLINE int32_t
-SI_compare_by_value(HitQueue *self, uint32_t tick, MatchDoc *a, MatchDoc *b) {
-    Obj *a_val = VA_Fetch(a->values, tick);
-    Obj *b_val = VA_Fetch(b->values, tick);
-    FieldType *field_type = self->field_types[tick];
+static CFISH_INLINE int32_t
+SI_compare_by_value(HitQueueIVARS *ivars, uint32_t tick,
+                    MatchDocIVARS *a_ivars, MatchDocIVARS *b_ivars) {
+    Obj *a_val = VA_Fetch(a_ivars->values, tick);
+    Obj *b_val = VA_Fetch(b_ivars->values, tick);
+    FieldType *field_type = ivars->field_types[tick];
     return FType_null_back_compare_values(field_type, a_val, b_val);
 }
 
-bool_t
-HitQ_less_than(HitQueue *self, Obj *obj_a, Obj *obj_b) {
+bool
+HitQ_Less_Than_IMP(HitQueue *self, Obj *obj_a, Obj *obj_b) {
+    HitQueueIVARS *const ivars = HitQ_IVARS(self);
     MatchDoc *const a = (MatchDoc*)obj_a;
     MatchDoc *const b = (MatchDoc*)obj_b;
+    MatchDocIVARS *a_ivars = MatchDoc_IVARS(a);
+    MatchDocIVARS *b_ivars = MatchDoc_IVARS(b);
     uint32_t i = 0;
-    uint8_t *const actions = self->actions;
+    uint8_t *const actions = ivars->actions;
 
     do {
         switch (actions[i] & ACTIONS_MASK) {
             case COMPARE_BY_SCORE:
                 // Prefer high scores.
-                if (a->score > b->score)      { return false; }
-                else if (a->score < b->score) { return true;  }
+                if (a_ivars->score > b_ivars->score)      { return false; }
+                else if (a_ivars->score < b_ivars->score) { return true;  }
                 break;
             case COMPARE_BY_SCORE_REV:
-                if (a->score > b->score)      { return true;  }
-                else if (a->score < b->score) { return false; }
+                if (a_ivars->score > b_ivars->score)      { return true;  }
+                else if (a_ivars->score < b_ivars->score) { return false; }
                 break;
             case COMPARE_BY_DOC_ID:
                 // Prefer low doc ids.
-                if (a->doc_id > b->doc_id)      { return true;  }
-                else if (a->doc_id < b->doc_id) { return false; }
+                if (a_ivars->doc_id > b_ivars->doc_id)      { return true;  }
+                else if (a_ivars->doc_id < b_ivars->doc_id) { return false; }
                 break;
             case COMPARE_BY_DOC_ID_REV:
-                if (a->doc_id > b->doc_id)      { return false; }
-                else if (a->doc_id < b->doc_id) { return true;  }
+                if (a_ivars->doc_id > b_ivars->doc_id)      { return false; }
+                else if (a_ivars->doc_id < b_ivars->doc_id) { return true;  }
                 break;
             case COMPARE_BY_VALUE: {
-                    int32_t comparison = SI_compare_by_value(self, i, a, b);
+                    int32_t comparison
+                        = SI_compare_by_value(ivars, i, a_ivars, b_ivars);
                     if (comparison > 0)      { return true;  }
                     else if (comparison < 0) { return false; }
                 }
                 break;
             case COMPARE_BY_VALUE_REV: {
-                    int32_t comparison = SI_compare_by_value(self, i, b, a);
+                    int32_t comparison
+                        = SI_compare_by_value(ivars, i, b_ivars, a_ivars);
                     if (comparison > 0)      { return true;  }
                     else if (comparison < 0) { return false; }
                 }
@@ -179,7 +188,7 @@ HitQ_less_than(HitQueue *self, Obj *obj_a, Obj *obj_b) {
                 THROW(ERR, "Unexpected action %u8", actions[i]);
         }
 
-    } while (++i < self->num_actions);
+    } while (++i < ivars->num_actions);
 
     return false;
 }

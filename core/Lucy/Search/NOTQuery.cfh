@@ -27,8 +27,7 @@ parcel Lucy;
  * semantics.
  */
 
-class Lucy::Search::NOTQuery inherits Lucy::Search::PolyQuery
-    : dumpable {
+public class Lucy::Search::NOTQuery inherits Lucy::Search::PolyQuery {
 
     /**
      * @param negated_query The Query to be inverted.
@@ -52,12 +51,12 @@ class Lucy::Search::NOTQuery inherits Lucy::Search::PolyQuery
 
     public incremented Compiler*
     Make_Compiler(NOTQuery *self, Searcher *searcher, float boost,
-                  bool_t subordinate = false);
+                  bool subordinate = false);
 
-    public incremented CharBuf*
+    public incremented String*
     To_String(NOTQuery *self);
 
-    public bool_t
+    public bool
     Equals(NOTQuery *self, Obj *other);
 }
 
@@ -72,14 +71,14 @@ class Lucy::Search::NOTCompiler
          float boost);
 
     public incremented nullable Matcher*
-    Make_Matcher(NOTCompiler *self, SegReader *reader, bool_t need_score);
+    Make_Matcher(NOTCompiler *self, SegReader *reader, bool need_score);
 
     public float
     Sum_Of_Squared_Weights(NOTCompiler *self);
 
     public incremented VArray*
     Highlight_Spans(NOTCompiler *self, Searcher *searcher,
-                    DocVector *doc_vec, const CharBuf *field);
+                    DocVector *doc_vec, String *field);
 }
 
 

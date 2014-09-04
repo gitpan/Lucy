@@ -20,7 +20,7 @@
 #include "Lucy/Index/Snapshot.h"
 #include "Lucy/Index/Segment.h"
 #include "Lucy/Store/Folder.h"
-#include "Lucy/Util/StringHelper.h"
+#include "Clownfish/Util/StringHelper.h"
 #include "Lucy/Util/IndexFileNames.h"
 #include "Lucy/Util/Json.h"
 
@@ -32,16 +32,17 @@ static int32_t Snapshot_current_file_subformat = 1;
 
 Snapshot*
 Snapshot_new() {
-    Snapshot *self = (Snapshot*)VTable_Make_Obj(SNAPSHOT);
+    Snapshot *self = (Snapshot*)Class_Make_Obj(SNAPSHOT);
     return Snapshot_init(self);
 }
 
 static void
 S_zero_out(Snapshot *self) {
-    DECREF(self->entries);
-    DECREF(self->path);
-    self->entries  = Hash_new(0);
-    self->path = NULL;
+    SnapshotIVARS *const ivars = Snapshot_IVARS(self);
+    DECREF(ivars->entries);
+    DECREF(ivars->path);
+    ivars->entries  = Hash_new(0);
+    ivars->path = NULL;
 }
 
 Snapshot*
@@ -51,22 +52,25 @@ Snapshot_init(Snapshot *self) {
 }
 
 void
-Snapshot_destroy(Snapshot *self) {
-    DECREF(self->entries);
-    DECREF(self->path);
+Snapshot_Destroy_IMP(Snapshot *self) {
+    SnapshotIVARS *const ivars = Snapshot_IVARS(self);
+    DECREF(ivars->entries);
+    DECREF(ivars->path);
     SUPER_DESTROY(self, SNAPSHOT);
 }
 
 void
-Snapshot_add_entry(Snapshot *self, const CharBuf *entry) {
-    Hash_Store(self->entries, (Obj*)entry, INCREF(&EMPTY));
+Snapshot_Add_Entry_IMP(Snapshot *self, String *entry) {
+    SnapshotIVARS *const ivars = Snapshot_IVARS(self);
+    Hash_Store(ivars->entries, (Obj*)entry, (Obj*)CFISH_TRUE);
 }
 
-bool_t
-Snapshot_delete_entry(Snapshot *self, const CharBuf *entry) {
-    Obj *val = Hash_Delete(self->entries, (Obj*)entry);
+bool
+Snapshot_Delete_Entry_IMP(Snapshot *self, String *entry) {
+    SnapshotIVARS *const ivars = Snapshot_IVARS(self);
+    Obj *val = Hash_Delete(ivars->entries, (Obj*)entry);
     if (val) {
-        Obj_Dec_RefCount(val);
+        DECREF(val);
         return true;
     }
     else {
@@ -75,39 +79,44 @@ Snapshot_delete_entry(Snapshot *self, const CharBuf *entry) {
 }
 
 VArray*
-Snapshot_list(Snapshot *self) {
-    return Hash_Keys(self->entries);
+Snapshot_List_IMP(Snapshot *self) {
+    SnapshotIVARS *const ivars = Snapshot_IVARS(self);
+    return Hash_Keys(ivars->entries);
 }
 
 uint32_t
-Snapshot_num_entries(Snapshot *self) {
-    return Hash_Get_Size(self->entries);
+Snapshot_Num_Entries_IMP(Snapshot *self) {
+    SnapshotIVARS *const ivars = Snapshot_IVARS(self);
+    return Hash_Get_Size(ivars->entries);
 }
 
 void
-Snapshot_set_path(Snapshot *self, const CharBuf *path) {
-    DECREF(self->path);
-    self->path = path ? CB_Clone(path) : NULL;
+Snapshot_Set_Path_IMP(Snapshot *self, String *path) {
+    SnapshotIVARS *const ivars = Snapshot_IVARS(self);
+    DECREF(ivars->path);
+    ivars->path = path ? Str_Clone(path) : NULL;
 }
 
-CharBuf*
-Snapshot_get_path(Snapshot *self) {
-    return self->path;
+String*
+Snapshot_Get_Path_IMP(Snapshot *self) {
+    return Snapshot_IVARS(self)->path;
 }
 
 Snapshot*
-Snapshot_read_file(Snapshot *self, Folder *folder, const CharBuf *path) {
+Snapshot_Read_File_IMP(Snapshot *self, Folder *folder, String *path) {
+    SnapshotIVARS *const ivars = Snapshot_IVARS(self);
+
     // Eliminate all prior data. Pick a snapshot file.
     S_zero_out(self);
-    self->path = path ? CB_Clone(path) : IxFileNames_latest_snapshot(folder);
+    ivars->path = path ? Str_Clone(path) : IxFileNames_latest_snapshot(folder);
 
-    if (self->path) {
+    if (ivars->path) {
         Hash *snap_data
-            = (Hash*)CERTIFY(Json_slurp_json(folder, self->path), HASH);
+            = (Hash*)CERTIFY(Json_slurp_json(folder, ivars->path), HASH);
         Obj *format_obj
-            = CERTIFY(Hash_Fetch_Str(snap_data, "format", 6), OBJ);
+            = CERTIFY(Hash_Fetch_Utf8(snap_data, "format", 6), OBJ);
         int32_t format = (int32_t)Obj_To_I64(format_obj);
-        Obj *subformat_obj = Hash_Fetch_Str(snap_data, "subformat", 9);
+        Obj *subformat_obj = Hash_Fetch_Utf8(snap_data, "subformat", 9);
         int32_t subformat = subformat_obj
                             ? (int32_t)Obj_To_I64(subformat_obj)
                             : 0;
@@ -119,20 +128,19 @@ Snapshot_read_file(Snapshot *self, Folder *folder, const CharBuf *path) {
         }
 
         // Build up list of entries.
-        VArray *list = (VArray*)CERTIFY(
-                           Hash_Fetch_Str(snap_data, "entries", 7),
-                           VARRAY);
-        INCREF(list);
+        VArray *list = (VArray*)INCREF(CERTIFY(
+                           Hash_Fetch_Utf8(snap_data, "entries", 7),
+                           VARRAY));
         if (format == 1 || (format == 2 && subformat < 1)) {
             VArray *cleaned = S_clean_segment_contents(list);
             DECREF(list);
             list = cleaned;
         }
-        Hash_Clear(self->entries);
+        Hash_Clear(ivars->entries);
         for (uint32_t i = 0, max = VA_Get_Size(list); i < max; i++) {
-            CharBuf *entry
-                = (CharBuf*)CERTIFY(VA_Fetch(list, i), CHARBUF);
-            Hash_Store(self->entries, (Obj*)entry, INCREF(&EMPTY));
+            String *entry
+                = (String*)CERTIFY(VA_Fetch(list, i), STRING);
+            Hash_Store(ivars->entries, (Obj*)entry, (Obj*)CFISH_TRUE);
         }
 
         DECREF(list);
@@ -149,9 +157,9 @@ S_clean_segment_contents(VArray *orig) {
     // they cause a problem with FilePurger.
     VArray *cleaned = VA_new(VA_Get_Size(orig));
     for (uint32_t i = 0, max = VA_Get_Size(orig); i < max; i++) {
-        CharBuf *name = (CharBuf*)VA_Fetch(orig, i);
+        String *name = (String*)VA_Fetch(orig, i);
         if (!Seg_valid_seg_name(name)) {
-            if (CB_Starts_With_Str(name, "seg_", 4)) {
+            if (Str_Starts_With_Utf8(name, "seg_", 4)) {
                 continue;  // Skip this file.
             }
         }
@@ -162,41 +170,42 @@ S_clean_segment_contents(VArray *orig) {
 
 
 void
-Snapshot_write_file(Snapshot *self, Folder *folder, const CharBuf *path) {
+Snapshot_Write_File_IMP(Snapshot *self, Folder *folder, String *path) {
+    SnapshotIVARS *const ivars = Snapshot_IVARS(self);
     Hash   *all_data = Hash_new(0);
     VArray *list     = Snapshot_List(self);
 
     // Update path.
-    DECREF(self->path);
+    DECREF(ivars->path);
     if (path) {
-        self->path = CB_Clone(path);
+        ivars->path = Str_Clone(path);
     }
     else {
-        CharBuf *latest = IxFileNames_latest_snapshot(folder);
+        String *latest = IxFileNames_latest_snapshot(folder);
         uint64_t gen = latest ? IxFileNames_extract_gen(latest) + 1 : 1;
         char base36[StrHelp_MAX_BASE36_BYTES];
         StrHelp_to_base36(gen, &base36);
-        self->path = CB_newf("snapshot_%s.json", &base36);
+        ivars->path = Str_newf("snapshot_%s.json", &base36);
         DECREF(latest);
     }
 
     // Don't overwrite.
-    if (Folder_Exists(folder, self->path)) {
-        THROW(ERR, "Snapshot file '%o' already exists", self->path);
+    if (Folder_Exists(folder, ivars->path)) {
+        THROW(ERR, "Snapshot file '%o' already exists", ivars->path);
     }
 
     // Sort, then store file names.
     VA_Sort(list, NULL, NULL);
-    Hash_Store_Str(all_data, "entries", 7, (Obj*)list);
+    Hash_Store_Utf8(all_data, "entries", 7, (Obj*)list);
 
     // Create a JSON-izable data structure.
-    Hash_Store_Str(all_data, "format", 6,
-                   (Obj*)CB_newf("%i32", (int32_t)Snapshot_current_file_format));
-    Hash_Store_Str(all_data, "subformat", 9,
-                   (Obj*)CB_newf("%i32", (int32_t)Snapshot_current_file_subformat));
+    Hash_Store_Utf8(all_data, "format", 6,
+                    (Obj*)Str_newf("%i32", (int32_t)Snapshot_current_file_format));
+    Hash_Store_Utf8(all_data, "subformat", 9,
+                    (Obj*)Str_newf("%i32", (int32_t)Snapshot_current_file_subformat));
 
     // Write out JSON-ized data to the new file.
-    Json_spew_json((Obj*)all_data, folder, self->path);
+    Json_spew_json((Obj*)all_data, folder, ivars->path);
 
     DECREF(all_data);
 }

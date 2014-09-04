@@ -14,11 +14,16 @@
  * limitations under the License.
  */
 
-parcel Lucy;
+parcel TestLucy;
 
-inert class Lucy::Test::Util::TestIndexFileNames cnick TestIxFileNames {
-    inert void
-    run_tests();
+class Lucy::Test::Util::TestIndexFileNames nickname TestIxFileNames
+    inherits Clownfish::TestHarness::TestBatch {
+
+    inert incremented TestIndexFileNames*
+    new();
+
+    void
+    Run(TestIndexFileNames *self, TestBatchRunner *runner);
 }
 
 

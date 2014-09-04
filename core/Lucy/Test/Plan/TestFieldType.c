@@ -14,30 +14,37 @@
  * limitations under the License.
  */
 
-#define C_LUCY_TESTFIELDTYPE
+#define C_TESTLUCY_TESTFIELDTYPE
 #define C_LUCY_DUMMYFIELDTYPE
+#define TESTLUCY_USE_SHORT_NAMES
 #include "Lucy/Util/ToolSet.h"
 
+#include "Clownfish/TestHarness/TestBatchRunner.h"
 #include "Lucy/Test.h"
 #include "Lucy/Test/Plan/TestFieldType.h"
 #include "Lucy/Test/TestUtils.h"
 
+TestFieldType*
+TestFType_new() {
+    return (TestFieldType*)Class_Make_Obj(TESTFIELDTYPE);
+}
+
 DummyFieldType*
 DummyFieldType_new() {
-    DummyFieldType *self = (DummyFieldType*)VTable_Make_Obj(DUMMYFIELDTYPE);
+    DummyFieldType *self = (DummyFieldType*)Class_Make_Obj(DUMMYFIELDTYPE);
     return (DummyFieldType*)FType_init((FieldType*)self);
 }
 
 static FieldType*
 S_alt_field_type() {
-    ZombieCharBuf *name = ZCB_WRAP_STR("DummyFieldType2", 15);
-    VTable *vtable = VTable_singleton((CharBuf*)name, DUMMYFIELDTYPE);
-    FieldType *self = (FieldType*)VTable_Make_Obj(vtable);
+    StackString *name = SSTR_WRAP_UTF8("DummyFieldType2", 15);
+    Class *klass = Class_singleton((String*)name, DUMMYFIELDTYPE);
+    FieldType *self = (FieldType*)Class_Make_Obj(klass);
     return FType_init(self);
 }
 
 static void
-test_Dump_Load_and_Equals(TestBatch *batch) {
+test_Dump_Load_and_Equals(TestBatchRunner *runner) {
     FieldType   *type          = (FieldType*)DummyFieldType_new();
     FieldType   *other         = (FieldType*)DummyFieldType_new();
     FieldType   *class_differs = S_alt_field_type();
@@ -53,39 +60,40 @@ test_Dump_Load_and_Equals(TestBatch *batch) {
     FType_Set_Indexed(indexed, true);
     FType_Set_Stored(stored, true);
 
-    TEST_TRUE(batch, FType_Equals(type, (Obj*)other),
+    TEST_TRUE(runner, FType_Equals(type, (Obj*)other),
               "Equals() true with identical stats");
-    TEST_FALSE(batch, FType_Equals(type, (Obj*)class_differs),
+    TEST_FALSE(runner, FType_Equals(type, (Obj*)class_differs),
                "Equals() false with subclass");
-    TEST_FALSE(batch, FType_Equals(type, (Obj*)class_differs),
+    TEST_FALSE(runner, FType_Equals(type, (Obj*)class_differs),
                "Equals() false with super class");
-    TEST_FALSE(batch, FType_Equals(type, (Obj*)boost_differs),
+    TEST_FALSE(runner, FType_Equals(type, (Obj*)boost_differs),
                "Equals() false with different boost");
-    TEST_FALSE(batch, FType_Equals(type, (Obj*)indexed),
+    TEST_FALSE(runner, FType_Equals(type, (Obj*)indexed),
                "Equals() false with indexed => true");
-    TEST_FALSE(batch, FType_Equals(type, (Obj*)stored),
+    TEST_FALSE(runner, FType_Equals(type, (Obj*)stored),
                "Equals() false with stored => true");
 
     DECREF(stored);
     DECREF(indexed);
     DECREF(boost_differs);
+    DECREF(class_differs);
     DECREF(other);
     DECREF(type);
 }
 
 static void
-test_Compare_Values(TestBatch *batch) {
+test_Compare_Values(TestBatchRunner *runner) {
     FieldType     *type = (FieldType*)DummyFieldType_new();
-    ZombieCharBuf *a    = ZCB_WRAP_STR("a", 1);
-    ZombieCharBuf *b    = ZCB_WRAP_STR("b", 1);
+    StackString *a    = SSTR_WRAP_UTF8("a", 1);
+    StackString *b    = SSTR_WRAP_UTF8("b", 1);
 
-    TEST_TRUE(batch,
+    TEST_TRUE(runner,
               FType_Compare_Values(type, (Obj*)a, (Obj*)b) < 0,
               "a less than b");
-    TEST_TRUE(batch,
+    TEST_TRUE(runner,
               FType_Compare_Values(type, (Obj*)b, (Obj*)a) > 0,
               "b greater than a");
-    TEST_TRUE(batch,
+    TEST_TRUE(runner,
               FType_Compare_Values(type, (Obj*)b, (Obj*)b) == 0,
               "b equals b");
 
@@ -93,12 +101,10 @@ test_Compare_Values(TestBatch *batch) {
 }
 
 void
-TestFType_run_tests() {
-    TestBatch *batch = TestBatch_new(9);
-    TestBatch_Plan(batch);
-    test_Dump_Load_and_Equals(batch);
-    test_Compare_Values(batch);
-    DECREF(batch);
+TestFType_Run_IMP(TestFieldType *self, TestBatchRunner *runner) {
+    TestBatchRunner_Plan(runner, (TestBatch*)self, 9);
+    test_Dump_Load_and_Equals(runner);
+    test_Compare_Values(runner);
 }
 
 

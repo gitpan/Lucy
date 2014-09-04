@@ -93,7 +93,7 @@ B<searcher> - A Searcher.
 
 =item *
 
-B<boost> - A scoring multiplier. Defaults to the Query's own boost.
+B<boost> - A scoring multiplier.
 
 =item *
 
@@ -103,8 +103,6 @@ invoke normalize() on the newly minted Compiler object before returning
 it.
 
 =back
-
-
 
 =head1 METHODS
 
@@ -120,7 +118,7 @@ Get the Query's boost.
 
 =head1 INHERITANCE
 
-Lucy::Search::Query isa L<Lucy::Object::Obj>.
+Lucy::Search::Query isa Clownfish::Obj.
 
 
 =cut

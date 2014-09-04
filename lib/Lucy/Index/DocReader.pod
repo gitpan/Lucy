@@ -42,8 +42,6 @@ Retrieve the document identified by C<< doc_id >>.
 
 Returns: a HitDoc.
 
-
-
 =head1 METHODS
 
 =head2 aggregator( I<[labeled params]> )
@@ -67,7 +65,7 @@ B<offsets> - Doc id start offsets for each reader.
 
 =head1 INHERITANCE
 
-Lucy::Index::DocReader isa L<Lucy::Index::DataReader> isa L<Lucy::Object::Obj>.
+Lucy::Index::DocReader isa L<Lucy::Index::DataReader> isa Clownfish::Obj.
 
 
 =cut

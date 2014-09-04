@@ -14,11 +14,16 @@
  * limitations under the License.
  */
 
-parcel Lucy;
+parcel TestLucy;
 
-inert class Lucy::Test::Index::TestSegment cnick TestSeg {
-    inert void
-    run_tests();
+class Lucy::Test::Index::TestSegment nickname TestSeg
+    inherits Clownfish::TestHarness::TestBatch {
+
+    inert incremented TestSegment*
+    new();
+
+    void
+    Run(TestSegment *self, TestBatchRunner *runner);
 }
 
 

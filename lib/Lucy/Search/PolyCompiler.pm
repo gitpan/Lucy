@@ -15,7 +15,7 @@
 
 package Lucy::Search::PolyCompiler;
 use Lucy;
-our $VERSION = '0.003003';
+our $VERSION = '0.004000';
 $VERSION = eval $VERSION;
 
 1;

@@ -37,8 +37,6 @@ add_doc().
 
 
 
-
-
 =head1 METHODS
 
 =head2 add_doc( I<[labeled params]> )
@@ -87,7 +85,7 @@ implements.
 
 =head1 INHERITANCE
 
-Lucy::Index::SegWriter isa L<Lucy::Index::DataWriter> isa L<Lucy::Object::Obj>.
+Lucy::Index::SegWriter isa L<Lucy::Index::DataWriter> isa Clownfish::Obj.
 
 
 =cut

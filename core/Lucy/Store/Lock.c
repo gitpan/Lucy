@@ -30,16 +30,18 @@
 #include "Lucy/Util/Sleep.h"
 
 Lock*
-Lock_init(Lock *self, Folder *folder, const CharBuf *name,
-          const CharBuf *host, int32_t timeout, int32_t interval) {
+Lock_init(Lock *self, Folder *folder, String *name,
+          String *host, int32_t timeout, int32_t interval) {
+    LockIVARS *const ivars = Lock_IVARS(self);
+
     // Validate.
     if (interval <= 0) {
         DECREF(self);
         THROW(ERR, "Invalid value for 'interval': %i32", interval);
     }
-    ZombieCharBuf *scratch = ZCB_WRAP(name);
-    uint32_t code_point;
-    while (0 != (code_point = ZCB_Nip_One(scratch))) {
+    StringIterator *iter = Str_Top(name);
+    int32_t code_point;
+    while (STRITER_DONE != (code_point = StrIter_Next(iter))) {
         if (isalnum(code_point)
             || code_point == '.'
             || code_point == '-'
@@ -50,53 +52,56 @@ Lock_init(Lock *self, Folder *folder, const CharBuf *name,
         DECREF(self);
         THROW(ERR, "Lock name contains disallowed characters: '%o'", name);
     }
+    DECREF(iter);
 
     // Assign.
-    self->folder       = (Folder*)INCREF(folder);
-    self->timeout      = timeout;
-    self->name         = CB_Clone(name);
-    self->host         = CB_Clone(host);
-    self->interval     = interval;
+    ivars->folder       = (Folder*)INCREF(folder);
+    ivars->timeout      = timeout;
+    ivars->name         = Str_Clone(name);
+    ivars->host         = Str_Clone(host);
+    ivars->interval     = interval;
 
     // Derive.
-    self->lock_path = CB_newf("locks/%o.lock", name);
+    ivars->lock_path = Str_newf("locks/%o.lock", name);
 
     return self;
 }
 
 void
-Lock_destroy(Lock *self) {
-    DECREF(self->folder);
-    DECREF(self->host);
-    DECREF(self->name);
-    DECREF(self->lock_path);
+Lock_Destroy_IMP(Lock *self) {
+    LockIVARS *const ivars = Lock_IVARS(self);
+    DECREF(ivars->folder);
+    DECREF(ivars->host);
+    DECREF(ivars->name);
+    DECREF(ivars->lock_path);
     SUPER_DESTROY(self, LOCK);
 }
 
-CharBuf*
-Lock_get_name(Lock *self) {
-    return self->name;
+String*
+Lock_Get_Name_IMP(Lock *self) {
+    return Lock_IVARS(self)->name;
 }
 
-CharBuf*
-Lock_get_lock_path(Lock *self) {
-    return self->lock_path;
+String*
+Lock_Get_Lock_Path_IMP(Lock *self) {
+    return Lock_IVARS(self)->lock_path;
 }
 
-CharBuf*
-Lock_get_host(Lock *self) {
-    return self->host;
+String*
+Lock_Get_Host_IMP(Lock *self) {
+    return Lock_IVARS(self)->host;
 }
 
-bool_t
-Lock_obtain(Lock *self) {
-    int32_t time_left = self->interval == 0 ? 0 : self->timeout;
-    bool_t locked = Lock_Request(self);
+bool
+Lock_Obtain_IMP(Lock *self) {
+    LockIVARS *const ivars = Lock_IVARS(self);
+    int32_t time_left = ivars->interval == 0 ? 0 : ivars->timeout;
+    bool locked = Lock_Request(self);
 
     while (!locked) {
-        time_left -= self->interval;
+        time_left -= ivars->interval;
         if (time_left <= 0) { break; }
-        Sleep_millisleep(self->interval);
+        Sleep_millisleep(ivars->interval);
         locked = Lock_Request(self);
     }
 
@@ -107,48 +112,60 @@ Lock_obtain(Lock *self) {
 /***************************************************************************/
 
 LockFileLock*
-LFLock_new(Folder *folder, const CharBuf *name, const CharBuf *host,
+LFLock_new(Folder *folder, String *name, String *host,
            int32_t timeout, int32_t interval) {
-    LockFileLock *self = (LockFileLock*)VTable_Make_Obj(LOCKFILELOCK);
+    LockFileLock *self = (LockFileLock*)Class_Make_Obj(LOCKFILELOCK);
     return LFLock_init(self, folder, name, host, timeout, interval);
 }
 
 LockFileLock*
-LFLock_init(LockFileLock *self, Folder *folder, const CharBuf *name,
-            const CharBuf *host, int32_t timeout, int32_t interval) {
+LFLock_init(LockFileLock *self, Folder *folder, String *name,
+            String *host, int32_t timeout, int32_t interval) {
     int pid = PID_getpid();
     Lock_init((Lock*)self, folder, name, host, timeout, interval);
-    self->link_path = CB_newf("%o.%o.%i64", self->lock_path, host, pid);
+    LockFileLockIVARS *const ivars = LFLock_IVARS(self);
+    ivars->link_path = Str_newf("%o.%o.%i64", ivars->lock_path, host, pid);
     return self;
 }
 
-bool_t
-LFLock_shared(LockFileLock *self) {
+bool
+LFLock_Shared_IMP(LockFileLock *self) {
     UNUSED_VAR(self); return false;
 }
 
-bool_t
-LFLock_request(LockFileLock *self) {
-    Hash   *file_data;
-    bool_t wrote_json;
-    bool_t success = false;
-    bool_t deletion_failed = false;
+struct lockfile_context {
+    OutStream *outstream;
+    String *json;
+};
 
-    if (Folder_Exists(self->folder, self->lock_path)) {
-        Err_set_error((Err*)LockErr_new(CB_newf("Can't obtain lock: '%o' exists",
-                                                self->lock_path)));
+static void
+S_write_lockfile_json(void *context) {
+    struct lockfile_context *stuff = (struct lockfile_context*)context;
+    size_t size = Str_Get_Size(stuff->json);
+    OutStream_Write_Bytes(stuff->outstream, Str_Get_Ptr8(stuff->json), size);
+    OutStream_Close(stuff->outstream);
+}
+
+bool
+LFLock_Request_IMP(LockFileLock *self) {
+    LockFileLockIVARS *const ivars = LFLock_IVARS(self);
+    bool success = false;
+
+    if (Folder_Exists(ivars->folder, ivars->lock_path)) {
+        Err_set_error((Err*)LockErr_new(Str_newf("Can't obtain lock: '%o' exists",
+                                                 ivars->lock_path)));
         return false;
     }
 
     // Create the "locks" subdirectory if necessary.
-    CharBuf *lock_dir_name = (CharBuf*)ZCB_WRAP_STR("locks", 5);
-    if (!Folder_Exists(self->folder, lock_dir_name)) {
-        if (!Folder_MkDir(self->folder, lock_dir_name)) {
+    String *lock_dir_name = (String*)SSTR_WRAP_UTF8("locks", 5);
+    if (!Folder_Exists(ivars->folder, lock_dir_name)) {
+        if (!Folder_MkDir(ivars->folder, lock_dir_name)) {
             Err *mkdir_err = (Err*)CERTIFY(Err_get_error(), ERR);
-            LockErr *err = LockErr_new(CB_newf("Can't create 'locks' directory: %o",
-                                               Err_Get_Mess(mkdir_err)));
+            LockErr *err = LockErr_new(Str_newf("Can't create 'locks' directory: %o",
+                                                Err_Get_Mess(mkdir_err)));
             // Maybe our attempt failed because another process succeeded.
-            if (Folder_Find_Folder(self->folder, lock_dir_name)) {
+            if (Folder_Find_Folder(ivars->folder, lock_dir_name)) {
                 DECREF(err);
             }
             else {
@@ -160,38 +177,53 @@ LFLock_request(LockFileLock *self) {
     }
 
     // Prepare to write pid, lock name, and host to the lock file as JSON.
-    file_data = Hash_new(3);
-    Hash_Store_Str(file_data, "pid", 3,
-                   (Obj*)CB_newf("%i32", (int32_t)PID_getpid()));
-    Hash_Store_Str(file_data, "host", 4, INCREF(self->host));
-    Hash_Store_Str(file_data, "name", 4, INCREF(self->name));
+    Hash *file_data = Hash_new(3);
+    Hash_Store_Utf8(file_data, "pid", 3,
+                    (Obj*)Str_newf("%i32", (int32_t)PID_getpid()));
+    Hash_Store_Utf8(file_data, "host", 4, INCREF(ivars->host));
+    Hash_Store_Utf8(file_data, "name", 4, INCREF(ivars->name));
+    String *json = Json_to_json((Obj*)file_data);
+    DECREF(file_data);
 
     // Write to a temporary file, then use the creation of a hard link to
     // ensure atomic but non-destructive creation of the lockfile with its
     // complete contents.
-    wrote_json = Json_spew_json((Obj*)file_data, self->folder, self->link_path);
+
+    OutStream *outstream = Folder_Open_Out(ivars->folder, ivars->link_path);
+    if (!outstream) {
+        ERR_ADD_FRAME(Err_get_error());
+        DECREF(json);
+        return false;
+    }
+
+    struct lockfile_context context;
+    context.outstream = outstream;
+    context.json = json;
+    Err *json_error = Err_trap(S_write_lockfile_json, &context);
+    bool wrote_json = !json_error;
+    DECREF(outstream);
+    DECREF(json);
     if (wrote_json) {
-        success = Folder_Hard_Link(self->folder, self->link_path,
-                                   self->lock_path);
+        success = Folder_Hard_Link(ivars->folder, ivars->link_path,
+                                   ivars->lock_path);
         if (!success) {
             Err *hard_link_err = (Err*)CERTIFY(Err_get_error(), ERR);
-            Err_set_error((Err*)LockErr_new(CB_newf("Failed to obtain lock at '%o': %o",
-                                                    self->lock_path,
-                                                    Err_Get_Mess(hard_link_err))));
+            Err_set_error((Err*)LockErr_new(Str_newf("Failed to obtain lock at '%o': %o",
+                                                     ivars->lock_path,
+                                                     Err_Get_Mess(hard_link_err))));
         }
-        deletion_failed = !Folder_Delete(self->folder, self->link_path);
     }
     else {
-        Err *spew_json_err = (Err*)CERTIFY(Err_get_error(), ERR);
-        Err_set_error((Err*)LockErr_new(CB_newf("Failed to obtain lock at '%o': %o",
-                                                self->lock_path,
-                                                Err_Get_Mess(spew_json_err))));
+        Err_set_error((Err*)LockErr_new(Str_newf("Failed to obtain lock at '%o': %o",
+                                                 ivars->lock_path,
+                                                 Err_Get_Mess(json_error))));
+        DECREF(json_error);
     }
-    DECREF(file_data);
 
     // Verify that our temporary file got zapped.
-    if (wrote_json && deletion_failed) {
-        CharBuf *mess = MAKE_MESS("Failed to delete '%o'", self->link_path);
+    bool deletion_failed = !Folder_Delete(ivars->folder, ivars->link_path);
+    if (deletion_failed) {
+        String *mess = MAKE_MESS("Failed to delete '%o'", ivars->link_path);
         Err_throw_mess(ERR, mess);
     }
 
@@ -199,57 +231,62 @@ LFLock_request(LockFileLock *self) {
 }
 
 void
-LFLock_release(LockFileLock *self) {
-    if (Folder_Exists(self->folder, self->lock_path)) {
-        LFLock_Maybe_Delete_File(self, self->lock_path, true, false);
+LFLock_Release_IMP(LockFileLock *self) {
+    LockFileLockIVARS *const ivars = LFLock_IVARS(self);
+    if (Folder_Exists(ivars->folder, ivars->lock_path)) {
+        LFLock_Maybe_Delete_File(self, ivars->lock_path, true, false);
     }
 }
 
-bool_t
-LFLock_is_locked(LockFileLock *self) {
-    return Folder_Exists(self->folder, self->lock_path);
+bool
+LFLock_Is_Locked_IMP(LockFileLock *self) {
+    LockFileLockIVARS *const ivars = LFLock_IVARS(self);
+    return Folder_Exists(ivars->folder, ivars->lock_path);
 }
 
 void
-LFLock_clear_stale(LockFileLock *self) {
-    LFLock_Maybe_Delete_File(self, self->lock_path, false, true);
+LFLock_Clear_Stale_IMP(LockFileLock *self) {
+    LockFileLockIVARS *const ivars = LFLock_IVARS(self);
+    LFLock_Maybe_Delete_File(self, ivars->lock_path, false, true);
 }
 
-bool_t
-LFLock_maybe_delete_file(LockFileLock *self, const CharBuf *path,
-                         bool_t delete_mine, bool_t delete_other) {
-    Folder *folder  = self->folder;
-    bool_t  success = false;
-    ZombieCharBuf *scratch = ZCB_WRAP(path);
+bool
+LFLock_Maybe_Delete_File_IMP(LockFileLock *self, String *path,
+                             bool delete_mine, bool delete_other) {
+    LockFileLockIVARS *const ivars = LFLock_IVARS(self);
+    Folder *folder  = ivars->folder;
+    bool    success = false;
 
     // Only delete locks that start with our lock name.
-    CharBuf *lock_dir_name = (CharBuf*)ZCB_WRAP_STR("locks", 5);
-    if (!ZCB_Starts_With(scratch, lock_dir_name)) {
+    if (!Str_Starts_With_Utf8(path, "locks", 5)) {
         return false;
     }
-    ZCB_Nip(scratch, CB_Get_Size(lock_dir_name) + 1);
-    if (!ZCB_Starts_With(scratch, self->name)) {
+    StringIterator *iter = Str_Top(path);
+    StrIter_Advance(iter, 5 + 1);
+    if (!StrIter_Starts_With(iter, ivars->name)) {
+        DECREF(iter);
         return false;
     }
+    DECREF(iter);
 
     // Attempt to delete dead lock file.
     if (Folder_Exists(folder, path)) {
         Hash *hash = (Hash*)Json_slurp_json(folder, path);
         if (hash != NULL && Obj_Is_A((Obj*)hash, HASH)) {
-            CharBuf *pid_buf = (CharBuf*)Hash_Fetch_Str(hash, "pid", 3);
-            CharBuf *host    = (CharBuf*)Hash_Fetch_Str(hash, "host", 4);
-            CharBuf *name
-                = (CharBuf*)Hash_Fetch_Str(hash, "name", 4);
+            String *pid_buf = (String*)Hash_Fetch_Utf8(hash, "pid", 3);
+            String *host    = (String*)Hash_Fetch_Utf8(hash, "host", 4);
+            String *name
+                = (String*)Hash_Fetch_Utf8(hash, "name", 4);
 
             // Match hostname and lock name.
             if (host != NULL
-                && CB_Equals(host, (Obj*)self->host)
+                && Str_Equals(host, (Obj*)ivars->host)
                 && name != NULL
-                && CB_Equals(name, (Obj*)self->name)
+                && Str_Equals(name, (Obj*)ivars->name)
                 && pid_buf != NULL
                ) {
                 // Verify that pid is either mine or dead.
-                int pid = (int)CB_To_I64(pid_buf);
+                int pid = (int)Str_To_I64(pid_buf);
                 if ((delete_mine && pid == PID_getpid())  // This process.
                     || (delete_other && !PID_active(pid)) // Dead pid.
                    ) {
@@ -257,7 +294,7 @@ LFLock_maybe_delete_file(LockFileLock *self, const CharBuf *path,
                         success = true;
                     }
                     else {
-                        CharBuf *mess
+                        String *mess
                             = MAKE_MESS("Can't delete '%o'", path);
                         DECREF(hash);
                         Err_throw_mess(ERR, mess);
@@ -272,29 +309,23 @@ LFLock_maybe_delete_file(LockFileLock *self, const CharBuf *path,
 }
 
 void
-LFLock_destroy(LockFileLock *self) {
-    DECREF(self->link_path);
+LFLock_Destroy_IMP(LockFileLock *self) {
+    LockFileLockIVARS *const ivars = LFLock_IVARS(self);
+    DECREF(ivars->link_path);
     SUPER_DESTROY(self, LOCKFILELOCK);
 }
 
 /***************************************************************************/
 
 LockErr*
-LockErr_new(CharBuf *message) {
-    LockErr *self = (LockErr*)VTable_Make_Obj(LOCKERR);
+LockErr_new(String *message) {
+    LockErr *self = (LockErr*)Class_Make_Obj(LOCKERR);
     return LockErr_init(self, message);
 }
 
 LockErr*
-LockErr_init(LockErr *self, CharBuf *message) {
+LockErr_init(LockErr *self, String *message) {
     Err_init((Err*)self, message);
     return self;
 }
-
-LockErr*
-LockErr_make(LockErr *self) {
-    UNUSED_VAR(self);
-    return LockErr_new(CB_new(0));
-}
-
 

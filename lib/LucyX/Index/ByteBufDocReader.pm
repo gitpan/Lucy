@@ -19,7 +19,7 @@ use warnings;
 package LucyX::Index::ByteBufDocReader;
 use base qw( Lucy::Index::DocReader );
 use Lucy::Document::HitDoc;
-our $VERSION = '0.003003';
+our $VERSION = '0.004000';
 $VERSION = eval $VERSION;
 use Carp;
 
@@ -47,7 +47,7 @@ sub new {
         }
         my $filename = $segment->get_name . "/bytebufdocs.dat";
         $instream{$$self} = $self->get_folder->open_in($filename)
-            or confess Lucy->error;
+            or confess Clownfish->error;
     }
 
     return $self;

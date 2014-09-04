@@ -18,7 +18,7 @@ use warnings;
 
 package LucyX::Index::ByteBufDocWriter;
 use base qw( Lucy::Index::DataWriter );
-our $VERSION = '0.003003';
+our $VERSION = '0.004000';
 $VERSION = eval $VERSION;
 use Carp;
 use Scalar::Util qw( blessed );
@@ -50,7 +50,7 @@ sub _lazy_init {
     my $folder    = $self->get_folder;
     my $filename  = $self->get_segment->get_name . "/bytebufdocs.dat";
     my $outstream = $outstream{$$self} = $folder->open_out($filename)
-        or confess Lucy->error;
+        or confess Clownfish->error;
     my $nulls = "\0" x $width{$$self};
     $outstream->print($nulls);
 

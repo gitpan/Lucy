@@ -58,8 +58,6 @@ Constructor. Takes no arguments.
 
 
 
-
-
 =head1 METHODS
 
 =head2 length_norm(num_tokens)
@@ -84,7 +82,7 @@ have a lot of tokens on average.
 
 =head1 INHERITANCE
 
-Lucy::Index::Similarity isa L<Lucy::Object::Obj>.
+Lucy::Index::Similarity isa Clownfish::Obj.
 
 
 =cut

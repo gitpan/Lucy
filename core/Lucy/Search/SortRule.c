@@ -20,23 +20,25 @@
 #include "Lucy/Search/SortRule.h"
 #include "Lucy/Store/InStream.h"
 #include "Lucy/Store/OutStream.h"
+#include "Lucy/Util/Freezer.h"
 
 int32_t SortRule_FIELD  = 0;
 int32_t SortRule_SCORE  = 1;
 int32_t SortRule_DOC_ID = 2;
 
 SortRule*
-SortRule_new(int32_t type, const CharBuf *field, bool_t reverse) {
-    SortRule *self = (SortRule*)VTable_Make_Obj(SORTRULE);
+SortRule_new(int32_t type, String *field, bool reverse) {
+    SortRule *self = (SortRule*)Class_Make_Obj(SORTRULE);
     return SortRule_init(self, type, field, reverse);
 }
 
 SortRule*
-SortRule_init(SortRule *self, int32_t type, const CharBuf *field,
-              bool_t reverse) {
-    self->field    = field ? CB_Clone(field) : NULL;
-    self->type     = type;
-    self->reverse  = reverse;
+SortRule_init(SortRule *self, int32_t type, String *field,
+              bool reverse) {
+    SortRuleIVARS *ivars = SortRule_IVARS(self);
+    ivars->field    = field ? Str_Clone(field) : NULL;
+    ivars->type     = type;
+    ivars->reverse  = reverse;
 
     // Validate.
     if (type == SortRule_FIELD) {
@@ -52,44 +54,46 @@ SortRule_init(SortRule *self, int32_t type, const CharBuf *field,
 }
 
 void
-SortRule_destroy(SortRule *self) {
-    DECREF(self->field);
+SortRule_Destroy_IMP(SortRule *self) {
+    SortRuleIVARS *ivars = SortRule_IVARS(self);
+    DECREF(ivars->field);
     SUPER_DESTROY(self, SORTRULE);
 }
 
 SortRule*
-SortRule_deserialize(SortRule *self, InStream *instream) {
-    self = self ? self : (SortRule*)VTable_Make_Obj(SORTRULE);
-    self->type = InStream_Read_C32(instream);
-    if (self->type == SortRule_FIELD) {
-        self->field = CB_deserialize(NULL, instream);
+SortRule_Deserialize_IMP(SortRule *self, InStream *instream) {
+    SortRuleIVARS *ivars = SortRule_IVARS(self);
+    ivars->type = InStream_Read_C32(instream);
+    if (ivars->type == SortRule_FIELD) {
+        ivars->field = Freezer_read_string(instream);
     }
-    self->reverse = InStream_Read_C32(instream);
+    ivars->reverse = !!InStream_Read_C32(instream);
     return self;
 }
 
 void
-SortRule_serialize(SortRule *self, OutStream *target) {
-    OutStream_Write_C32(target, self->type);
-    if (self->type == SortRule_FIELD) {
-        CB_Serialize(self->field, target);
+SortRule_Serialize_IMP(SortRule *self, OutStream *target) {
+    SortRuleIVARS *ivars = SortRule_IVARS(self);
+    OutStream_Write_C32(target, ivars->type);
+    if (ivars->type == SortRule_FIELD) {
+        Freezer_serialize_string(ivars->field, target);
     }
-    OutStream_Write_C32(target, !!self->reverse);
+    OutStream_Write_C32(target, !!ivars->reverse);
 }
 
-CharBuf*
-SortRule_get_field(SortRule *self) {
-    return self->field;
+String*
+SortRule_Get_Field_IMP(SortRule *self) {
+    return SortRule_IVARS(self)->field;
 }
 
 int32_t
-SortRule_get_type(SortRule *self) {
-    return self->type;
+SortRule_Get_Type_IMP(SortRule *self) {
+    return SortRule_IVARS(self)->type;
 }
 
-bool_t
-SortRule_get_reverse(SortRule *self) {
-    return self->reverse;
+bool
+SortRule_Get_Reverse_IMP(SortRule *self) {
+    return SortRule_IVARS(self)->reverse;
 }
 
 

@@ -68,8 +68,6 @@ B<reverse> - If true, reverse the order of the sort for this rule.
 
 
 
-
-
 =head1 METHODS
 
 =head2 get_field()
@@ -84,7 +82,7 @@ Accessor for "reverse" member.
 
 =head1 INHERITANCE
 
-Lucy::Search::SortRule isa L<Lucy::Object::Obj>.
+Lucy::Search::SortRule isa Clownfish::Obj.
 
 
 =cut

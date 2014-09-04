@@ -51,8 +51,6 @@ factory methods.
 
 
 
-
-
 =head1 METHODS
 
 =head2 get_seg_name()
@@ -67,7 +65,7 @@ Return the number of the segment.
 
 =head1 INHERITANCE
 
-Lucy::Index::SegReader isa L<Lucy::Index::IndexReader> isa L<Lucy::Index::DataReader> isa L<Lucy::Object::Obj>.
+Lucy::Index::SegReader isa L<Lucy::Index::IndexReader> isa L<Lucy::Index::DataReader> isa Clownfish::Obj.
 
 
 =cut

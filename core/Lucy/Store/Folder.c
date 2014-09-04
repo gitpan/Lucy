@@ -19,9 +19,7 @@
 #include <ctype.h>
 #include <limits.h>
 
-#ifndef SIZE_MAX
-  #define SIZE_MAX ((size_t)-1)
-#endif
+#include "charmony.h"
 
 #include "Lucy/Store/Folder.h"
 #include "Lucy/Store/CompoundFileReader.h"
@@ -33,19 +31,23 @@
 #include "Lucy/Util/IndexFileNames.h"
 
 Folder*
-Folder_init(Folder *self, const CharBuf *path) {
+Folder_init(Folder *self, String *path) {
+    FolderIVARS *const ivars = Folder_IVARS(self);
+
     // Init.
-    self->entries = Hash_new(16);
+    ivars->entries = Hash_new(16);
 
     // Copy.
     if (path == NULL) {
-        self->path = CB_new_from_trusted_utf8("", 0);
+        ivars->path = Str_new_from_trusted_utf8("", 0);
     }
     else {
         // Copy path, strip trailing slash or equivalent.
-        self->path = CB_Clone(path);
-        if (CB_Ends_With_Str(self->path, DIR_SEP, strlen(DIR_SEP))) {
-            CB_Chop(self->path, 1);
+        if (Str_Ends_With_Utf8(path, CHY_DIR_SEP, strlen(CHY_DIR_SEP))) {
+            ivars->path = Str_SubString(path, 0, Str_Length(path) - 1);
+        }
+        else {
+            ivars->path = Str_Clone(path);
         }
     }
 
@@ -54,26 +56,28 @@ Folder_init(Folder *self, const CharBuf *path) {
 }
 
 void
-Folder_destroy(Folder *self) {
-    DECREF(self->path);
-    DECREF(self->entries);
+Folder_Destroy_IMP(Folder *self) {
+    FolderIVARS *const ivars = Folder_IVARS(self);
+    DECREF(ivars->path);
+    DECREF(ivars->entries);
     SUPER_DESTROY(self, FOLDER);
 }
 
 InStream*
-Folder_open_in(Folder *self, const CharBuf *path) {
+Folder_Open_In_IMP(Folder *self, String *path) {
     Folder *enclosing_folder = Folder_Enclosing_Folder(self, path);
     InStream *instream = NULL;
 
     if (enclosing_folder) {
-        ZombieCharBuf *name = IxFileNames_local_part(path, ZCB_BLANK());
-        instream = Folder_Local_Open_In(enclosing_folder, (CharBuf*)name);
+        String *name = IxFileNames_local_part(path);
+        instream = Folder_Local_Open_In(enclosing_folder, name);
         if (!instream) {
             ERR_ADD_FRAME(Err_get_error());
         }
+        DECREF(name);
     }
     else {
-        Err_set_error(Err_new(CB_newf("Invalid path: '%o'", path)));
+        Err_set_error(Err_new(Str_newf("Invalid path: '%o'", path)));
     }
 
     return instream;
@@ -83,7 +87,7 @@ Folder_open_in(Folder *self, const CharBuf *path) {
  * necessary because calling CFReader_Local_Open_FileHandle() won't find
  * virtual files.  No other class should need to override it. */
 InStream*
-Folder_local_open_in(Folder *self, const CharBuf *name) {
+Folder_Local_Open_In_IMP(Folder *self, String *name) {
     FileHandle *fh = Folder_Local_Open_FileHandle(self, name, FH_READ_ONLY);
     InStream *instream = NULL;
     if (fh) {
@@ -100,7 +104,7 @@ Folder_local_open_in(Folder *self, const CharBuf *name) {
 }
 
 OutStream*
-Folder_open_out(Folder *self, const CharBuf *path) {
+Folder_Open_Out_IMP(Folder *self, String *path) {
     const uint32_t flags = FH_WRITE_ONLY | FH_CREATE | FH_EXCLUSIVE;
     FileHandle *fh = Folder_Open_FileHandle(self, path, flags);
     OutStream *outstream = NULL;
@@ -118,31 +122,33 @@ Folder_open_out(Folder *self, const CharBuf *path) {
 }
 
 FileHandle*
-Folder_open_filehandle(Folder *self, const CharBuf *path, uint32_t flags) {
+Folder_Open_FileHandle_IMP(Folder *self, String *path,
+                           uint32_t flags) {
     Folder *enclosing_folder = Folder_Enclosing_Folder(self, path);
     FileHandle *fh = NULL;
 
     if (enclosing_folder) {
-        ZombieCharBuf *name = IxFileNames_local_part(path, ZCB_BLANK());
-        fh = Folder_Local_Open_FileHandle(enclosing_folder,
-                                          (CharBuf*)name, flags);
+        String *name = IxFileNames_local_part(path);
+        fh = Folder_Local_Open_FileHandle(enclosing_folder, name, flags);
         if (!fh) {
             ERR_ADD_FRAME(Err_get_error());
         }
+        DECREF(name);
     }
     else {
-        Err_set_error(Err_new(CB_newf("Invalid path: '%o'", path)));
+        Err_set_error(Err_new(Str_newf("Invalid path: '%o'", path)));
     }
 
     return fh;
 }
 
-bool_t
-Folder_delete(Folder *self, const CharBuf *path) {
+bool
+Folder_Delete_IMP(Folder *self, String *path) {
     Folder *enclosing_folder = Folder_Enclosing_Folder(self, path);
     if (enclosing_folder) {
-        ZombieCharBuf *name = IxFileNames_local_part(path, ZCB_BLANK());
-        bool_t result = Folder_Local_Delete(enclosing_folder, (CharBuf*)name);
+        String *name = IxFileNames_local_part(path);
+        bool result = Folder_Local_Delete(enclosing_folder, name);
+        DECREF(name);
         return result;
     }
     else {
@@ -150,39 +156,40 @@ Folder_delete(Folder *self, const CharBuf *path) {
     }
 }
 
-bool_t
-Folder_delete_tree(Folder *self, const CharBuf *path) {
+bool
+Folder_Delete_Tree_IMP(Folder *self, String *path) {
     Folder *enclosing_folder = Folder_Enclosing_Folder(self, path);
 
     // Don't allow Folder to delete itself.
-    if (!path || !CB_Get_Size(path)) { return false; }
+    if (!path || !Str_Get_Size(path)) { return false; }
 
     if (enclosing_folder) {
-        ZombieCharBuf *local = IxFileNames_local_part(path, ZCB_BLANK());
-        if (Folder_Local_Is_Directory(enclosing_folder, (CharBuf*)local)) {
+        String *local = IxFileNames_local_part(path);
+        if (Folder_Local_Is_Directory(enclosing_folder, local)) {
             Folder *inner_folder
-                = Folder_Local_Find_Folder(enclosing_folder, (CharBuf*)local);
+                = Folder_Local_Find_Folder(enclosing_folder, local);
             DirHandle *dh = Folder_Local_Open_Dir(inner_folder);
             if (dh) {
                 VArray *files = VA_new(20);
                 VArray *dirs  = VA_new(20);
-                CharBuf *entry = DH_Get_Entry(dh);
                 while (DH_Next(dh)) {
-                    VA_Push(files, (Obj*)CB_Clone(entry));
+                    String *entry = DH_Get_Entry(dh);
+                    VA_Push(files, (Obj*)Str_Clone(entry));
                     if (DH_Entry_Is_Dir(dh) && !DH_Entry_Is_Symlink(dh)) {
-                        VA_Push(dirs, (Obj*)CB_Clone(entry));
+                        VA_Push(dirs, (Obj*)Str_Clone(entry));
                     }
+                    DECREF(entry);
                 }
                 for (uint32_t i = 0, max = VA_Get_Size(dirs); i < max; i++) {
-                    CharBuf *name = (CharBuf*)VA_Fetch(files, i);
-                    bool_t success = Folder_Delete_Tree(inner_folder, name);
+                    String *name = (String*)VA_Fetch(files, i);
+                    bool success = Folder_Delete_Tree(inner_folder, name);
                     if (!success && Folder_Local_Exists(inner_folder, name)) {
                         break;
                     }
                 }
                 for (uint32_t i = 0, max = VA_Get_Size(files); i < max; i++) {
-                    CharBuf *name = (CharBuf*)VA_Fetch(files, i);
-                    bool_t success = Folder_Local_Delete(inner_folder, name);
+                    String *name = (String*)VA_Fetch(files, i);
+                    bool success = Folder_Local_Delete(inner_folder, name);
                     if (!success && Folder_Local_Exists(inner_folder, name)) {
                         break;
                     }
@@ -192,7 +199,9 @@ Folder_delete_tree(Folder *self, const CharBuf *path) {
                 DECREF(dh);
             }
         }
-        return Folder_Local_Delete(enclosing_folder, (CharBuf*)local);
+        bool retval = Folder_Local_Delete(enclosing_folder, local);
+        DECREF(local);
+        return retval;
     }
     else {
         // Return failure if the entry wasn't there in the first place.
@@ -200,9 +209,9 @@ Folder_delete_tree(Folder *self, const CharBuf *path) {
     }
 }
 
-static bool_t
-S_is_updir(CharBuf *path) {
-    if (CB_Equals_Str(path, ".", 1) || CB_Equals_Str(path, "..", 2)) {
+static bool
+S_is_updir(String *path) {
+    if (Str_Equals_Utf8(path, ".", 1) || Str_Equals_Utf8(path, "..", 2)) {
         return true;
     }
     else {
@@ -211,34 +220,34 @@ S_is_updir(CharBuf *path) {
 }
 
 static void
-S_add_to_file_list(Folder *self, VArray *list, CharBuf *dir, CharBuf *prefix) {
-    size_t     orig_prefix_size = CB_Get_Size(prefix);
+S_add_to_file_list(Folder *self, VArray *list, String *dir,
+                   String *path) {
     DirHandle *dh = Folder_Open_Dir(self, dir);
-    CharBuf   *entry;
 
     if (!dh) {
         RETHROW(INCREF(Err_get_error()));
     }
 
-    entry = DH_Get_Entry(dh);
     while (DH_Next(dh)) { // Updates entry
+        String *entry = DH_Get_Entry(dh);
         if (!S_is_updir(entry)) {
-            CharBuf *relpath = CB_newf("%o%o", prefix, entry);
+            String *relpath = path && Str_Get_Size(path)
+                              ? Str_newf("%o/%o", path, entry)
+                              : Str_Clone(entry);
             if (VA_Get_Size(list) == VA_Get_Capacity(list)) {
                 VA_Grow(list, VA_Get_Size(list) * 2);
             }
             VA_Push(list, (Obj*)relpath);
 
             if (DH_Entry_Is_Dir(dh) && !DH_Entry_Is_Symlink(dh)) {
-                CharBuf *subdir = CB_Get_Size(dir)
-                                  ? CB_newf("%o/%o", dir, entry)
-                                  : CB_Clone(entry);
-                CB_catf(prefix, "%o/", entry);
-                S_add_to_file_list(self, list, subdir, prefix); // recurse
-                CB_Set_Size(prefix, orig_prefix_size);
+                String *subdir = Str_Get_Size(dir)
+                                 ? Str_newf("%o/%o", dir, entry)
+                                 : Str_Clone(entry);
+                S_add_to_file_list(self, list, subdir, relpath); // recurse
                 DECREF(subdir);
             }
         }
+        DECREF(entry);
     }
 
     if (!DH_Close(dh)) {
@@ -248,11 +257,18 @@ S_add_to_file_list(Folder *self, VArray *list, CharBuf *dir, CharBuf *prefix) {
 }
 
 DirHandle*
-Folder_open_dir(Folder *self, const CharBuf *path) {
+Folder_Open_Dir_IMP(Folder *self, String *path) {
     DirHandle *dh = NULL;
-    Folder *folder = Folder_Find_Folder(self, path ? path : (CharBuf*)&EMPTY);
+    Folder *folder;
+    if (path) {
+        folder = Folder_Find_Folder(self, path);
+    }
+    else {
+        StackString *empty = SSTR_BLANK();
+        folder = Folder_Find_Folder(self, (String*)empty);
+    }
     if (!folder) {
-        Err_set_error(Err_new(CB_newf("Invalid path: '%o'", path)));
+        Err_set_error(Err_new(Str_newf("Invalid path: '%o'", path)));
     }
     else {
         dh = Folder_Local_Open_Dir(folder);
@@ -263,64 +279,70 @@ Folder_open_dir(Folder *self, const CharBuf *path) {
     return dh;
 }
 
-bool_t
-Folder_mkdir(Folder *self, const CharBuf *path) {
+bool
+Folder_MkDir_IMP(Folder *self, String *path) {
     Folder *enclosing_folder = Folder_Enclosing_Folder(self, path);
-    bool_t result = false;
+    bool result = false;
 
-    if (!CB_Get_Size(path)) {
-        Err_set_error(Err_new(CB_newf("Invalid path: '%o'", path)));
+    if (!Str_Get_Size(path)) {
+        Err_set_error(Err_new(Str_newf("Invalid path: '%o'", path)));
     }
     else if (!enclosing_folder) {
-        Err_set_error(Err_new(CB_newf("Can't recursively create dir %o",
-                                      path)));
+        Err_set_error(Err_new(Str_newf("Can't recursively create dir %o",
+                                       path)));
     }
     else {
-        ZombieCharBuf *name = IxFileNames_local_part(path, ZCB_BLANK());
-        result = Folder_Local_MkDir(enclosing_folder, (CharBuf*)name);
+        String *name = IxFileNames_local_part(path);
+        result = Folder_Local_MkDir(enclosing_folder, name);
         if (!result) {
             ERR_ADD_FRAME(Err_get_error());
         }
+        DECREF(name);
     }
 
     return result;
 }
 
-bool_t
-Folder_exists(Folder *self, const CharBuf *path) {
+bool
+Folder_Exists_IMP(Folder *self, String *path) {
     Folder *enclosing_folder = Folder_Enclosing_Folder(self, path);
-    bool_t retval = false;
+    bool retval = false;
     if (enclosing_folder) {
-        ZombieCharBuf *name = IxFileNames_local_part(path, ZCB_BLANK());
-        if (Folder_Local_Exists(enclosing_folder, (CharBuf*)name)) {
+        String *name = IxFileNames_local_part(path);
+        if (Folder_Local_Exists(enclosing_folder, name)) {
             retval = true;
         }
+        DECREF(name);
     }
     return retval;
 }
 
-bool_t
-Folder_is_directory(Folder *self, const CharBuf *path) {
+bool
+Folder_Is_Directory_IMP(Folder *self, String *path) {
     Folder *enclosing_folder = Folder_Enclosing_Folder(self, path);
-    bool_t retval = false;
+    bool retval = false;
     if (enclosing_folder) {
-        ZombieCharBuf *name = IxFileNames_local_part(path, ZCB_BLANK());
-        if (Folder_Local_Is_Directory(enclosing_folder, (CharBuf*)name)) {
+        String *name = IxFileNames_local_part(path);
+        if (Folder_Local_Is_Directory(enclosing_folder, name)) {
             retval = true;
         }
+        DECREF(name);
     }
     return retval;
 }
 
 VArray*
-Folder_list(Folder *self, const CharBuf *path) {
+Folder_List_IMP(Folder *self, String *path) {
     Folder *local_folder = Folder_Find_Folder(self, path);
     VArray *list = NULL;
     DirHandle *dh = Folder_Local_Open_Dir(local_folder);
     if (dh) {
-        CharBuf *entry = DH_Get_Entry(dh);
         list = VA_new(32);
-        while (DH_Next(dh)) { VA_Push(list, (Obj*)CB_Clone(entry)); }
+        while (DH_Next(dh)) {
+            String *entry = DH_Get_Entry(dh);
+            VA_Push(list, (Obj*)Str_Clone(entry));
+            DECREF(entry);
+        }
         DECREF(dh);
     }
     else {
@@ -330,24 +352,19 @@ Folder_list(Folder *self, const CharBuf *path) {
 }
 
 VArray*
-Folder_list_r(Folder *self, const CharBuf *path) {
+Folder_List_R_IMP(Folder *self, String *path) {
     Folder *local_folder = Folder_Find_Folder(self, path);
     VArray *list =  VA_new(0);
     if (local_folder) {
-        CharBuf *dir    = CB_new(20);
-        CharBuf *prefix = CB_new(20);
-        if (path && CB_Get_Size(path)) {
-            CB_setf(prefix, "%o/", path);
-        }
-        S_add_to_file_list(local_folder, list, dir, prefix);
-        DECREF(prefix);
+        String *dir = Str_new_from_trusted_utf8("", 0);
+        S_add_to_file_list(local_folder, list, dir, path);
         DECREF(dir);
     }
     return list;
 }
 
 ByteBuf*
-Folder_slurp_file(Folder *self, const CharBuf *path) {
+Folder_Slurp_File_IMP(Folder *self, String *path) {
     InStream *instream = Folder_Open_In(self, path);
     ByteBuf  *retval   = NULL;
 
@@ -377,19 +394,20 @@ Folder_slurp_file(Folder *self, const CharBuf *path) {
     return retval;
 }
 
-CharBuf*
-Folder_get_path(Folder *self) {
-    return self->path;
+String*
+Folder_Get_Path_IMP(Folder *self) {
+    return Folder_IVARS(self)->path;
 }
 
 void
-Folder_set_path(Folder *self, const CharBuf *path) {
-    DECREF(self->path);
-    self->path = CB_Clone(path);
+Folder_Set_Path_IMP(Folder *self, String *path) {
+    FolderIVARS *const ivars = Folder_IVARS(self);
+    DECREF(ivars->path);
+    ivars->path = Str_Clone(path);
 }
 
 void
-Folder_consolidate(Folder *self, const CharBuf *path) {
+Folder_Consolidate_IMP(Folder *self, String *path) {
     Folder *folder = Folder_Find_Folder(self, path);
     Folder *enclosing_folder = Folder_Enclosing_Folder(self, path);
     if (!folder) {
@@ -402,41 +420,40 @@ Folder_consolidate(Folder *self, const CharBuf *path) {
         CompoundFileWriter *cf_writer = CFWriter_new(folder);
         CFWriter_Consolidate(cf_writer);
         DECREF(cf_writer);
-        if (CB_Get_Size(path)) {
-            ZombieCharBuf *name = IxFileNames_local_part(path, ZCB_BLANK());
+        if (Str_Get_Size(path)) {
             CompoundFileReader *cf_reader = CFReader_open(folder);
             if (!cf_reader) { RETHROW(INCREF(Err_get_error())); }
-            Hash_Store(enclosing_folder->entries, (Obj*)name,
-                       (Obj*)cf_reader);
+            Hash *entries = Folder_IVARS(enclosing_folder)->entries;
+            String *name = IxFileNames_local_part(path);
+            Hash_Store(entries, (Obj*)name, (Obj*)cf_reader);
+            DECREF(name);
         }
     }
 }
 
 static Folder*
-S_enclosing_folder(Folder *self, ZombieCharBuf *path) {
-    size_t path_component_len = 0;
-    uint32_t code_point;
-
-    // Strip trailing slash.
-    if (ZCB_Code_Point_From(path, 0) == '/') { ZCB_Chop(path, 1); }
+S_enclosing_folder(Folder *self, StringIterator *path) {
+    int32_t code_point;
 
     // Find first component of the file path.
-    ZombieCharBuf *scratch        = ZCB_WRAP((CharBuf*)path);
-    ZombieCharBuf *path_component = ZCB_WRAP((CharBuf*)path);
-    while (0 != (code_point = ZCB_Nip_One(scratch))) {
-        if (code_point == '/') {
-            ZCB_Truncate(path_component, path_component_len);
-            ZCB_Nip(path, path_component_len + 1);
+    String *path_component = NULL;
+    StringIterator *iter = StrIter_Clone(path);
+    while (STRITER_DONE != (code_point = StrIter_Next(iter))) {
+        if (code_point == '/' && StrIter_Has_Next(iter)) {
+            StrIter_Recede(iter, 1);
+            path_component = StrIter_substring(path, iter);
+            StrIter_Advance(iter, 1);
+            StrIter_Assign(path, iter);
             break;
         }
-        path_component_len++;
     }
+    DECREF(iter);
 
     // If we've eaten up the entire filepath, self is enclosing folder.
-    if (ZCB_Get_Size(scratch) == 0) { return self; }
+    if (!path_component) { return self; }
 
-    Folder *local_folder
-        = Folder_Local_Find_Folder(self, (CharBuf*)path_component);
+    Folder *local_folder = Folder_Local_Find_Folder(self, path_component);
+    DECREF(path_component);
     if (!local_folder) {
         /* This element of the filepath doesn't exist, or it's not a
          * directory.  However, there are filepath characters left over,
@@ -450,26 +467,29 @@ S_enclosing_folder(Folder *self, ZombieCharBuf *path) {
 }
 
 Folder*
-Folder_enclosing_folder(Folder *self, const CharBuf *path) {
-    ZombieCharBuf *scratch = ZCB_WRAP(path);
-    return S_enclosing_folder(self, scratch);
+Folder_Enclosing_Folder_IMP(Folder *self, String *path) {
+    StringIterator *iter = Str_Top(path);
+    Folder *folder = S_enclosing_folder(self, iter);
+    DECREF(iter);
+    return folder;
 }
 
 Folder*
-Folder_find_folder(Folder *self, const CharBuf *path) {
-    if (!path || !CB_Get_Size(path)) {
+Folder_Find_Folder_IMP(Folder *self, String *path) {
+    if (!path || !Str_Get_Size(path)) {
         return self;
     }
     else {
-        ZombieCharBuf *scratch = ZCB_WRAP(path);
-        Folder *enclosing_folder = S_enclosing_folder(self, scratch);
-        if (!enclosing_folder) {
-            return NULL;
+        Folder *folder = NULL;
+        StringIterator *iter = Str_Top(path);
+        Folder *enclosing_folder = S_enclosing_folder(self, iter);
+        if (enclosing_folder) {
+            String *folder_name = StrIter_substring(iter, NULL);
+            folder = Folder_Local_Find_Folder(enclosing_folder, folder_name);
+            DECREF(folder_name);
         }
-        else {
-            return Folder_Local_Find_Folder(enclosing_folder,
-                                            (CharBuf*)scratch);
-        }
+        DECREF(iter);
+        return folder;
     }
 }
 

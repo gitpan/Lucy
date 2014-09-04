@@ -22,7 +22,7 @@ parcel Lucy;
  * indexes on a single machine.
  */
 
-class Lucy::Search::PolySearcher
+public class Lucy::Search::PolySearcher
     inherits Lucy::Search::Searcher {
 
     VArray    *searchers;
@@ -46,7 +46,7 @@ class Lucy::Search::PolySearcher
     Doc_Max(PolySearcher *self);
 
     public uint32_t
-    Doc_Freq(PolySearcher *self, const CharBuf *field, Obj *term);
+    Doc_Freq(PolySearcher *self, String *field, Obj *term);
 
     public void
     Collect(PolySearcher *self, Query *query, Collector *collector);

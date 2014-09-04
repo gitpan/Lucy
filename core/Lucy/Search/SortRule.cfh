@@ -23,19 +23,19 @@ parcel Lucy;
  * level of sorting.  For example, sorting first by "category" then by score
  * requires a SortSpec with two SortRule elements.
  */
-class Lucy::Search::SortRule inherits Lucy::Object::Obj {
+public class Lucy::Search::SortRule inherits Clownfish::Obj {
 
     int32_t   type;
-    CharBuf  *field;
-    bool_t    reverse;
+    String   *field;
+    bool      reverse;
 
     inert int32_t FIELD;
     inert int32_t SCORE;
     inert int32_t DOC_ID;
 
     public inert incremented SortRule*
-    new(int32_t type = 0, const CharBuf *field = NULL,
-        bool_t reverse = false);
+    new(int32_t type = 0, String *field = NULL,
+        bool reverse = false);
 
     /**
      * @param type Indicate whether to sort by score, field, etc.  (The
@@ -44,12 +44,12 @@ class Lucy::Search::SortRule inherits Lucy::Object::Obj {
      * @param reverse If true, reverse the order of the sort for this rule.
      */
     public inert incremented SortRule*
-    init(SortRule *self, int32_t type = 0, const CharBuf *field = NULL,
-         bool_t reverse = false);
+    init(SortRule *self, int32_t type = 0, String *field = NULL,
+         bool reverse = false);
 
     /** Accessor for "field" member.
      */
-    public nullable CharBuf*
+    public nullable String*
     Get_Field(SortRule *self);
 
     /** Accessor for "type" member.
@@ -59,11 +59,11 @@ class Lucy::Search::SortRule inherits Lucy::Object::Obj {
 
     /** Accessor for "reverse" member.
      */
-    public bool_t
+    public bool
     Get_Reverse(SortRule *self);
 
     public incremented SortRule*
-    Deserialize(SortRule *self, InStream *instream);
+    Deserialize(decremented SortRule *self, InStream *instream);
 
     public void
     Serialize(SortRule *self, OutStream *outstream);

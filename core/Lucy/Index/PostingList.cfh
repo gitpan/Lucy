@@ -24,7 +24,7 @@ parcel Lucy;
  * See L<Lucy::Docs::IRTheory> for definitions of "posting" and "posting
  * list".
  */
-class Lucy::Index::PostingList cnick PList
+public class Lucy::Index::PostingList nickname PList
     inherits Lucy::Search::Matcher {
 
     public inert PostingList*
@@ -58,12 +58,12 @@ class Lucy::Index::PostingList cnick PList
      */
     abstract Matcher*
     Make_Matcher(PostingList *self, Similarity *similarity,
-                 Compiler *compiler, bool_t need_score);
+                 Compiler *compiler, bool need_score);
 
     /** Indexing helper function.
      */
     abstract RawPosting*
-    Read_Raw(PostingList *self, int32_t last_doc_id, CharBuf *term_text,
+    Read_Raw(PostingList *self, int32_t last_doc_id, String *term_text,
              MemoryPool *mem_pool);
 }
 

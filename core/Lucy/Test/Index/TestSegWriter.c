@@ -14,19 +14,24 @@
  * limitations under the License.
  */
 
-#define C_LUCY_TESTSEGWRITER
+#define C_TESTLUCY_TESTSEGWRITER
+#define TESTLUCY_USE_SHORT_NAMES
 #include "Lucy/Util/ToolSet.h"
 
+#include "Clownfish/TestHarness/TestBatchRunner.h"
 #include "Lucy/Test.h"
 #include "Lucy/Test/Index/TestSegWriter.h"
 #include "Lucy/Index/SegWriter.h"
 
+TestSegWriter*
+TestSegWriter_new() {
+    return (TestSegWriter*)Class_Make_Obj(TESTSEGWRITER);
+}
+
 void
-TestSegWriter_run_tests() {
-    TestBatch *batch = TestBatch_new(1);
-    TestBatch_Plan(batch);
-    PASS(batch, "placeholder");
-    DECREF(batch);
+TestSegWriter_Run_IMP(TestSegWriter *self, TestBatchRunner *runner) {
+    TestBatchRunner_Plan(runner, (TestBatch*)self, 1);
+    PASS(runner, "placeholder");
 }
 
 

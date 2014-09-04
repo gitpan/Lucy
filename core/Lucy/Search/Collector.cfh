@@ -28,8 +28,8 @@ parcel Lucy;
  * collector must take the updated information into account.
  */
 
-abstract class Lucy::Search::Collector cnick Coll
-    inherits Lucy::Object::Obj {
+public abstract class Lucy::Search::Collector nickname Coll
+    inherits Clownfish::Obj {
 
     SegReader *reader;
     Matcher   *matcher;
@@ -65,7 +65,7 @@ abstract class Lucy::Search::Collector cnick Coll
 
     /** Indicate whether the Collector will call Score() on its Matcher.
      */
-    public abstract bool_t
+    public abstract bool
     Need_Score(Collector *self);
 
     /** Setter for "matcher".
@@ -80,7 +80,7 @@ abstract class Lucy::Search::Collector cnick Coll
  * L<BitVector|Lucy::Object::BitVector>.  It is useful for recording the
  * entire set of documents which matches a query.
  */
-class Lucy::Search::Collector::BitCollector cnick BitColl
+public class Lucy::Search::Collector::BitCollector nickname BitColl
     inherits Lucy::Search::Collector {
 
     BitVector    *bit_vec;
@@ -101,11 +101,11 @@ class Lucy::Search::Collector::BitCollector cnick BitColl
 
     /** Returns false, since BitCollector requires only doc ids.
      */
-    public bool_t
+    public bool
     Need_Score(BitCollector *self);
 }
 
-class Lucy::Search::Collector::OffsetCollector cnick OffsetColl
+class Lucy::Search::Collector::OffsetCollector nickname OffsetColl
     inherits Lucy::Search::Collector {
 
     int32_t    offset;
@@ -127,7 +127,7 @@ class Lucy::Search::Collector::OffsetCollector cnick OffsetColl
     public void
     Collect(OffsetCollector *self, int32_t doc_id);
 
-    public bool_t
+    public bool
     Need_Score(OffsetCollector *self);
 
     public void

@@ -15,38 +15,11 @@
 
 package Lucy::Analysis::SnowballStemmer;
 use Lucy;
-our $VERSION = '0.003003';
+our $VERSION = '0.004000';
 $VERSION = eval $VERSION;
 
 1;
 
 __END__
-
-__BINDING__
-
-my $synopsis = <<'END_SYNOPSIS';
-    my $stemmer = Lucy::Analysis::SnowballStemmer->new( language => 'es' );
-    
-    my $polyanalyzer = Lucy::Analysis::PolyAnalyzer->new(
-        analyzers => [ $case_folder, $tokenizer, $stemmer ],
-    );
-
-This class is a wrapper around the Snowball stemming library, so it supports
-the same languages.  
-END_SYNOPSIS
-
-my $constructor = <<'END_CONSTRUCTOR';
-    my $stemmer = Lucy::Analysis::SnowballStemmer->new( language => 'es' );
-END_CONSTRUCTOR
-
-Clownfish::CFC::Binding::Perl::Class->register(
-    parcel            => "Lucy",
-    class_name        => "Lucy::Analysis::SnowballStemmer",
-    bind_constructors => ["new"],
-    make_pod          => {
-        synopsis    => $synopsis,
-        constructor => { sample => $constructor }
-    },
-);
 
 

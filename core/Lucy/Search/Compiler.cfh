@@ -57,7 +57,7 @@ parcel Lucy;
  * the Matchers's constructor, or whether Make_Matcher() should return a
  * Matcher at all.
  */
-class Lucy::Search::Compiler inherits Lucy::Search::Query {
+public class Lucy::Search::Compiler inherits Lucy::Search::Query {
 
     Query        *parent;
     Similarity   *sim;
@@ -83,7 +83,7 @@ class Lucy::Search::Compiler inherits Lucy::Search::Query {
      * documents.
      */
     public abstract incremented nullable Matcher*
-    Make_Matcher(Compiler *self, SegReader *reader, bool_t need_score);
+    Make_Matcher(Compiler *self, SegReader *reader, bool need_score);
 
     /** Return the Compiler's numerical weight, a scoring multiplier.  By
      * default, returns the object's boost.
@@ -149,18 +149,18 @@ class Lucy::Search::Compiler inherits Lucy::Search::Query {
      */
     public incremented VArray*
     Highlight_Spans(Compiler *self, Searcher *searcher,
-                    DocVector *doc_vec, const CharBuf *field);
+                    DocVector *doc_vec, String *field);
 
     public void
     Serialize(Compiler *self, OutStream *outstream);
 
     public incremented Compiler*
-    Deserialize(Compiler *self, InStream *instream);
+    Deserialize(decremented Compiler *self, InStream *instream);
 
-    public bool_t
+    public bool
     Equals(Compiler *self, Obj *other);
 
-    public incremented CharBuf*
+    public incremented String*
     To_String(Compiler *self);
 
     public void

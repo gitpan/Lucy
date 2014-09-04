@@ -14,14 +14,19 @@
  * limitations under the License.
  */
 
-parcel Lucy;
+parcel TestLucy;
 
 /** Tests for logical structure of Query objects output by QueryParser.
  */
 
-inert class Lucy::Test::Search::TestQueryParserLogic cnick TestQPLogic {
-    inert void
-    run_tests();
+class Lucy::Test::Search::TestQueryParserLogic nickname TestQPLogic
+    inherits Clownfish::TestHarness::TestBatch {
+
+    inert incremented TestQueryParserLogic*
+    new();
+
+    void
+    Run(TestQueryParserLogic *self, TestBatchRunner *runner);
 }
 
 

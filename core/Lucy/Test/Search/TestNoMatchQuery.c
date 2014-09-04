@@ -14,24 +14,32 @@
  * limitations under the License.
  */
 
-#define C_LUCY_TESTNOMATCHQUERY
+#define C_TESTLUCY_TESTNOMATCHQUERY
+#define TESTLUCY_USE_SHORT_NAMES
 #include "Lucy/Util/ToolSet.h"
 #include <math.h>
 
+#include "Clownfish/TestHarness/TestBatchRunner.h"
 #include "Lucy/Test.h"
 #include "Lucy/Test/TestUtils.h"
 #include "Lucy/Test/Search/TestNoMatchQuery.h"
 #include "Lucy/Search/NoMatchQuery.h"
 
+TestNoMatchQuery*
+TestNoMatchQuery_new() {
+    return (TestNoMatchQuery*)Class_Make_Obj(TESTNOMATCHQUERY);
+}
+
 static void
-test_Dump_Load_and_Equals(TestBatch *batch) {
+test_Dump_Load_and_Equals(TestBatchRunner *runner) {
     NoMatchQuery *query = NoMatchQuery_new();
     Obj          *dump  = (Obj*)NoMatchQuery_Dump(query);
     NoMatchQuery *clone = (NoMatchQuery*)NoMatchQuery_Load(query, dump);
 
-    TEST_TRUE(batch, NoMatchQuery_Equals(query, (Obj*)clone),
+    TEST_TRUE(runner, NoMatchQuery_Equals(query, (Obj*)clone),
               "Dump => Load round trip");
-    TEST_FALSE(batch, NoMatchQuery_Equals(query, (Obj*)&EMPTY), "Equals");
+    TEST_FALSE(runner, NoMatchQuery_Equals(query, (Obj*)CFISH_TRUE),
+               "Equals");
 
     DECREF(query);
     DECREF(dump);
@@ -40,11 +48,9 @@ test_Dump_Load_and_Equals(TestBatch *batch) {
 
 
 void
-TestNoMatchQuery_run_tests() {
-    TestBatch *batch = TestBatch_new(2);
-    TestBatch_Plan(batch);
-    test_Dump_Load_and_Equals(batch);
-    DECREF(batch);
+TestNoMatchQuery_Run_IMP(TestNoMatchQuery *self, TestBatchRunner *runner) {
+    TestBatchRunner_Plan(runner, (TestBatch*)self, 2);
+    test_Dump_Load_and_Equals(runner);
 }
 
 

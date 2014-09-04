@@ -15,14 +15,15 @@
  */
 
 #define C_LUCY_QUERYPARSER
-#define C_LUCY_PARSERCLAUSE
-#define C_LUCY_PARSERTOKEN
-#define C_LUCY_VIEWCHARBUF
 #include <stdlib.h>
 #include <ctype.h>
 #include "Lucy/Util/ToolSet.h"
 
 #include "Lucy/Search/QueryParser.h"
+
+#include "Clownfish/CharBuf.h"
+#include "Lucy/Search/QueryParser/ParserElem.h"
+#include "Lucy/Search/QueryParser/QueryLexer.h"
 #include "Lucy/Analysis/Analyzer.h"
 #include "Lucy/Plan/FieldType.h"
 #include "Lucy/Plan/Schema.h"
@@ -37,187 +38,171 @@
 #include "Lucy/Search/TermQuery.h"
 #include "Lucy/Search/Query.h"
 
-#define SHOULD            0x00000001
-#define MUST              0x00000002
-#define MUST_NOT          0x00000004
-#define TOKEN_OPEN_PAREN  0x00000008
-#define TOKEN_CLOSE_PAREN 0x00000010
-#define TOKEN_MINUS       0x00000020
-#define TOKEN_PLUS        0x00000040
-#define TOKEN_NOT         0x00000080
-#define TOKEN_OR          0x00000100
-#define TOKEN_AND         0x00000200
-#define TOKEN_FIELD       0x00000400
-#define TOKEN_QUERY       0x00000800
+#define SHOULD            LUCY_QPARSER_SHOULD
+#define MUST              LUCY_QPARSER_MUST
+#define MUST_NOT          LUCY_QPARSER_MUST_NOT
+#define TOKEN_OPEN_PAREN  LUCY_QPARSER_TOKEN_OPEN_PAREN
+#define TOKEN_CLOSE_PAREN LUCY_QPARSER_TOKEN_CLOSE_PAREN
+#define TOKEN_MINUS       LUCY_QPARSER_TOKEN_MINUS
+#define TOKEN_PLUS        LUCY_QPARSER_TOKEN_PLUS
+#define TOKEN_NOT         LUCY_QPARSER_TOKEN_NOT
+#define TOKEN_OR          LUCY_QPARSER_TOKEN_OR
+#define TOKEN_AND         LUCY_QPARSER_TOKEN_AND
+#define TOKEN_FIELD       LUCY_QPARSER_TOKEN_FIELD
+#define TOKEN_STRING      LUCY_QPARSER_TOKEN_STRING
+#define TOKEN_QUERY       LUCY_QPARSER_TOKEN_QUERY
 
-// Recursing helper function for Tree().
+// Helper function for Tree().
 static Query*
-S_do_tree(QueryParser *self, CharBuf *query_string, CharBuf *default_field,
-          Hash *extractions);
+S_parse_subquery(QueryParser *self, VArray *elems, String *default_field,
+                 bool enclosed);
 
-// A function that attempts to match a substring and if successful, stores the
-// begin and end of the match in the supplied pointers and returns true.
-typedef bool_t
-(*lucy_QueryParser_match_t)(CharBuf *input, char **begin_match,
-                            char **end_match);
-#define match_t lucy_QueryParser_match_t
+// Drop unmatched right parens and add matching right parens at end to
+// close paren groups implicitly.
+static void
+S_balance_parens(QueryParser *self, VArray *elems);
 
-// Find a quote/end-of-string -delimited phrase.
-static bool_t
-S_match_phrase(CharBuf *input, char**begin_match, char **end_match);
+// Work from the inside out, reducing the leftmost, innermost paren groups
+// first, until the array of elems contains no parens.
+static void
+S_parse_subqueries(QueryParser *self, VArray *elems);
 
-// Find a non-nested parethetical group.
-static bool_t
-S_match_bool_group(CharBuf *input, char**begin_match, char **end_match);
+static void
+S_compose_inner_queries(QueryParser *self, VArray *elems,
+                        String *default_field);
 
-// Replace whatever match() matches with a label, storing the matched text as
-// a CharBuf in the supplied storage Hash.
-static CharBuf*
-S_extract_something(QueryParser *self, const CharBuf *query_string,
-                    CharBuf *label, Hash *extractions, match_t match);
+// Apply +, -, NOT.
+static void
+S_apply_plusses_and_negations(QueryParser *self, VArray *elems);
 
-// Symbolically replace phrases in a query string.
-static CharBuf*
-S_extract_phrases(QueryParser *self, const CharBuf *query_string,
-                  Hash *extractions);
+// Wrap negated queries with NOTQuery objects.
+static void
+S_compose_not_queries(QueryParser *self, VArray *elems);
 
-// Symbolically replace parenthetical groupings in a query string.
-static CharBuf*
-S_extract_paren_groups(QueryParser *self, const CharBuf *query_string,
-                       Hash *extractions);
+// Silently discard non-sensical combos of AND and OR, e.g.
+// 'OR a AND AND OR b AND'.
+static void
+S_winnow_boolops(QueryParser *self, VArray *elems);
 
-// Consume text and possibly following whitespace, if there's a match and the
-// matching is bordered on the right by either whitespace or the end of the
-// string.
-static bool_t
-S_consume_ascii_token(ViewCharBuf *qstring, char *ptr, size_t size);
+// Join ANDQueries.
+static void
+S_compose_and_queries(QueryParser *self, VArray *elems);
 
-// Consume the supplied text if there's a match.
-static bool_t
-S_consume_ascii(ViewCharBuf *qstring, char *ptr, size_t size);
+// Join ORQueries.
+static void
+S_compose_or_queries(QueryParser *self, VArray *elems);
 
-// Consume what looks like a field name followed by a colon.
-static bool_t
-S_consume_field(ViewCharBuf *qstring, ViewCharBuf *target);
-
-// Consume non-whitespace from qstring and store the match in target.
-static bool_t
-S_consume_non_whitespace(ViewCharBuf *qstring, ViewCharBuf *target);
-
-#define RAND_STRING_LEN      16
-#define PHRASE_LABEL_LEN     (RAND_STRING_LEN + sizeof("_phrase") - 1)
-#define BOOL_GROUP_LABEL_LEN (RAND_STRING_LEN + sizeof("_bool_group") - 1)
+// Derive a single subquery from all Query objects in the clause.
+static Query*
+S_compose_subquery(QueryParser *self, VArray *elems, bool enclosed);
 
 QueryParser*
-QParser_new(Schema *schema, Analyzer *analyzer, const CharBuf *default_boolop,
+QParser_new(Schema *schema, Analyzer *analyzer, String *default_boolop,
             VArray *fields) {
-    QueryParser *self = (QueryParser*)VTable_Make_Obj(QUERYPARSER);
+    QueryParser *self = (QueryParser*)Class_Make_Obj(QUERYPARSER);
     return QParser_init(self, schema, analyzer, default_boolop, fields);
 }
 
 QueryParser*
 QParser_init(QueryParser *self, Schema *schema, Analyzer *analyzer,
-             const CharBuf *default_boolop, VArray *fields) {
+             String *default_boolop, VArray *fields) {
+    QueryParserIVARS *const ivars = QParser_IVARS(self);
     // Init.
-    self->heed_colons = false;
-    self->label_inc   = 0;
+    ivars->heed_colons = false;
+    ivars->lexer       = QueryLexer_new();
 
     // Assign.
-    self->schema         = (Schema*)INCREF(schema);
-    self->analyzer       = (Analyzer*)INCREF(analyzer);
-    self->default_boolop = default_boolop
-                           ? CB_Clone(default_boolop)
-                           : CB_new_from_trusted_utf8("OR", 2);
+    ivars->schema         = (Schema*)INCREF(schema);
+    ivars->analyzer       = (Analyzer*)INCREF(analyzer);
+    ivars->default_boolop = default_boolop
+                           ? Str_Clone(default_boolop)
+                           : Str_new_from_trusted_utf8("OR", 2);
 
     if (fields) {
-        self->fields = VA_Shallow_Copy(fields);
+        ivars->fields = VA_Shallow_Copy(fields);
         for (uint32_t i = 0, max = VA_Get_Size(fields); i < max; i++) {
-            CERTIFY(VA_Fetch(fields, i), CHARBUF);
+            CERTIFY(VA_Fetch(fields, i), STRING);
         }
-        VA_Sort(self->fields, NULL, NULL);
+        VA_Sort(ivars->fields, NULL, NULL);
     }
     else {
         VArray *all_fields = Schema_All_Fields(schema);
         uint32_t num_fields = VA_Get_Size(all_fields);
-        self->fields = VA_new(num_fields);
+        ivars->fields = VA_new(num_fields);
         for (uint32_t i = 0; i < num_fields; i++) {
-            CharBuf *field = (CharBuf*)VA_Fetch(all_fields, i);
+            String *field = (String*)VA_Fetch(all_fields, i);
             FieldType *type = Schema_Fetch_Type(schema, field);
             if (type && FType_Indexed(type)) {
-                VA_Push(self->fields, INCREF(field));
+                VA_Push(ivars->fields, INCREF(field));
             }
         }
         DECREF(all_fields);
     }
-    VA_Sort(self->fields, NULL, NULL);
+    VA_Sort(ivars->fields, NULL, NULL);
 
-    if (!(CB_Equals_Str(self->default_boolop, "OR", 2)
-          || CB_Equals_Str(self->default_boolop, "AND", 3))
-       ) {
-        THROW(ERR, "Invalid value for default_boolop: %o", self->default_boolop);
+    // Derive default "occur" from default boolean operator.
+    if (Str_Equals_Utf8(ivars->default_boolop, "OR", 2)) {
+        ivars->default_occur = SHOULD;
     }
-
-    // Create string labels that presumably won't appear in a search.
-    self->phrase_label     = CB_new_from_trusted_utf8("_phrase", 7);
-    self->bool_group_label = CB_new_from_trusted_utf8("_bool_group", 11);
-    CB_Grow(self->phrase_label, PHRASE_LABEL_LEN + 5);
-    CB_Grow(self->bool_group_label, BOOL_GROUP_LABEL_LEN + 5);
-    for (uint32_t i = 0; i < RAND_STRING_LEN; i++) {
-        char rand_char = (rand() % 26) + 'A';
-        CB_Cat_Trusted_Str(self->phrase_label, &rand_char, 1);
-        CB_Cat_Trusted_Str(self->bool_group_label, &rand_char, 1);
+    else if (Str_Equals_Utf8(ivars->default_boolop, "AND", 3)) {
+        ivars->default_occur = MUST;
+    }
+    else {
+        THROW(ERR, "Invalid value for default_boolop: %o", ivars->default_boolop);
     }
 
     return self;
 }
 
 void
-QParser_destroy(QueryParser *self) {
-    DECREF(self->schema);
-    DECREF(self->analyzer);
-    DECREF(self->default_boolop);
-    DECREF(self->fields);
-    DECREF(self->phrase_label);
-    DECREF(self->bool_group_label);
+QParser_Destroy_IMP(QueryParser *self) {
+    QueryParserIVARS *const ivars = QParser_IVARS(self);
+    DECREF(ivars->schema);
+    DECREF(ivars->analyzer);
+    DECREF(ivars->default_boolop);
+    DECREF(ivars->fields);
+    DECREF(ivars->lexer);
     SUPER_DESTROY(self, QUERYPARSER);
 }
 
 Analyzer*
-QParser_get_analyzer(QueryParser *self) {
-    return self->analyzer;
+QParser_Get_Analyzer_IMP(QueryParser *self) {
+    return QParser_IVARS(self)->analyzer;
 }
 
 Schema*
-QParser_get_schema(QueryParser *self) {
-    return self->schema;
+QParser_Get_Schema_IMP(QueryParser *self) {
+    return QParser_IVARS(self)->schema;
 }
 
-CharBuf*
-QParser_get_default_boolop(QueryParser *self) {
-    return self->default_boolop;
+String*
+QParser_Get_Default_BoolOp_IMP(QueryParser *self) {
+    return QParser_IVARS(self)->default_boolop;
 }
 
 VArray*
-QParser_get_fields(QueryParser *self) {
-    return self->fields;
+QParser_Get_Fields_IMP(QueryParser *self) {
+    return QParser_IVARS(self)->fields;
 }
 
-bool_t
-QParser_heed_colons(QueryParser *self) {
-    return self->heed_colons;
+bool
+QParser_Heed_Colons_IMP(QueryParser *self) {
+    return QParser_IVARS(self)->heed_colons;
 }
 
 void
-QParser_set_heed_colons(QueryParser *self, bool_t heed_colons) {
-    self->heed_colons = heed_colons;
+QParser_Set_Heed_Colons_IMP(QueryParser *self, bool heed_colons) {
+    QueryParserIVARS *const ivars = QParser_IVARS(self);
+    ivars->heed_colons = heed_colons;
+    QueryLexer_Set_Heed_Colons(ivars->lexer, heed_colons);
 }
 
 
 Query*
-QParser_parse(QueryParser *self, const CharBuf *query_string) {
-    CharBuf *qstring = query_string
-                       ? CB_Clone(query_string)
-                       : CB_new_from_trusted_utf8("", 0);
+QParser_Parse_IMP(QueryParser *self, String *query_string) {
+    String *qstring = query_string
+                      ? Str_Clone(query_string)
+                      : Str_new_from_trusted_utf8("", 0);
     Query *tree     = QParser_Tree(self, qstring);
     Query *expanded = QParser_Expand(self, tree);
     Query *pruned   = QParser_Prune(self, expanded);
@@ -228,200 +213,195 @@ QParser_parse(QueryParser *self, const CharBuf *query_string) {
 }
 
 Query*
-QParser_tree(QueryParser *self, const CharBuf *query_string) {
-    Hash    *extractions = Hash_new(0);
-    CharBuf *mod1        = S_extract_phrases(self, query_string, extractions);
-    CharBuf *mod2        = S_extract_paren_groups(self, mod1, extractions);
-    Query   *retval      = S_do_tree(self, mod2, NULL, extractions);
-    DECREF(mod2);
-    DECREF(mod1);
-    DECREF(extractions);
-    return retval;
-}
-
-static VArray*
-S_parse_flat_string(QueryParser *self, CharBuf *query_string) {
-    VArray      *parse_tree       = VA_new(0);
-    CharBuf     *qstring_copy     = CB_Clone(query_string);
-    ViewCharBuf *qstring          = (ViewCharBuf*)ZCB_WRAP(qstring_copy);
-    bool_t       need_close_paren = false;
-
-    ViewCB_Trim(qstring);
-
-    if (S_consume_ascii(qstring, "(", 1)) {
-        VA_Push(parse_tree, (Obj*)ParserToken_new(TOKEN_OPEN_PAREN, NULL, 0));
-        if (ViewCB_Code_Point_From(qstring, 1) == ')') {
-            need_close_paren = true;
-            ViewCB_Chop(qstring, 1);
-        }
-    }
-
-    ViewCharBuf *temp = (ViewCharBuf*)ZCB_BLANK();
-    while (ViewCB_Get_Size(qstring)) {
-        ParserToken *token = NULL;
-
-        if (ViewCB_Trim_Top(qstring)) {
-            // Fast-forward past whitespace.
-            continue;
-        }
-        else if (S_consume_ascii(qstring, "+", 1)) {
-            if (ViewCB_Trim_Top(qstring)) {
-                token = ParserToken_new(TOKEN_QUERY, "+", 1);
-            }
-            else {
-                token = ParserToken_new(TOKEN_PLUS, NULL, 0);
-            }
-        }
-        else if (S_consume_ascii(qstring, "-", 1)) {
-            if (ViewCB_Trim_Top(qstring)) {
-                token = ParserToken_new(TOKEN_QUERY, "-", 1);
-            }
-            else {
-                token = ParserToken_new(TOKEN_MINUS, NULL, 0);
-            }
-        }
-        else if (S_consume_ascii_token(qstring, "AND", 3)) {
-            token = ParserToken_new(TOKEN_AND, NULL, 0);
-        }
-        else if (S_consume_ascii_token(qstring, "OR", 2)) {
-            token = ParserToken_new(TOKEN_OR, NULL, 0);
-        }
-        else if (S_consume_ascii_token(qstring, "NOT", 3)) {
-            token = ParserToken_new(TOKEN_NOT, NULL, 0);
-        }
-        else if (self->heed_colons && S_consume_field(qstring, temp)) {
-            token = ParserToken_new(TOKEN_FIELD, (char*)ViewCB_Get_Ptr8(temp),
-                                    ViewCB_Get_Size(temp));
-        }
-        else if (S_consume_non_whitespace(qstring, temp)) {
-            token = ParserToken_new(TOKEN_QUERY, (char*)ViewCB_Get_Ptr8(temp),
-                                    ViewCB_Get_Size(temp));
-        }
-        else {
-            THROW(ERR, "Failed to parse '%o'", qstring);
-        }
-
-        VA_Push(parse_tree, (Obj*)token);
-    }
-
-    if (need_close_paren) {
-        VA_Push(parse_tree,
-                (Obj*)ParserToken_new(TOKEN_CLOSE_PAREN, NULL, 0));
-    }
-
-    // Clean up.
-    DECREF(qstring_copy);
-
-    return parse_tree;
+QParser_Tree_IMP(QueryParser *self, String *query_string) {
+    QueryParserIVARS *const ivars = QParser_IVARS(self);
+    VArray *elems = QueryLexer_Tokenize(ivars->lexer, query_string);
+    S_balance_parens(self, elems);
+    S_parse_subqueries(self, elems);
+    Query *query = S_parse_subquery(self, elems, NULL, false);
+    DECREF(elems);
+    return query;
 }
 
 static void
-S_splice_out_token_type(VArray *elems, uint32_t token_type_mask) {
-    for (uint32_t i = VA_Get_Size(elems); i--;) {
-        ParserToken *token = (ParserToken*)VA_Fetch(elems, i);
-        if (Obj_Is_A((Obj*)token, PARSERTOKEN)) {
-            if (token->type & token_type_mask) { VA_Excise(elems, i, 1); }
+S_parse_subqueries(QueryParser *self, VArray *elems) {
+    const int32_t default_occur = QParser_IVARS(self)->default_occur;
+    while (1) {
+        // Work from the inside out, starting with the leftmost innermost
+        // paren group.
+        size_t left = SIZE_MAX;
+        size_t right = SIZE_MAX;
+        String *field = NULL;
+        for (size_t i = 0, max = VA_Get_Size(elems); i < max; i++) {
+            ParserElem *elem = (ParserElem*)VA_Fetch(elems, i);
+            uint32_t type = ParserElem_Get_Type(elem);
+            if (type == TOKEN_OPEN_PAREN) {
+                left = i;
+            }
+            else if (type == TOKEN_CLOSE_PAREN) {
+                right = i;
+                break;
+            }
+            else if (type == TOKEN_FIELD && i < max - 1) {
+                // If a field applies to an enclosing paren, pass it along.
+                ParserElem *next_elem = (ParserElem*)VA_Fetch(elems, i + 1);
+                uint32_t next_type = ParserElem_Get_Type(next_elem);
+                if (next_type == TOKEN_OPEN_PAREN) {
+                    field = (String*)ParserElem_As(elem, STRING);
+                }
+            }
         }
+
+        // Break out of loop when there are no parens left.
+        if (right == SIZE_MAX) {
+            break;
+        }
+
+        // Create the subquery.
+        VArray *sub_elems = VA_Slice(elems, left + 1, right - left - 1);
+        Query *subquery = S_parse_subquery(self, sub_elems, field, true);
+        ParserElem *new_elem = ParserElem_new(TOKEN_QUERY, (Obj*)subquery);
+        if (default_occur == MUST) {
+            ParserElem_Require(new_elem);
+        }
+        DECREF(sub_elems);
+
+        // Replace the elements used to create the subquery with the subquery
+        // itself.
+        if (left > 0) {
+            ParserElem *maybe_field = (ParserElem*)VA_Fetch(elems, left - 1);
+            uint32_t maybe_field_type = ParserElem_Get_Type(maybe_field);
+            if (maybe_field_type == TOKEN_FIELD) {
+                left -= 1;
+            }
+        }
+        VA_Excise(elems, left + 1, right - left);
+        VA_Store(elems, left, (Obj*)new_elem);
+    }
+}
+
+static void
+S_discard_elems(VArray *elems, uint32_t type) {
+    for (size_t i = VA_Get_Size(elems); i--;) {
+        ParserElem *elem = (ParserElem*)VA_Fetch(elems, i);
+        if (ParserElem_Get_Type(elem) == type) { VA_Excise(elems, i, 1); }
     }
 }
 
 static Query*
-S_do_tree(QueryParser *self, CharBuf *query_string, CharBuf *default_field,
-          Hash *extractions) {
-    Query    *retval;
-    bool_t    apply_parens  = false;
-    uint32_t  default_occur = CB_Equals_Str(self->default_boolop, "AND", 3)
-                              ? MUST
-                              : SHOULD;
-    VArray   *elems         = S_parse_flat_string(self, query_string);
-
-    // Determine whether this subclause is bracketed by parens.
-    ParserToken *maybe_open_paren = (ParserToken*)VA_Fetch(elems, 0);
-    if (maybe_open_paren != NULL
-        && maybe_open_paren->type == TOKEN_OPEN_PAREN
-       ) {
-        apply_parens = true;
-        VA_Excise(elems, 0, 1);
-        uint32_t num_elems = VA_Get_Size(elems);
-        if (num_elems) {
-            ParserToken *maybe_close_paren
-                = (ParserToken*)VA_Fetch(elems, num_elems - 1);
-            if (maybe_close_paren->type == TOKEN_CLOSE_PAREN) {
-                VA_Excise(elems, num_elems - 1, 1);
-            }
+S_parse_subquery(QueryParser *self, VArray *elems, String *default_field,
+                 bool enclosed) {
+    if (VA_Get_Size(elems)) {
+        ParserElem *first = (ParserElem*)VA_Fetch(elems, 0);
+        if (ParserElem_Get_Type(first) == TOKEN_OPEN_PAREN) {
+            enclosed = true;
+            DECREF(VA_Shift(elems));
+            DECREF(VA_Pop(elems));
         }
     }
+    S_compose_inner_queries(self, elems, default_field);
+    S_discard_elems(elems, TOKEN_FIELD);
+    S_discard_elems(elems, TOKEN_STRING);
+    S_apply_plusses_and_negations(self, elems);
+    S_discard_elems(elems, TOKEN_PLUS);
+    S_discard_elems(elems, TOKEN_MINUS);
+    S_discard_elems(elems, TOKEN_NOT);
+    S_compose_not_queries(self, elems);
+    S_winnow_boolops(self, elems);
+    if (VA_Get_Size(elems) > 2) {
+        S_compose_and_queries(self, elems);
+        // Don't double wrap '(a AND b)'.
+        if (VA_Get_Size(elems) == 1) { enclosed = false; }
+    }
+    S_discard_elems(elems, TOKEN_AND);
+    if (VA_Get_Size(elems) > 2) {
+        S_compose_or_queries(self, elems);
+        // Don't double wrap '(a OR b)'.
+        if (VA_Get_Size(elems) == 1) { enclosed = false; }
+    }
+    S_discard_elems(elems, TOKEN_OR);
+    Query *retval = S_compose_subquery(self, elems, enclosed);
+
+    return retval;
+}
+
+static void
+S_balance_parens(QueryParser *self, VArray *elems) {
+    UNUSED_VAR(self);
+    // Count paren balance, eliminate unbalanced right parens.
+    int64_t paren_depth = 0;
+    size_t i = 0;
+    while (i < VA_Get_Size(elems)) {
+        ParserElem *elem = (ParserElem*)VA_Fetch(elems, i);
+        if (ParserElem_Get_Type(elem) == TOKEN_OPEN_PAREN) {
+            paren_depth++;
+        }
+        else if (ParserElem_Get_Type(elem) == TOKEN_CLOSE_PAREN) {
+            if (paren_depth > 0) {
+                paren_depth--;
+            }
+            else {
+                VA_Excise(elems, i, 1);
+                continue;
+            }
+        }
+        i++;
+    }
+
+    // Insert implicit parens.
+    while (paren_depth--) {
+        ParserElem *elem = ParserElem_new(TOKEN_CLOSE_PAREN, NULL);
+        VA_Push(elems, (Obj*)elem);
+    }
+}
+
+static void
+S_compose_inner_queries(QueryParser *self, VArray *elems,
+                        String *default_field) {
+    const int32_t default_occur = QParser_IVARS(self)->default_occur;
 
     // Generate all queries.  Apply any fields.
     for (uint32_t i = VA_Get_Size(elems); i--;) {
-        CharBuf *field = default_field;
-        ParserToken *token = (ParserToken*)VA_Fetch(elems, i);
+        String *field = default_field;
+        ParserElem *elem = (ParserElem*)VA_Fetch(elems, i);
 
         // Apply field.
         if (i > 0) {
             // Field specifier must immediately precede any query.
-            ParserToken* maybe_field_token
-                = (ParserToken*)VA_Fetch(elems, i - 1);
-            if (maybe_field_token->type == TOKEN_FIELD) {
-                field = maybe_field_token->text;
+            ParserElem* maybe_field_elem
+                = (ParserElem*)VA_Fetch(elems, i - 1);
+            if (ParserElem_Get_Type(maybe_field_elem) == TOKEN_FIELD) {
+                field = (String*)ParserElem_As(maybe_field_elem, STRING);
             }
         }
 
-        if (token->type == TOKEN_QUERY) {
-            // Generate a LeafQuery from a Phrase.
-            if (CB_Starts_With(token->text, self->phrase_label)) {
-                CharBuf *inner_text
-                    = (CharBuf*)Hash_Fetch(extractions, (Obj*)token->text);
-                Query *query = (Query*)LeafQuery_new(field, inner_text);
-                ParserClause *clause = ParserClause_new(query, default_occur);
-                DECREF(Hash_Delete(extractions, (Obj*)token->text));
-                VA_Store(elems, i, (Obj*)clause);
-                DECREF(query);
+        if (ParserElem_Get_Type(elem) == TOKEN_STRING) {
+            String *text = (String*)ParserElem_As(elem, STRING);
+            LeafQuery *query = LeafQuery_new(field, text);
+            ParserElem *new_elem
+                = ParserElem_new(TOKEN_QUERY, (Obj*)query);
+            if (default_occur == MUST) {
+                ParserElem_Require(new_elem);
             }
-            // Recursively parse parenthetical groupings.
-            else if (CB_Starts_With(token->text, self->bool_group_label)) {
-                CharBuf *inner_text
-                    = (CharBuf*)Hash_Fetch(extractions, (Obj*)token->text);
-                Query *query
-                    = S_do_tree(self, inner_text, field, extractions);
-                DECREF(Hash_Delete(extractions, (Obj*)token->text));
-                if (query) {
-                    ParserClause *clause
-                        = ParserClause_new(query, default_occur);
-                    VA_Store(elems, i, (Obj*)clause);
-                    DECREF(query);
-                }
-            }
-            // What's left is probably a term, so generate a LeafQuery.
-            else {
-                Query *query = (Query*)LeafQuery_new(field, token->text);
-                ParserClause *clause = ParserClause_new(query, default_occur);
-                VA_Store(elems, i, (Obj*)clause);
-                DECREF(query);
-            }
+            VA_Store(elems, i, (Obj*)new_elem);
         }
     }
-    S_splice_out_token_type(elems, TOKEN_FIELD | TOKEN_QUERY);
+}
 
-    // Apply +, -, NOT.
+static void
+S_apply_plusses_and_negations(QueryParser *self, VArray *elems) {
+    UNUSED_VAR(self);
     for (uint32_t i = VA_Get_Size(elems); i--;) {
-        ParserClause *clause = (ParserClause*)VA_Fetch(elems, i);
-        if (Obj_Is_A((Obj*)clause, PARSERCLAUSE)) {
+        ParserElem *elem = (ParserElem*)VA_Fetch(elems, i);
+        if (ParserElem_Get_Type(elem) == TOKEN_QUERY) {
             for (uint32_t j = i; j--;) {
-                ParserToken *token = (ParserToken*)VA_Fetch(elems, j);
-                if (Obj_Is_A((Obj*)token, PARSERTOKEN)) {
-                    if (token->type == TOKEN_MINUS
-                        || token->type == TOKEN_NOT
-                       ) {
-                        clause->occur = clause->occur == MUST_NOT
-                                        ? MUST
-                                        : MUST_NOT;
-                    }
-                    else if (token->type == TOKEN_PLUS) {
-                        if (clause->occur == SHOULD) {
-                            clause->occur = MUST;
-                        }
-                    }
+                ParserElem *prev = (ParserElem*)VA_Fetch(elems, j);
+                uint32_t prev_type = ParserElem_Get_Type(prev);
+                if (prev_type == TOKEN_MINUS || prev_type == TOKEN_NOT) {
+                    ParserElem_Negate(elem);
+                }
+                else if (prev_type == TOKEN_PLUS) {
+                    ParserElem_Require(elem);
                 }
                 else {
                     break;
@@ -429,127 +409,152 @@ S_do_tree(QueryParser *self, CharBuf *query_string, CharBuf *default_field,
             }
         }
     }
-    S_splice_out_token_type(elems, TOKEN_PLUS | TOKEN_MINUS | TOKEN_NOT);
+}
 
-    // Wrap negated queries with NOTQuery objects.
+static void
+S_compose_not_queries(QueryParser *self, VArray *elems) {
     for (uint32_t i = 0, max = VA_Get_Size(elems); i < max; i++) {
-        ParserClause *clause = (ParserClause*)VA_Fetch(elems, i);
-        if (Obj_Is_A((Obj*)clause, PARSERCLAUSE) && clause->occur == MUST_NOT) {
-            Query *not_query = QParser_Make_NOT_Query(self, clause->query);
-            DECREF(clause->query);
-            clause->query = not_query;
+        ParserElem *elem = (ParserElem*)VA_Fetch(elems, i);
+        if (ParserElem_Get_Type(elem) == TOKEN_QUERY
+            && ParserElem_Negated(elem)
+           ) {
+            Query *inner_query = (Query*)ParserElem_As(elem, QUERY);
+            Query *not_query = QParser_Make_NOT_Query(self, inner_query);
+            ParserElem_Set_Value(elem, (Obj*)not_query);
+            DECREF(not_query);
         }
     }
+}
 
-    // Silently discard non-sensical combos of AND and OR, e.g.
-    // 'OR a AND AND OR b AND'.
+static void
+S_winnow_boolops(QueryParser *self, VArray *elems) {
+    UNUSED_VAR(self);
     for (uint32_t i = 0; i < VA_Get_Size(elems); i++) {
-        ParserToken *token = (ParserToken*)VA_Fetch(elems, i);
-        if (Obj_Is_A((Obj*)token, PARSERTOKEN)) {
+        ParserElem *elem = (ParserElem*)VA_Fetch(elems, i);
+        if (ParserElem_Get_Type(elem) != TOKEN_QUERY) {
             uint32_t num_to_zap = 0;
-            ParserClause *preceding = (ParserClause*)VA_Fetch(elems, i - 1);
-            ParserClause *following = (ParserClause*)VA_Fetch(elems, i + 1);
-            if (!preceding || !Obj_Is_A((Obj*)preceding, PARSERCLAUSE)) {
+            ParserElem *preceding = (ParserElem*)VA_Fetch(elems, i - 1);
+            ParserElem *following = (ParserElem*)VA_Fetch(elems, i + 1);
+            if (!preceding || ParserElem_Get_Type(preceding) != TOKEN_QUERY) {
                 num_to_zap = 1;
             }
-            if (!following || !Obj_Is_A((Obj*)following, PARSERCLAUSE)) {
+            if (!following || ParserElem_Get_Type(following) != TOKEN_QUERY) {
                 num_to_zap = 1;
             }
             for (uint32_t j = i + 1, jmax = VA_Get_Size(elems); j < jmax; j++) {
-                ParserClause *clause = (ParserClause*)VA_Fetch(elems, j);
-                if (Obj_Is_A((Obj*)clause, PARSERCLAUSE)) { break; }
+                ParserElem *maybe = (ParserElem*)VA_Fetch(elems, j);
+                if (ParserElem_Get_Type(maybe) == TOKEN_QUERY) { break; }
                 else { num_to_zap++; }
             }
             if (num_to_zap) { VA_Excise(elems, i, num_to_zap); }
         }
     }
+}
 
-    // Apply AND.
+// Apply AND.
+static void
+S_compose_and_queries(QueryParser *self, VArray *elems) {
+    const int32_t default_occur = QParser_IVARS(self)->default_occur;
+
     for (uint32_t i = 0; i + 2 < VA_Get_Size(elems); i++) {
-        ParserToken *token = (ParserToken*)VA_Fetch(elems, i + 1);
-        if (Obj_Is_A((Obj*)token, PARSERTOKEN) && token->type == TOKEN_AND) {
-            ParserClause *preceding  = (ParserClause*)VA_Fetch(elems, i);
+        ParserElem *elem = (ParserElem*)VA_Fetch(elems, i + 1);
+        if (ParserElem_Get_Type(elem) == TOKEN_AND) {
+            ParserElem   *preceding  = (ParserElem*)VA_Fetch(elems, i);
             VArray       *children   = VA_new(2);
             uint32_t      num_to_zap = 0;
 
             // Add first clause.
-            VA_Push(children, INCREF(preceding->query));
+            Query *preceding_query = (Query*)ParserElem_As(preceding, QUERY);
+            VA_Push(children, INCREF(preceding_query));
 
             // Add following clauses.
             for (uint32_t j = i + 1, jmax = VA_Get_Size(elems);
                  j < jmax;
                  j += 2, num_to_zap += 2
                 ) {
-                ParserToken  *maybe_and = (ParserToken*)VA_Fetch(elems, j);
-                ParserClause *following
-                    = (ParserClause*)VA_Fetch(elems, j + 1);
-                if (!Obj_Is_A((Obj*)maybe_and, PARSERTOKEN)
-                    || maybe_and->type != TOKEN_AND
-                   ) {
+                ParserElem *maybe_and = (ParserElem*)VA_Fetch(elems, j);
+                ParserElem *following = (ParserElem*)VA_Fetch(elems, j + 1);
+                if (ParserElem_Get_Type(maybe_and) != TOKEN_AND) {
                     break;
                 }
-                else {
-                    CERTIFY(following, PARSERCLAUSE);
+                else if (ParserElem_Get_Type(following) == TOKEN_QUERY) {
+                    Query *next = (Query*)ParserElem_As(following, QUERY);
+                    VA_Push(children, INCREF(next));
                 }
-                VA_Push(children, INCREF(following->query));
+                else {
+                    THROW(ERR, "Unexpected type: %u32",
+                          ParserElem_Get_Type(following));
+                }
             }
-            DECREF(preceding->query);
-            preceding->query = QParser_Make_AND_Query(self, children);
-            preceding->occur = default_occur;
+            Query *and_query = QParser_Make_AND_Query(self, children);
+            ParserElem_Set_Value(preceding, (Obj*)and_query);
+            if (default_occur == MUST) {
+                ParserElem_Require(preceding);
+            }
+            DECREF(and_query);
             DECREF(children);
 
             VA_Excise(elems, i + 1, num_to_zap);
-
-            // Don't double wrap '(a AND b)'.
-            if (VA_Get_Size(elems) == 1) { apply_parens = false; }
         }
     }
+}
 
-    // Apply OR.
+static void
+S_compose_or_queries(QueryParser *self, VArray *elems) {
+    const int32_t default_occur = QParser_IVARS(self)->default_occur;
+
     for (uint32_t i = 0; i + 2 < VA_Get_Size(elems); i++) {
-        ParserToken *token = (ParserToken*)VA_Fetch(elems, i + 1);
-        if (Obj_Is_A((Obj*)token, PARSERTOKEN) && token->type == TOKEN_OR) {
-            ParserClause *preceding  = (ParserClause*)VA_Fetch(elems, i);
+        ParserElem *elem = (ParserElem*)VA_Fetch(elems, i + 1);
+        if (ParserElem_Get_Type(elem) == TOKEN_OR) {
+            ParserElem   *preceding  = (ParserElem*)VA_Fetch(elems, i);
             VArray       *children   = VA_new(2);
             uint32_t      num_to_zap = 0;
 
             // Add first clause.
-            VA_Push(children, INCREF(preceding->query));
+            Query *preceding_query = (Query*)ParserElem_As(preceding, QUERY);
+            VA_Push(children, INCREF(preceding_query));
 
             // Add following clauses.
             for (uint32_t j = i + 1, jmax = VA_Get_Size(elems);
                  j < jmax;
                  j += 2, num_to_zap += 2
                 ) {
-                ParserToken  *maybe_or = (ParserToken*)VA_Fetch(elems, j);
-                ParserClause *following
-                    = (ParserClause*)VA_Fetch(elems, j + 1);
-                if (!Obj_Is_A((Obj*)maybe_or, PARSERTOKEN)
-                    || maybe_or->type != TOKEN_OR
-                   ) {
+                ParserElem *maybe_or  = (ParserElem*)VA_Fetch(elems, j);
+                ParserElem *following = (ParserElem*)VA_Fetch(elems, j + 1);
+                if (ParserElem_Get_Type(maybe_or) != TOKEN_OR) {
                     break;
                 }
-                else {
-                    CERTIFY(following, PARSERCLAUSE);
+                else if (ParserElem_Get_Type(following) == TOKEN_QUERY) {
+                    Query *next = (Query*)ParserElem_As(following, QUERY);
+                    VA_Push(children, INCREF(next));
                 }
-                VA_Push(children, INCREF(following->query));
+                else {
+                    THROW(ERR, "Unexpected type: %u32",
+                          ParserElem_Get_Type(following));
+                }
             }
-            DECREF(preceding->query);
-            preceding->query = QParser_Make_OR_Query(self, children);
-            preceding->occur = default_occur;
+            Query *or_query = QParser_Make_OR_Query(self, children);
+            ParserElem_Set_Value(preceding, (Obj*)or_query);
+            if (default_occur == MUST) {
+                ParserElem_Require(preceding);
+            }
+            DECREF(or_query);
             DECREF(children);
 
             VA_Excise(elems, i + 1, num_to_zap);
-
-            // Don't double wrap '(a OR b)'.
-            if (VA_Get_Size(elems) == 1) { apply_parens = false; }
         }
     }
+}
+
+static Query*
+S_compose_subquery(QueryParser *self, VArray *elems, bool enclosed) {
+    const int32_t default_occur = QParser_IVARS(self)->default_occur;
+    Query *retval;
 
     if (VA_Get_Size(elems) == 0) {
         // No elems means no query. Maybe the search string was something
         // like 'NOT AND'
-        if (apply_parens) {
+        if (enclosed) {
             retval = default_occur == SHOULD
                      ? QParser_Make_OR_Query(self, NULL)
                      : QParser_Make_AND_Query(self, NULL);
@@ -558,9 +563,10 @@ S_do_tree(QueryParser *self, CharBuf *query_string, CharBuf *default_field,
             retval = (Query*)NoMatchQuery_new();
         }
     }
-    else if (VA_Get_Size(elems) == 1 && !apply_parens) {
-        ParserClause *clause = (ParserClause*)VA_Fetch(elems, 0);
-        retval = (Query*)INCREF(clause->query);
+    else if (VA_Get_Size(elems) == 1 && !enclosed) {
+        ParserElem *elem = (ParserElem*)VA_Fetch(elems, 0);
+        Query *query = (Query*)ParserElem_As(elem, QUERY);
+        retval = (Query*)INCREF(query);
     }
     else {
         uint32_t  num_elems = VA_Get_Size(elems);
@@ -572,15 +578,15 @@ S_do_tree(QueryParser *self, CharBuf *query_string, CharBuf *default_field,
 
         // Demux elems into bins.
         for (uint32_t i = 0; i < num_elems; i++) {
-            ParserClause *clause = (ParserClause*)VA_Fetch(elems, i);
-            if (clause->occur == MUST) {
-                VA_Push(required, INCREF(clause->query));
+            ParserElem *elem = (ParserElem*)VA_Fetch(elems, i);
+            if (ParserElem_Required(elem)) {
+                VA_Push(required, INCREF(ParserElem_As(elem, QUERY)));
             }
-            else if (clause->occur == SHOULD) {
-                VA_Push(optional, INCREF(clause->query));
+            else if (ParserElem_Optional(elem)) {
+                VA_Push(optional, INCREF(ParserElem_As(elem, QUERY)));
             }
-            else if (clause->occur == MUST_NOT) {
-                VA_Push(negated, INCREF(clause->query));
+            else if (ParserElem_Negated(elem)) {
+                VA_Push(negated, INCREF(ParserElem_As(elem, QUERY)));
             }
         }
         uint32_t num_required = VA_Get_Size(required);
@@ -589,7 +595,7 @@ S_do_tree(QueryParser *self, CharBuf *query_string, CharBuf *default_field,
 
         // Bind all mandatory matchers together in one Query.
         if (num_required || num_negated) {
-            if (apply_parens || num_required + num_negated > 1) {
+            if (enclosed || num_required + num_negated > 1) {
                 VArray *children = VA_Shallow_Copy(required);
                 VA_Push_VArray(children, negated);
                 req_query = QParser_Make_AND_Query(self, children);
@@ -605,7 +611,7 @@ S_do_tree(QueryParser *self, CharBuf *query_string, CharBuf *default_field,
 
         // Bind all optional matchers together in one Query.
         if (num_optional) {
-            if (!apply_parens && num_optional == 1) {
+            if (!enclosed && num_optional == 1) {
                 opt_query = (Query*)INCREF(VA_Fetch(optional, 0));
             }
             else {
@@ -648,12 +654,10 @@ S_do_tree(QueryParser *self, CharBuf *query_string, CharBuf *default_field,
         DECREF(required);
     }
 
-    DECREF(elems);
-
     return retval;
 }
 
-static bool_t
+static bool
 S_has_valid_clauses(Query *query) {
     if (Query_Is_A(query, NOTQUERY)) {
         return false;
@@ -722,7 +726,7 @@ S_do_prune(QueryParser *self, Query *query) {
 }
 
 Query*
-QParser_prune(QueryParser *self, Query *query) {
+QParser_Prune_IMP(QueryParser *self, Query *query) {
     if (!query
         || Query_Is_A(query, NOTQUERY)
         || Query_Is_A(query, MATCHALLQUERY)
@@ -735,98 +739,8 @@ QParser_prune(QueryParser *self, Query *query) {
     return (Query*)INCREF(query);
 }
 
-static bool_t
-S_consume_ascii(ViewCharBuf *qstring, char *ptr, size_t len) {
-    if (ViewCB_Starts_With_Str(qstring, ptr, len)) {
-        ViewCB_Nip(qstring, len);
-        return true;
-    }
-    return false;
-}
-
-static bool_t
-S_consume_ascii_token(ViewCharBuf *qstring, char *ptr, size_t len) {
-    if (ViewCB_Starts_With_Str(qstring, ptr, len)) {
-        if (len == ViewCB_Get_Size(qstring)
-            || StrHelp_is_whitespace(ViewCB_Code_Point_At(qstring, len))
-           ) {
-            ViewCB_Nip(qstring, len);
-            ViewCB_Trim_Top(qstring);
-            return true;
-        }
-    }
-    return false;
-}
-
-static bool_t
-S_consume_field(ViewCharBuf *qstring, ViewCharBuf *target) {
-    size_t tick = 0;
-
-    // Field names constructs must start with a letter or underscore.
-    uint32_t code_point = ViewCB_Code_Point_At(qstring, tick);
-    if (isalpha(code_point) || code_point == '_') {
-        tick++;
-    }
-    else {
-        return false;
-    }
-
-    // Only alphanumerics and underscores are allowed  in field names.
-    while (1) {
-        code_point = ViewCB_Code_Point_At(qstring, tick);
-        if (isalnum(code_point) || code_point == '_') {
-            tick++;
-        }
-        else if (code_point == ':') {
-            tick++;
-            break;
-        }
-        else {
-            return false;
-        }
-    }
-
-    // Field name constructs must be followed by something sensible.
-    uint32_t lookahead = ViewCB_Code_Point_At(qstring, tick);
-    if (!(isalnum(lookahead)
-          || lookahead == '_'
-          || lookahead > 127
-          || lookahead == '"'
-          || lookahead == '('
-         )
-       ) {
-        return false;
-    }
-
-    // Consume string data.
-    ViewCB_Assign(target, (CharBuf*)qstring);
-    ViewCB_Set_Size(target, tick - 1);
-    ViewCB_Nip(qstring, tick);
-    return true;
-}
-
-static bool_t
-S_consume_non_whitespace(ViewCharBuf *qstring, ViewCharBuf *target) {
-    uint32_t code_point = ViewCB_Code_Point_At(qstring, 0);
-    bool_t   success    = false;
-    ViewCB_Assign(target, (CharBuf*)qstring);
-    while (code_point && !StrHelp_is_whitespace(code_point)) {
-        ViewCB_Nip_One(qstring);
-        code_point = ViewCB_Code_Point_At(qstring, 0);
-        success = true;
-    }
-    if (!success) {
-        return false;
-    }
-    else {
-        uint32_t new_size = ViewCB_Get_Size(target) - ViewCB_Get_Size(qstring);
-        ViewCB_Set_Size(target, new_size);
-        return true;
-    }
-}
-
 Query*
-QParser_expand(QueryParser *self, Query *query) {
+QParser_Expand_IMP(QueryParser *self, Query *query) {
     Query *retval = NULL;
 
     if (Query_Is_A(query, LEAFQUERY)) {
@@ -842,7 +756,7 @@ QParser_expand(QueryParser *self, Query *query) {
             Query *new_child = QParser_Expand(self, child); // recurse
             if (new_child) {
                 if (Query_Is_A(new_child, NOMATCHQUERY)) {
-                    bool_t fails = NoMatchQuery_Get_Fails_To_Match(
+                    bool fails = NoMatchQuery_Get_Fails_To_Match(
                                        (NoMatchQuery*)new_child);
                     if (fails) {
                         VA_Push(new_kids, (Obj*)new_child);
@@ -910,61 +824,68 @@ QParser_expand(QueryParser *self, Query *query) {
     return retval;
 }
 
-static CharBuf*
-S_unescape(QueryParser *self, CharBuf *orig, CharBuf *target) {
-    ZombieCharBuf *source = ZCB_WRAP(orig);
-    uint32_t code_point;
+static String*
+S_unescape(QueryParser *self, String *orig, CharBuf *buf) {
+    StringIterator *iter = Str_Top(orig);
+    int32_t code_point;
     UNUSED_VAR(self);
 
-    CB_Set_Size(target, 0);
-    CB_Grow(target, CB_Get_Size(orig) + 4);
+    CB_Set_Size(buf, 0);
+    CB_Grow(buf, Str_Get_Size(orig) + 4);
 
-    while (0 != (code_point = ZCB_Nip_One(source))) {
+    while (STRITER_DONE != (code_point = StrIter_Next(iter))) {
         if (code_point == '\\') {
-            uint32_t next_code_point = ZCB_Nip_One(source);
+            int32_t next_code_point = StrIter_Next(iter);
             if (next_code_point == ':'
                 || next_code_point == '"'
                 || next_code_point == '\\'
                ) {
-                CB_Cat_Char(target, next_code_point);
+                CB_Cat_Char(buf, next_code_point);
             }
             else {
-                CB_Cat_Char(target, code_point);
-                if (next_code_point) { CB_Cat_Char(target, next_code_point); }
+                CB_Cat_Char(buf, code_point);
+                if (next_code_point != STRITER_DONE) {
+                    CB_Cat_Char(buf, next_code_point);
+                }
             }
         }
         else {
-            CB_Cat_Char(target, code_point);
+            CB_Cat_Char(buf, code_point);
         }
     }
 
-    return target;
+    DECREF(iter);
+    return CB_To_String(buf);
 }
 
 Query*
-QParser_expand_leaf(QueryParser *self, Query *query) {
-    LeafQuery     *leaf_query  = (LeafQuery*)query;
-    Schema        *schema      = self->schema;
-    ZombieCharBuf *source_text = ZCB_BLANK();
-    bool_t         is_phrase   = false;
-    bool_t         ambiguous   = false;
+QParser_Expand_Leaf_IMP(QueryParser *self, Query *query) {
+    QueryParserIVARS *const ivars = QParser_IVARS(self);
+    LeafQuery *leaf_query = (LeafQuery*)query;
+    Schema    *schema     = ivars->schema;
+    bool       is_phrase  = false;
+    bool       ambiguous  = false;
 
     // Determine whether we can actually process the input.
-    if (!Query_Is_A(query, LEAFQUERY))                { return NULL; }
-    if (!CB_Get_Size(LeafQuery_Get_Text(leaf_query))) { return NULL; }
-    ZCB_Assign(source_text, LeafQuery_Get_Text(leaf_query));
+    if (!Query_Is_A(query, LEAFQUERY)) { return NULL; }
+    String *full_text = LeafQuery_Get_Text(leaf_query);
+    if (!Str_Get_Size(full_text)) { return NULL; }
 
     // If quoted, always generate PhraseQuery.
-    ZCB_Trim(source_text);
-    if (ZCB_Code_Point_At(source_text, 0) == '"') {
+    StringIterator *top  = Str_Top(full_text);
+    StringIterator *tail = Str_Tail(full_text);
+    StrIter_Skip_Next_Whitespace(top);
+    StrIter_Skip_Prev_Whitespace(tail);
+    if (StrIter_Starts_With_Utf8(top, "\"", 1)) {
         is_phrase = true;
-        ZCB_Nip(source_text, 1);
-        if (ZCB_Code_Point_From(source_text, 1) == '"'
-            && ZCB_Code_Point_From(source_text, 2) != '\\'
-           ) {
-            ZCB_Chop(source_text, 1);
+        StrIter_Advance(top, 1);
+        if (StrIter_Ends_With_Utf8(tail, "\"", 1)
+            && !StrIter_Ends_With_Utf8(tail, "\\\"", 2)
+        ) {
+            StrIter_Recede(tail, 1);
         }
     }
+    String *source_text = StrIter_substring(top, tail);
 
     // Either use LeafQuery's field or default to Parser's list.
     VArray *fields;
@@ -973,15 +894,15 @@ QParser_expand_leaf(QueryParser *self, Query *query) {
         VA_Push(fields, INCREF(LeafQuery_Get_Field(leaf_query)));
     }
     else {
-        fields = (VArray*)INCREF(self->fields);
+        fields = (VArray*)INCREF(ivars->fields);
     }
 
-    CharBuf *unescaped = CB_new(ZCB_Get_Size(source_text));
-    VArray  *queries   = VA_new(VA_Get_Size(fields));
+    CharBuf *unescape_buf = CB_new(Str_Get_Size(source_text));
+    VArray  *queries      = VA_new(VA_Get_Size(fields));
     for (uint32_t i = 0, max = VA_Get_Size(fields); i < max; i++) {
-        CharBuf  *field    = (CharBuf*)VA_Fetch(fields, i);
-        Analyzer *analyzer = self->analyzer
-                             ? self->analyzer
+        String   *field    = (String*)VA_Fetch(fields, i);
+        Analyzer *analyzer = ivars->analyzer
+                             ? ivars->analyzer
                              : Schema_Fetch_Analyzer(schema, field);
 
         if (!analyzer) {
@@ -991,16 +912,15 @@ QParser_expand_leaf(QueryParser *self, Query *query) {
         }
         else {
             // Extract token texts.
-            CharBuf *split_source
-                = S_unescape(self, (CharBuf*)source_text, unescaped);
+            String *split_source = S_unescape(self, source_text, unescape_buf);
             VArray *maybe_texts = Analyzer_Split(analyzer, split_source);
             uint32_t num_maybe_texts = VA_Get_Size(maybe_texts);
             VArray *token_texts = VA_new(num_maybe_texts);
 
             // Filter out zero-length token texts.
             for (uint32_t j = 0; j < num_maybe_texts; j++) {
-                CharBuf *token_text = (CharBuf*)VA_Fetch(maybe_texts, j);
-                if (CB_Get_Size(token_text)) {
+                String *token_text = (String*)VA_Fetch(maybe_texts, j);
+                if (Str_Get_Size(token_text)) {
                     VA_Push(token_texts, INCREF(token_text));
                 }
             }
@@ -1022,6 +942,7 @@ QParser_expand_leaf(QueryParser *self, Query *query) {
 
             DECREF(token_texts);
             DECREF(maybe_texts);
+            DECREF(split_source);
         }
     }
 
@@ -1040,199 +961,52 @@ QParser_expand_leaf(QueryParser *self, Query *query) {
     }
 
     // Clean up.
-    DECREF(unescaped);
+    DECREF(unescape_buf);
     DECREF(queries);
     DECREF(fields);
+    DECREF(source_text);
+    DECREF(tail);
+    DECREF(top);
 
     return retval;
-}
-
-static CharBuf*
-S_extract_something(QueryParser *self, const CharBuf *query_string,
-                    CharBuf *label, Hash *extractions, match_t match) {
-    CharBuf *retval          = CB_Clone(query_string);
-    size_t   qstring_size    = CB_Get_Size(query_string);
-    size_t   orig_label_size = CB_Get_Size(label);
-    char    *begin_match;
-    char    *end_match;
-
-    while (match(retval, &begin_match, &end_match)) {
-        size_t   len          = end_match - begin_match;
-        size_t   retval_size  = CB_Get_Size(retval);
-        char    *retval_buf   = (char*)CB_Get_Ptr8(retval);
-        char    *retval_end   = retval_buf + retval_size;
-        size_t   before_match = begin_match - retval_buf;
-        size_t   after_match  = retval_end - end_match;
-        CharBuf *new_retval   = CB_new(qstring_size);
-
-        // Store inner text.
-        CB_catf(label, "%u32", self->label_inc++);
-        Hash_Store(extractions, (Obj*)label,
-                   (Obj*)CB_new_from_utf8(begin_match, len));
-
-        // Splice the label into the query string.
-        CB_Cat_Str(new_retval, retval_buf, before_match);
-        CB_Cat(new_retval, label);
-        CB_Cat_Str(new_retval, " ", 1); // Extra space for safety.
-        CB_Cat_Str(new_retval, end_match, after_match);
-        DECREF(retval);
-        retval = new_retval;
-        CB_Set_Size(label, orig_label_size);
-    }
-
-    return retval;
-}
-
-static CharBuf*
-S_extract_phrases(QueryParser *self, const CharBuf *query_string,
-                  Hash *extractions) {
-    return S_extract_something(self, query_string, self->phrase_label,
-                               extractions, S_match_phrase);
-}
-
-static bool_t
-S_match_phrase(CharBuf *input, char**begin_match, char **end_match) {
-    ZombieCharBuf *iterator = ZCB_WRAP(input);
-    uint32_t code_point;
-
-    while (0 != (code_point = ZCB_Code_Point_At(iterator, 0))) {
-        if (code_point == '\\') {
-            ZCB_Nip(iterator, 2);
-            continue;
-        }
-        if (code_point == '"') {
-            *begin_match = (char*)ZCB_Get_Ptr8(iterator);
-            *end_match   = *begin_match + ZCB_Get_Size(iterator);
-            ZCB_Nip_One(iterator);
-            while (0 != (code_point = ZCB_Nip_One(iterator))) {
-                if (code_point == '\\') {
-                    ZCB_Nip_One(iterator);
-                    continue;
-                }
-                else if (code_point == '"') {
-                    *end_match = (char*)ZCB_Get_Ptr8(iterator);
-                    return true;
-                }
-            }
-            return true;
-        }
-        ZCB_Nip_One(iterator);
-    }
-    return false;
-}
-
-static CharBuf*
-S_extract_paren_groups(QueryParser *self, const CharBuf *query_string,
-                       Hash *extractions) {
-    return S_extract_something(self, query_string, self->bool_group_label,
-                               extractions, S_match_bool_group);
-}
-
-static bool_t
-S_match_bool_group(CharBuf *input, char**begin_match, char **end_match) {
-    ZombieCharBuf *iterator = ZCB_WRAP(input);
-    uint32_t code_point;
-
-    while (0 != (code_point = ZCB_Code_Point_At(iterator, 0))) {
-        if (code_point == '(') {
-FOUND_OPEN_PAREN:
-            *begin_match = (char*)ZCB_Get_Ptr8(iterator);
-            *end_match   = *begin_match + ZCB_Get_Size(iterator);
-            ZCB_Nip_One(iterator);
-            while (0 != (code_point = ZCB_Code_Point_At(iterator, 0))) {
-                if (code_point == '(') { goto FOUND_OPEN_PAREN; }
-                ZCB_Nip_One(iterator);
-                if (code_point == ')') {
-                    *end_match = (char*)ZCB_Get_Ptr8(iterator);
-                    return true;
-                }
-            }
-            return true;
-        }
-        ZCB_Nip_One(iterator);
-    }
-    return false;
 }
 
 Query*
-QParser_make_term_query(QueryParser *self, const CharBuf *field, Obj *term) {
+QParser_Make_Term_Query_IMP(QueryParser *self, String *field,
+                            Obj *term) {
     UNUSED_VAR(self);
     return (Query*)TermQuery_new(field, term);
 }
 
 Query*
-QParser_make_phrase_query(QueryParser *self, const CharBuf *field,
-                          VArray *terms) {
+QParser_Make_Phrase_Query_IMP(QueryParser *self, String *field,
+                              VArray *terms) {
     UNUSED_VAR(self);
     return (Query*)PhraseQuery_new(field, terms);
 }
 
 Query*
-QParser_make_or_query(QueryParser *self, VArray *children) {
+QParser_Make_OR_Query_IMP(QueryParser *self, VArray *children) {
     UNUSED_VAR(self);
     return (Query*)ORQuery_new(children);
 }
 
 Query*
-QParser_make_and_query(QueryParser *self, VArray *children) {
+QParser_Make_AND_Query_IMP(QueryParser *self, VArray *children) {
     UNUSED_VAR(self);
     return (Query*)ANDQuery_new(children);
 }
 
 Query*
-QParser_make_not_query(QueryParser *self, Query *negated_query) {
+QParser_Make_NOT_Query_IMP(QueryParser *self, Query *negated_query) {
     UNUSED_VAR(self);
     return (Query*)NOTQuery_new(negated_query);
 }
 
 Query*
-QParser_make_req_opt_query(QueryParser *self, Query *required_query,
-                           Query *optional_query) {
+QParser_Make_Req_Opt_Query_IMP(QueryParser *self, Query *required_query,
+                               Query *optional_query) {
     UNUSED_VAR(self);
     return (Query*)ReqOptQuery_new(required_query, optional_query);
 }
-
-/********************************************************************/
-
-ParserClause*
-ParserClause_new(Query *query, uint32_t occur) {
-    ParserClause *self = (ParserClause*)VTable_Make_Obj(PARSERCLAUSE);
-    return ParserClause_init(self, query, occur);
-}
-
-ParserClause*
-ParserClause_init(ParserClause *self, Query *query, uint32_t occur) {
-    self->query = (Query*)INCREF(query);
-    self->occur = occur;
-    return self;
-}
-
-void
-ParserClause_destroy(ParserClause *self) {
-    DECREF(self->query);
-    SUPER_DESTROY(self, PARSERCLAUSE);
-}
-
-/********************************************************************/
-
-ParserToken*
-ParserToken_new(uint32_t type, const char *text, size_t len) {
-    ParserToken *self = (ParserToken*)VTable_Make_Obj(PARSERTOKEN);
-    return ParserToken_init(self, type, text, len);
-}
-
-ParserToken*
-ParserToken_init(ParserToken *self, uint32_t type, const char *text,
-                 size_t len) {
-    self->type = type;
-    self->text = text ? CB_new_from_utf8(text, len) : NULL;
-    return self;
-}
-
-void
-ParserToken_destroy(ParserToken *self) {
-    DECREF(self->text);
-    SUPER_DESTROY(self, PARSERTOKEN);
-}
-
 

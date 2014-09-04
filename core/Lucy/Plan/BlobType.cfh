@@ -21,30 +21,26 @@ parcel Lucy;
  * BlobType is an implementation of FieldType tuned for use with fields
  * containing binary data, which cannot be indexed or searched -- only stored.
  */
-class Lucy::Plan::BlobType inherits Lucy::Plan::FieldType
-    : dumpable {
+public class Lucy::Plan::BlobType inherits Lucy::Plan::FieldType {
 
     /**
      * @param stored boolean indicating whether the field should be stored.
      */
     public inert BlobType*
-    init(BlobType *self, bool_t stored);
+    init(BlobType *self, bool stored);
 
     public inert incremented BlobType*
-    new(bool_t stored);
+    new(bool stored);
 
     /** Returns true.
      */
-    public bool_t
+    public bool
     Binary(BlobType *self);
 
     /** Throws an error unless <code>sortable</code> is false.
      */
     public void
-    Set_Sortable(BlobType *self, bool_t sortable);
-
-    incremented ViewByteBuf*
-    Make_Blank(BlobType *self);
+    Set_Sortable(BlobType *self, bool sortable);
 
     int8_t
     Primitive_ID(BlobType *self);
@@ -58,7 +54,7 @@ class Lucy::Plan::BlobType inherits Lucy::Plan::FieldType
     public incremented BlobType*
     Load(BlobType *self, Obj *dump);
 
-    public bool_t
+    public bool
     Equals(BlobType *self, Obj *other);
 }
 

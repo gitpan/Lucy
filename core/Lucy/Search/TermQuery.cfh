@@ -23,25 +23,24 @@ parcel Lucy;
  * individual terms in a specific field.
  */
 
-class Lucy::Search::TermQuery inherits Lucy::Search::Query
-    : dumpable {
+public class Lucy::Search::TermQuery inherits Lucy::Search::Query {
 
-    CharBuf *field;
-    Obj     *term;
+    String *field;
+    Obj    *term;
 
     inert incremented TermQuery*
-    new(const CharBuf *field, const Obj *term);
+    new(String *field, Obj *term);
 
     /**
      * @param field Field name.
      * @param term Term text.
      */
     public inert TermQuery*
-    init(TermQuery *self, const CharBuf *field, const Obj *term);
+    init(TermQuery *self, String *field, Obj *term);
 
     /** Accessor for object's <code>field</code> member.
      */
-    public CharBuf*
+    public String*
     Get_Field(TermQuery *self);
 
     /** Accessor for object's <code>term</code> member.
@@ -51,18 +50,24 @@ class Lucy::Search::TermQuery inherits Lucy::Search::Query
 
     public incremented Compiler*
     Make_Compiler(TermQuery *self, Searcher *searcher, float boost,
-                  bool_t subordinate = false);
+                  bool subordinate = false);
 
-    public incremented CharBuf*
+    public incremented String*
     To_String(TermQuery *self);
 
     public void
     Serialize(TermQuery *self, OutStream *outstream);
 
     public incremented TermQuery*
-    Deserialize(TermQuery *self, InStream *instream);
+    Deserialize(decremented TermQuery *self, InStream *instream);
 
-    public bool_t
+    public incremented Obj*
+    Dump(TermQuery *self);
+
+    public incremented Obj*
+    Load(TermQuery *self, Obj *dump);
+
+    public bool
     Equals(TermQuery *self, Obj *other);
 
     public void
@@ -83,7 +88,7 @@ class Lucy::Search::TermCompiler inherits Lucy::Search::Compiler {
          float boost);
 
     public incremented nullable Matcher*
-    Make_Matcher(TermCompiler *self, SegReader *reader, bool_t need_score);
+    Make_Matcher(TermCompiler *self, SegReader *reader, bool need_score);
 
     public float
     Get_Weight(TermCompiler *self);
@@ -96,16 +101,16 @@ class Lucy::Search::TermCompiler inherits Lucy::Search::Compiler {
 
     public incremented VArray*
     Highlight_Spans(TermCompiler *self, Searcher *searcher,
-                    DocVector *doc_vec, const CharBuf *field);
+                    DocVector *doc_vec, String *field);
 
-    public bool_t
+    public bool
     Equals(TermCompiler *self, Obj *other);
 
     public void
     Serialize(TermCompiler *self, OutStream *outstream);
 
     public incremented TermCompiler*
-    Deserialize(TermCompiler *self, InStream *instream);
+    Deserialize(decremented TermCompiler *self, InStream *instream);
 }
 
 

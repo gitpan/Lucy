@@ -22,25 +22,24 @@ parcel Lucy;
  * against an ordered sequence of terms.
  */
 
-class Lucy::Search::PhraseQuery inherits Lucy::Search::Query
-    : dumpable {
+public class Lucy::Search::PhraseQuery inherits Lucy::Search::Query {
 
-    CharBuf       *field;
+    String        *field;
     VArray        *terms;
 
     inert incremented PhraseQuery*
-    new(const CharBuf *field, VArray *terms);
+    new(String *field, VArray *terms);
 
     /**
      * @param field The field that the phrase must occur in.
      * @param terms The ordered array of terms that must match.
      */
     public inert PhraseQuery*
-    init(PhraseQuery *self, const CharBuf *field, VArray *terms);
+    init(PhraseQuery *self, String *field, VArray *terms);
 
     /** Accessor for object's field attribute.
      */
-    public CharBuf*
+    public String*
     Get_Field(PhraseQuery *self);
 
     /** Accessor for object's array of terms.
@@ -50,19 +49,25 @@ class Lucy::Search::PhraseQuery inherits Lucy::Search::Query
 
     public incremented Compiler*
     Make_Compiler(PhraseQuery *self, Searcher *searcher, float boost,
-                  bool_t subordinate = false);
+                  bool subordinate = false);
 
-    public bool_t
+    public bool
     Equals(PhraseQuery *self, Obj *other);
 
-    public incremented CharBuf*
+    public incremented String*
     To_String(PhraseQuery *self);
 
     public void
     Serialize(PhraseQuery *self, OutStream *outstream);
 
     public incremented PhraseQuery*
-    Deserialize(PhraseQuery *self, InStream *instream);
+    Deserialize(decremented PhraseQuery *self, InStream *instream);
+
+    public incremented Obj*
+    Dump(PhraseQuery *self);
+
+    public incremented Obj*
+    Load(PhraseQuery *self, Obj *dump);
 
     public void
     Destroy(PhraseQuery *self);
@@ -84,7 +89,7 @@ class Lucy::Search::PhraseCompiler
          float boost);
 
     public incremented nullable Matcher*
-    Make_Matcher(PhraseCompiler *self, SegReader *reader, bool_t need_score);
+    Make_Matcher(PhraseCompiler *self, SegReader *reader, bool need_score);
 
     public float
     Get_Weight(PhraseCompiler *self);
@@ -97,16 +102,16 @@ class Lucy::Search::PhraseCompiler
 
     public incremented VArray*
     Highlight_Spans(PhraseCompiler *self, Searcher *searcher,
-                    DocVector *doc_vec, const CharBuf *field);
+                    DocVector *doc_vec, String *field);
 
-    public bool_t
+    public bool
     Equals(PhraseCompiler *self, Obj *other);
 
     public void
     Serialize(PhraseCompiler *self, OutStream *outstream);
 
     public incremented PhraseCompiler*
-    Deserialize(PhraseCompiler *self, InStream *instream);
+    Deserialize(decremented PhraseCompiler *self, InStream *instream);
 }
 
 

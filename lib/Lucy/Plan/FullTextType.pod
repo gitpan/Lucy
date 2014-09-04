@@ -21,11 +21,11 @@ Lucy::Plan::FullTextType - Full-text search field type.
 
 =head1 SYNOPSIS
 
-    my $polyanalyzer = Lucy::Analysis::PolyAnalyzer->new(
+    my $easyanalyzer = Lucy::Analysis::EasyAnalyzer->new(
         language => 'en',
     );
     my $type = Lucy::Plan::FullTextType->new(
-        analyzer => $polyanalyzer,
+        analyzer => $easyanalyzer,
     );
     my $schema = Lucy::Plan::Schema->new;
     $schema->spec_field( name => 'title',   type => $type );
@@ -89,8 +89,6 @@ highlightable.
 
 
 
-
-
 =head1 METHODS
 
 =head2 set_highlightable(highlightable)
@@ -107,7 +105,7 @@ Accessor for "highlightable" property.
 
 =head1 INHERITANCE
 
-Lucy::Plan::FullTextType isa Lucy::Plan::TextType isa L<Lucy::Plan::FieldType> isa L<Lucy::Object::Obj>.
+Lucy::Plan::FullTextType isa Lucy::Plan::TextType isa L<Lucy::Plan::FieldType> isa Clownfish::Obj.
 
 
 =cut

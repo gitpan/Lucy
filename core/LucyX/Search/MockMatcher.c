@@ -21,48 +21,53 @@
 
 MockMatcher*
 MockMatcher_new(I32Array *doc_ids, ByteBuf *scores) {
-    MockMatcher *self = (MockMatcher*)VTable_Make_Obj(MOCKMATCHER);
+    MockMatcher *self = (MockMatcher*)Class_Make_Obj(MOCKMATCHER);
     return MockMatcher_init(self, doc_ids, scores);
 }
 
 MockMatcher*
 MockMatcher_init(MockMatcher *self, I32Array *doc_ids, ByteBuf *scores) {
     Matcher_init((Matcher*)self);
-    self->tick    = -1;
-    self->size    = I32Arr_Get_Size(doc_ids);
-    self->doc_ids = (I32Array*)INCREF(doc_ids);
-    self->scores  = (ByteBuf*)INCREF(scores);
+    MockMatcherIVARS *const ivars = MockMatcher_IVARS(self);
+    ivars->tick    = -1;
+    ivars->size    = I32Arr_Get_Size(doc_ids);
+    ivars->doc_ids = (I32Array*)INCREF(doc_ids);
+    ivars->scores  = (ByteBuf*)INCREF(scores);
     return self;
 }
 
 void
-MockMatcher_destroy(MockMatcher *self) {
-    DECREF(self->doc_ids);
-    DECREF(self->scores);
+MockMatcher_Destroy_IMP(MockMatcher *self) {
+    MockMatcherIVARS *const ivars = MockMatcher_IVARS(self);
+    DECREF(ivars->doc_ids);
+    DECREF(ivars->scores);
     SUPER_DESTROY(self, MOCKMATCHER);
 }
 
 int32_t
-MockMatcher_next(MockMatcher* self) {
-    if (++self->tick >= (int32_t)self->size) {
-        self->tick--;
+MockMatcher_Next_IMP(MockMatcher* self) {
+    MockMatcherIVARS *const ivars = MockMatcher_IVARS(self);
+    if (++ivars->tick >= (int32_t)ivars->size) {
+        ivars->tick--;
         return 0;
     }
-    return I32Arr_Get(self->doc_ids, self->tick);
+    return I32Arr_Get(ivars->doc_ids, ivars->tick);
 }
 
 float
-MockMatcher_score(MockMatcher* self) {
-    if (!self->scores) {
+MockMatcher_Score_IMP(MockMatcher* self) {
+    MockMatcherIVARS *const ivars = MockMatcher_IVARS(self);
+    if (!ivars->scores) {
         THROW(ERR, "Can't call Score() unless scores supplied");
     }
-    float *raw_scores = (float*)BB_Get_Buf(self->scores);
-    return raw_scores[self->tick];
+    const float *raw_scores = (const float*)BB_Get_Buf(ivars->scores);
+    return raw_scores[ivars->tick];
 }
 
 int32_t
-MockMatcher_get_doc_id(MockMatcher* self) {
-    return I32Arr_Get(self->doc_ids, self->tick);
+MockMatcher_Get_Doc_ID_IMP(MockMatcher* self) {
+    MockMatcherIVARS *const ivars = MockMatcher_IVARS(self);
+    return I32Arr_Get(ivars->doc_ids, ivars->tick);
 }
 
 

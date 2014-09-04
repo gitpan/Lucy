@@ -45,69 +45,75 @@
 
 IndexSearcher*
 IxSearcher_new(Obj *index) {
-    IndexSearcher *self = (IndexSearcher*)VTable_Make_Obj(INDEXSEARCHER);
+    IndexSearcher *self = (IndexSearcher*)Class_Make_Obj(INDEXSEARCHER);
     return IxSearcher_init(self, index);
 }
 
 IndexSearcher*
 IxSearcher_init(IndexSearcher *self, Obj *index) {
+    IndexSearcherIVARS *const ivars = IxSearcher_IVARS(self);
     if (Obj_Is_A(index, INDEXREADER)) {
-        self->reader = (IndexReader*)INCREF(index);
+        ivars->reader = (IndexReader*)INCREF(index);
     }
     else {
-        self->reader = IxReader_open(index, NULL, NULL);
+        ivars->reader = IxReader_open(index, NULL, NULL);
     }
-    Searcher_init((Searcher*)self, IxReader_Get_Schema(self->reader));
-    self->seg_readers = IxReader_Seg_Readers(self->reader);
-    self->seg_starts  = IxReader_Offsets(self->reader);
-    self->doc_reader = (DocReader*)IxReader_Fetch(
-                           self->reader, VTable_Get_Name(DOCREADER));
-    self->hl_reader = (HighlightReader*)IxReader_Fetch(
-                          self->reader, VTable_Get_Name(HIGHLIGHTREADER));
-    if (self->doc_reader) { INCREF(self->doc_reader); }
-    if (self->hl_reader)  { INCREF(self->hl_reader); }
+    Searcher_init((Searcher*)self, IxReader_Get_Schema(ivars->reader));
+    ivars->seg_readers = IxReader_Seg_Readers(ivars->reader);
+    ivars->seg_starts  = IxReader_Offsets(ivars->reader);
+    ivars->doc_reader = (DocReader*)IxReader_Fetch(
+                           ivars->reader, Class_Get_Name(DOCREADER));
+    ivars->hl_reader = (HighlightReader*)IxReader_Fetch(
+                          ivars->reader, Class_Get_Name(HIGHLIGHTREADER));
+    if (ivars->doc_reader) { INCREF(ivars->doc_reader); }
+    if (ivars->hl_reader)  { INCREF(ivars->hl_reader); }
 
     return self;
 }
 
 void
-IxSearcher_destroy(IndexSearcher *self) {
-    DECREF(self->reader);
-    DECREF(self->doc_reader);
-    DECREF(self->hl_reader);
-    DECREF(self->seg_readers);
-    DECREF(self->seg_starts);
+IxSearcher_Destroy_IMP(IndexSearcher *self) {
+    IndexSearcherIVARS *const ivars = IxSearcher_IVARS(self);
+    DECREF(ivars->reader);
+    DECREF(ivars->doc_reader);
+    DECREF(ivars->hl_reader);
+    DECREF(ivars->seg_readers);
+    DECREF(ivars->seg_starts);
     SUPER_DESTROY(self, INDEXSEARCHER);
 }
 
 HitDoc*
-IxSearcher_fetch_doc(IndexSearcher *self, int32_t doc_id) {
-    if (!self->doc_reader) { THROW(ERR, "No DocReader"); }
-    return DocReader_Fetch_Doc(self->doc_reader, doc_id);
+IxSearcher_Fetch_Doc_IMP(IndexSearcher *self, int32_t doc_id) {
+    IndexSearcherIVARS *const ivars = IxSearcher_IVARS(self);
+    if (!ivars->doc_reader) { THROW(ERR, "No DocReader"); }
+    return DocReader_Fetch_Doc(ivars->doc_reader, doc_id);
 }
 
 DocVector*
-IxSearcher_fetch_doc_vec(IndexSearcher *self, int32_t doc_id) {
-    if (!self->hl_reader) { THROW(ERR, "No HighlightReader"); }
-    return HLReader_Fetch_Doc_Vec(self->hl_reader, doc_id);
+IxSearcher_Fetch_Doc_Vec_IMP(IndexSearcher *self, int32_t doc_id) {
+    IndexSearcherIVARS *const ivars = IxSearcher_IVARS(self);
+    if (!ivars->hl_reader) { THROW(ERR, "No HighlightReader"); }
+    return HLReader_Fetch_Doc_Vec(ivars->hl_reader, doc_id);
 }
 
 int32_t
-IxSearcher_doc_max(IndexSearcher *self) {
-    return IxReader_Doc_Max(self->reader);
+IxSearcher_Doc_Max_IMP(IndexSearcher *self) {
+    IndexSearcherIVARS *const ivars = IxSearcher_IVARS(self);
+    return IxReader_Doc_Max(ivars->reader);
 }
 
 uint32_t
-IxSearcher_doc_freq(IndexSearcher *self, const CharBuf *field, Obj *term) {
+IxSearcher_Doc_Freq_IMP(IndexSearcher *self, String *field, Obj *term) {
+    IndexSearcherIVARS *const ivars = IxSearcher_IVARS(self);
     LexiconReader *lex_reader
-        = (LexiconReader*)IxReader_Fetch(self->reader,
-                                         VTable_Get_Name(LEXICONREADER));
+        = (LexiconReader*)IxReader_Fetch(ivars->reader,
+                                         Class_Get_Name(LEXICONREADER));
     return lex_reader ? LexReader_Doc_Freq(lex_reader, field, term) : 0;
 }
 
 TopDocs*
-IxSearcher_top_docs(IndexSearcher *self, Query *query, uint32_t num_wanted,
-                    SortSpec *sort_spec) {
+IxSearcher_Top_Docs_IMP(IndexSearcher *self, Query *query, uint32_t num_wanted,
+                        SortSpec *sort_spec) {
     Schema        *schema    = IxSearcher_Get_Schema(self);
     uint32_t       doc_max   = IxSearcher_Doc_Max(self);
     uint32_t       wanted    = num_wanted > doc_max ? doc_max : num_wanted;
@@ -122,10 +128,11 @@ IxSearcher_top_docs(IndexSearcher *self, Query *query, uint32_t num_wanted,
 }
 
 void
-IxSearcher_collect(IndexSearcher *self, Query *query, Collector *collector) {
-    VArray   *const seg_readers = self->seg_readers;
-    I32Array *const seg_starts  = self->seg_starts;
-    bool_t    need_score        = Coll_Need_Score(collector);
+IxSearcher_Collect_IMP(IndexSearcher *self, Query *query, Collector *collector) {
+    IndexSearcherIVARS *const ivars = IxSearcher_IVARS(self);
+    VArray   *const seg_readers = ivars->seg_readers;
+    I32Array *const seg_starts  = ivars->seg_starts;
+    bool      need_score        = Coll_Need_Score(collector);
     Compiler *compiler = Query_Is_A(query, COMPILER)
                          ? (Compiler*)INCREF(query)
                          : Query_Make_Compiler(query, (Searcher*)self,
@@ -136,7 +143,7 @@ IxSearcher_collect(IndexSearcher *self, Query *query, Collector *collector) {
         SegReader *seg_reader = (SegReader*)VA_Fetch(seg_readers, i);
         DeletionsReader *del_reader = (DeletionsReader*)SegReader_Fetch(
                                           seg_reader,
-                                          VTable_Get_Name(DELETIONSREADER));
+                                          Class_Get_Name(DELETIONSREADER));
         Matcher *matcher
             = Compiler_Make_Matcher(compiler, seg_reader, need_score);
         if (matcher) {
@@ -155,12 +162,12 @@ IxSearcher_collect(IndexSearcher *self, Query *query, Collector *collector) {
 }
 
 IndexReader*
-IxSearcher_get_reader(IndexSearcher *self) {
-    return self->reader;
+IxSearcher_Get_Reader_IMP(IndexSearcher *self) {
+    return IxSearcher_IVARS(self)->reader;
 }
 
 void
-IxSearcher_close(IndexSearcher *self) {
+IxSearcher_Close_IMP(IndexSearcher *self) {
     UNUSED_VAR(self);
 }
 

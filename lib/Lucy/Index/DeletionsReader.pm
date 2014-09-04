@@ -15,26 +15,11 @@
 
 package Lucy::Index::DeletionsReader;
 use Lucy;
-our $VERSION = '0.003003';
+our $VERSION = '0.004000';
 $VERSION = eval $VERSION;
 
 1;
 
 __END__
-
-__BINDING__
-
-Clownfish::CFC::Binding::Perl::Class->register(
-    parcel            => "Lucy",
-    class_name        => "Lucy::Index::DeletionsReader",
-    bind_constructors => ['new'],
-    bind_methods      => [qw( Iterator Del_Count )],
-);
-Clownfish::CFC::Binding::Perl::Class->register(
-    parcel            => "Lucy",
-    class_name        => "Lucy::Index::DefaultDeletionsReader",
-    bind_constructors => ['new'],
-    bind_methods      => [qw( Read_Deletions )],
-);
 
 

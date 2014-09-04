@@ -15,38 +15,11 @@
 
 package Lucy::Highlight::HeatMap;
 use Lucy;
-our $VERSION = '0.003003';
+our $VERSION = '0.004000';
 $VERSION = eval $VERSION;
 
 1;
 
 __END__
-
-__BINDING__
-
-my $constructor = <<'END_CONSTRUCTOR';
-    my $heat_map = Lucy::Highlight::HeatMap->new(
-        spans  => \@highlight_spans,
-        window => 100,
-    );
-END_CONSTRUCTOR
-
-Clownfish::CFC::Binding::Perl::Class->register(
-    parcel       => "Lucy",
-    class_name   => "Lucy::Highlight::HeatMap",
-    bind_methods => [
-        qw(
-            Calc_Proximity_Boost
-            Generate_Proximity_Boosts
-            Flatten_Spans
-            Get_Spans
-            )
-    ],
-    bind_constructors => ["new"],
-    #make_pod          => {
-    #    synopsis    => "    # TODO.\n",
-    #    constructor => { sample => $constructor },
-    #},
-);
 
 

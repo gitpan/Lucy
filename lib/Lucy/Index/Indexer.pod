@@ -97,8 +97,6 @@ B<manager> - An IndexManager.
 =back
 
 
-
-
 =head1 METHODS
 
 =head2 add_doc(...)
@@ -143,6 +141,22 @@ B<index> - Either an index path name or a Folder.
 
 Optimize the index for search-time performance.  This may take a
 while, as it can involve rewriting large amounts of data.
+
+Every Indexer session which changes index content and ends in a
+commit() creates a new segment.  Once written, segments are never
+modified.  However, they are periodically recycled by feeding their
+content into the segment currently being written.
+
+The optimize() method causes all existing index content to be fed back
+into the Indexer.  When commit() completes after an optimize(), the
+index will consist of one segment.  So optimize() must be called
+before commit().  Also, optimizing a fresh index created from scratch
+has no effect.
+
+Historically, there was a significant search-time performance benefit
+to collapsing down to a single segment versus even two segments.  Now
+the effect of collapsing is much less significant, and calling
+optimize() is rarely justified.
 
 =head2 commit()
 
@@ -192,11 +206,27 @@ B<query> - A L<Query|Lucy::Search::Query>.
 
 =back
 
+=head2 delete_by_doc_id(doc_id)
+
+Mark the document identified by the supplied document ID as deleted.
+
+=over
+
+=item *
+
+B<doc_id> - A L<document id|Lucy::Docs::DocIDs>.
+
+=back
+
+=head2 get_schema()
+
+Accessor for schema.
+
 
 
 =head1 INHERITANCE
 
-Lucy::Index::Indexer isa L<Lucy::Object::Obj>.
+Lucy::Index::Indexer isa Clownfish::Obj.
 
 
 =cut

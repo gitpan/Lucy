@@ -21,7 +21,7 @@ use Test::More tests => 25;
 use File::Spec::Functions qw( catfile );
 use Fcntl;
 use Lucy::Test::TestUtils qw( init_test_index_loc );
-use Lucy::Util::StringHelper qw( to_base36 );
+use Clownfish::Util::StringHelper qw( to_base36 );
 
 my $fs_index_loc = init_test_index_loc();
 my $fs_folder    = Lucy::Store::FSFolder->new( path => $fs_index_loc, );
@@ -30,7 +30,7 @@ my $ram_folder   = Lucy::Store::RAMFolder->new;
 my $king = "I'm the king of rock.";
 for my $folder ( $fs_folder, $ram_folder ) {
     my $outstream = $folder->open_out('king_of_rock')
-        or die Lucy->error;
+        or die Clownfish->error;
     $outstream->print($king);
     $outstream->close;
 }
@@ -103,5 +103,5 @@ ok( -e $foo_path, "creating an FSFolder shouldn't wipe an unrelated file" );
 
 for ( 0 .. 100 ) {
     my $filename = '_1-' . to_base36($_) . '.stuff';
-    $ram_folder->open_out($filename) or die Lucy->error;
+    $ram_folder->open_out($filename) or die Clownfish->error;
 }

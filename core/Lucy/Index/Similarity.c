@@ -29,103 +29,102 @@
 #include "Lucy/Plan/Schema.h"
 #include "Lucy/Store/InStream.h"
 #include "Lucy/Store/OutStream.h"
+#include "Lucy/Util/Freezer.h"
 
 Similarity*
 Sim_new() {
-    Similarity *self = (Similarity*)VTable_Make_Obj(SIMILARITY);
+    Similarity *self = (Similarity*)Class_Make_Obj(SIMILARITY);
     return Sim_init(self);
 }
 
 Similarity*
 Sim_init(Similarity *self) {
-    self->norm_decoder = NULL;
+    SimilarityIVARS *const ivars = Sim_IVARS(self);
+    ivars->norm_decoder = NULL;
     return self;
 }
 
 void
-Sim_destroy(Similarity *self) {
-    if (self->norm_decoder) {
-        FREEMEM(self->norm_decoder);
+Sim_Destroy_IMP(Similarity *self) {
+    SimilarityIVARS *const ivars = Sim_IVARS(self);
+    if (ivars->norm_decoder) {
+        FREEMEM(ivars->norm_decoder);
     }
     SUPER_DESTROY(self, SIMILARITY);
 }
 
 Posting*
-Sim_make_posting(Similarity *self) {
+Sim_Make_Posting_IMP(Similarity *self) {
     return (Posting*)ScorePost_new(self);
 }
 
 PostingWriter*
-Sim_make_posting_writer(Similarity *self, Schema *schema, Snapshot *snapshot,
-                        Segment *segment, PolyReader *polyreader,
-                        int32_t field_num) {
+Sim_Make_Posting_Writer_IMP(Similarity *self, Schema *schema,
+                            Snapshot *snapshot, Segment *segment,
+                            PolyReader *polyreader, int32_t field_num) {
     UNUSED_VAR(self);
     return (PostingWriter*)MatchPostWriter_new(schema, snapshot, segment,
                                                polyreader, field_num);
 }
 
 float*
-Sim_get_norm_decoder(Similarity *self) {
-    if (!self->norm_decoder) {
+Sim_Get_Norm_Decoder_IMP(Similarity *self) {
+    SimilarityIVARS *const ivars = Sim_IVARS(self);
+    if (!ivars->norm_decoder) {
         // Cache decoded boost bytes.
-        self->norm_decoder = (float*)MALLOCATE(256 * sizeof(float));
+        ivars->norm_decoder = (float*)MALLOCATE(256 * sizeof(float));
         for (uint32_t i = 0; i < 256; i++) {
-            self->norm_decoder[i] = Sim_Decode_Norm(self, i);
+            ivars->norm_decoder[i] = Sim_Decode_Norm(self, i);
         }
     }
-    return self->norm_decoder;
+    return ivars->norm_decoder;
 }
 
 Obj*
-Sim_dump(Similarity *self) {
+Sim_Dump_IMP(Similarity *self) {
     Hash *dump = Hash_new(0);
-    Hash_Store_Str(dump, "_class", 6,
-                   (Obj*)CB_Clone(Sim_Get_Class_Name(self)));
+    Hash_Store_Utf8(dump, "_class", 6,
+                    (Obj*)Str_Clone(Sim_Get_Class_Name(self)));
     return (Obj*)dump;
 }
 
 Similarity*
-Sim_load(Similarity *self, Obj *dump) {
+Sim_Load_IMP(Similarity *self, Obj *dump) {
     Hash *source = (Hash*)CERTIFY(dump, HASH);
-    CharBuf *class_name 
-        = (CharBuf*)CERTIFY(Hash_Fetch_Str(source, "_class", 6), CHARBUF);
-    VTable *vtable = VTable_singleton(class_name, NULL);
-    Similarity *loaded = (Similarity*)VTable_Make_Obj(vtable);
+    String *class_name 
+        = (String*)CERTIFY(Hash_Fetch_Utf8(source, "_class", 6), STRING);
+    Class *klass = Class_singleton(class_name, NULL);
+    Similarity *loaded = (Similarity*)Class_Make_Obj(klass);
     UNUSED_VAR(self);
     return Sim_init(loaded);
 }
 
 void
-Sim_serialize(Similarity *self, OutStream *target) {
+Sim_Serialize_IMP(Similarity *self, OutStream *target) {
     // Only the class name.
-    CB_Serialize(Sim_Get_Class_Name(self), target);
+    Freezer_serialize_string(Sim_Get_Class_Name(self), target);
 }
 
 Similarity*
-Sim_deserialize(Similarity *self, InStream *instream) {
-    CharBuf *class_name = CB_deserialize(NULL, instream);
-    if (!self) {
-        VTable *vtable = VTable_singleton(class_name, SIMILARITY);
-        self = (Similarity*)VTable_Make_Obj(vtable);
-    }
-    else if (!CB_Equals(class_name, (Obj*)Sim_Get_Class_Name(self))) {
+Sim_Deserialize_IMP(Similarity *self, InStream *instream) {
+    String *class_name = Freezer_read_string(instream);
+    if (!Str_Equals(class_name, (Obj*)Sim_Get_Class_Name(self))) {
         THROW(ERR, "Class name mismatch: '%o' '%o'", Sim_Get_Class_Name(self),
               class_name);
     }
     DECREF(class_name);
-
     Sim_init(self);
     return self;
 }
 
-bool_t
-Sim_equals(Similarity *self, Obj *other) {
-    if (Sim_Get_VTable(self) != Obj_Get_VTable(other)) { return false; }
+bool
+Sim_Equals_IMP(Similarity *self, Obj *other) {
+    if (Sim_Get_Class(self) != Obj_Get_Class(other)) { return false; }
     return true;
 }
 
 float
-Sim_idf(Similarity *self, int64_t doc_freq, int64_t total_docs) {
+Sim_IDF_IMP(Similarity *self, int64_t doc_freq, int64_t total_docs) {
     UNUSED_VAR(self);
     if (total_docs == 0) {
         // Guard against log of zero error, return meaningless number.
@@ -139,13 +138,13 @@ Sim_idf(Similarity *self, int64_t doc_freq, int64_t total_docs) {
 }
 
 float
-Sim_tf(Similarity *self, float freq) {
+Sim_TF_IMP(Similarity *self, float freq) {
     UNUSED_VAR(self);
     return (float)sqrt(freq);
 }
 
 uint32_t
-Sim_encode_norm(Similarity *self, float f) {
+Sim_Encode_Norm_IMP(Similarity *self, float f) {
     uint32_t norm;
     UNUSED_VAR(self);
 
@@ -173,7 +172,7 @@ Sim_encode_norm(Similarity *self, float f) {
 }
 
 float
-Sim_decode_norm(Similarity *self, uint32_t input) {
+Sim_Decode_Norm_IMP(Similarity *self, uint32_t input) {
     uint8_t  byte = input & 0xFF;
     uint32_t result;
     UNUSED_VAR(self);
@@ -191,7 +190,7 @@ Sim_decode_norm(Similarity *self, uint32_t input) {
 }
 
 float
-Sim_length_norm(Similarity *self, uint32_t num_tokens) {
+Sim_Length_Norm_IMP(Similarity *self, uint32_t num_tokens) {
     UNUSED_VAR(self);
     if (num_tokens == 0) { // guard against div by zero
         return 0;
@@ -202,7 +201,7 @@ Sim_length_norm(Similarity *self, uint32_t num_tokens) {
 }
 
 float
-Sim_query_norm(Similarity *self, float sum_of_squared_weights) {
+Sim_Query_Norm_IMP(Similarity *self, float sum_of_squared_weights) {
     UNUSED_VAR(self);
     if (sum_of_squared_weights == 0.0f) { // guard against div by zero
         return 0;
@@ -213,7 +212,7 @@ Sim_query_norm(Similarity *self, float sum_of_squared_weights) {
 }
 
 float
-Sim_coord(Similarity *self, uint32_t overlap, uint32_t max_overlap) {
+Sim_Coord_IMP(Similarity *self, uint32_t overlap, uint32_t max_overlap) {
     UNUSED_VAR(self);
     if (max_overlap == 0) {
         return 1;

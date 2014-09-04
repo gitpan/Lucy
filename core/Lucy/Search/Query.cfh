@@ -34,7 +34,7 @@ parcel Lucy;
  * can actually match and score documents.
  */
 
-class Lucy::Search::Query inherits Lucy::Object::Obj : dumpable {
+public class Lucy::Search::Query inherits Clownfish::Obj {
 
     float boost;
 
@@ -51,7 +51,7 @@ class Lucy::Search::Query inherits Lucy::Object::Obj : dumpable {
     /** Abstract factory method returning a Compiler derived from this Query.
      *
      * @param searcher A Searcher.
-     * @param boost A scoring multiplier. Defaults to the Query's own boost.
+     * @param boost A scoring multiplier.
      * @param subordinate Indicates whether the Query is a subquery (as
      * opposed to a top-level query).  If false, the implementation must
      * invoke Normalize() on the newly minted Compiler object before returning
@@ -59,7 +59,7 @@ class Lucy::Search::Query inherits Lucy::Object::Obj : dumpable {
      */
     public abstract incremented Compiler*
     Make_Compiler(Query *self, Searcher *searcher, float boost,
-                  bool_t subordinate = false);
+                  bool subordinate = false);
 
     /** Set the Query's boost.
      */
@@ -75,7 +75,13 @@ class Lucy::Search::Query inherits Lucy::Object::Obj : dumpable {
     Serialize(Query *self, OutStream *outstream);
 
     public incremented Query*
-    Deserialize(Query *self, InStream *instream);
+    Deserialize(decremented Query *self, InStream *instream);
+
+    public incremented Obj*
+    Dump(Query *self);
+
+    public incremented Obj*
+    Load(Query *self, Obj *dump);
 }
 
 

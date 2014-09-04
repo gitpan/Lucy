@@ -60,8 +60,6 @@ Return the score of the current document.
 
 Only Matchers which are used for scored search need implement score().
 
-
-
 =head1 METHODS
 
 =head2 advance(target)
@@ -86,7 +84,7 @@ Returns: A positive doc id, or 0 once the iterator is exhausted.
 
 =head1 INHERITANCE
 
-Lucy::Search::Matcher isa L<Lucy::Object::Obj>.
+Lucy::Search::Matcher isa Clownfish::Obj.
 
 
 =cut

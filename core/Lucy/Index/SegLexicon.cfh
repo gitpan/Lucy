@@ -19,7 +19,7 @@ parcel Lucy;
 /** Single-segment Lexicon.
  */
 
-class Lucy::Index::SegLexicon cnick SegLex
+class Lucy::Index::SegLexicon nickname SegLex
     inherits Lucy::Index::Lexicon {
 
     Segment         *segment;
@@ -41,11 +41,11 @@ class Lucy::Index::SegLexicon cnick SegLex
      */
     inert incremented SegLexicon*
     new(Schema *schema, Folder *folder, Segment *segment,
-        const CharBuf *field);
+        String *field);
 
     inert SegLexicon*
     init(SegLexicon *self, Schema *schema, Folder *folder, Segment *segment,
-         const CharBuf *field);
+         String *field);
 
     nullable TermInfo*
     Get_Term_Info(SegLexicon *self);
@@ -71,7 +71,7 @@ class Lucy::Index::SegLexicon cnick SegLex
     public int32_t
     Doc_Freq(SegLexicon *self);
 
-    public bool_t
+    public bool
     Next(SegLexicon *self);
 }
 

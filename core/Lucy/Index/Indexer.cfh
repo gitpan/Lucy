@@ -36,7 +36,7 @@ parcel Lucy;
  * documents added this indexing session but not yet committed.  This may
  * change in a future update.
  */
-class Lucy::Index::Indexer inherits Lucy::Object::Obj {
+public class Lucy::Index::Indexer inherits Clownfish::Obj {
 
     Schema            *schema;
     Folder            *folder;
@@ -50,11 +50,11 @@ class Lucy::Index::Indexer inherits Lucy::Object::Obj {
     Lock              *write_lock;
     Lock              *merge_lock;
     Doc               *stock_doc;
-    CharBuf           *snapfile;
-    bool_t             truncate;
-    bool_t             optimize;
-    bool_t             needs_commit;
-    bool_t             prepared;
+    String            *snapfile;
+    bool               truncate;
+    bool               optimize;
+    bool               needs_commit;
+    bool               prepared;
 
     public inert int32_t TRUNCATE;
     public inert int32_t CREATE;
@@ -103,7 +103,7 @@ class Lucy::Index::Indexer inherits Lucy::Object::Obj {
      * will be processed automatically (so don't pre-process it yourself).
      */
     public void
-    Delete_By_Term(Indexer *self, CharBuf *field, Obj *term);
+    Delete_By_Term(Indexer *self, String *field, Obj *term);
 
     /** Mark documents which match the supplied Query as deleted.
      *
@@ -112,8 +112,31 @@ class Lucy::Index::Indexer inherits Lucy::Object::Obj {
     public void
     Delete_By_Query(Indexer *self, Query *query);
 
+    /** Mark the document identified by the supplied document ID as deleted.
+     *
+     * @param doc_id A L<document id|Lucy::Docs::DocIDs>.
+     */
+    public void
+    Delete_By_Doc_ID(Indexer *self, int32_t doc_id);
+
     /** Optimize the index for search-time performance.  This may take a
      * while, as it can involve rewriting large amounts of data.
+     *
+     * Every Indexer session which changes index content and ends in a
+     * Commit() creates a new segment.  Once written, segments are never
+     * modified.  However, they are periodically recycled by feeding their
+     * content into the segment currently being written.
+     *
+     * The Optimize() method causes all existing index content to be fed back
+     * into the Indexer.  When Commit() completes after an Optimize(), the
+     * index will consist of one segment.  So Optimize() must be called
+     * before Commit().  Also, optimizing a fresh index created from scratch
+     * has no effect.
+     *
+     * Historically, there was a significant search-time performance benefit
+     * to collapsing down to a single segment versus even two segments.  Now
+     * the effect of collapsing is much less significant, and calling
+     * Optimize() is rarely justified.
      */
     public void
     Optimize(Indexer *self);
@@ -133,6 +156,11 @@ class Lucy::Index::Indexer inherits Lucy::Object::Obj {
      */
     public void
     Prepare_Commit(Indexer *self);
+
+    /** Accessor for schema.
+     */
+    public Schema*
+    Get_Schema(Indexer *self);
 
     /** Accessor for seg_writer member var.
      */

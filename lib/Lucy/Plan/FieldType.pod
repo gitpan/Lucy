@@ -21,14 +21,12 @@ Lucy::Plan::FieldType - Define a field's behavior.
 
 =head1 SYNOPSIS
 
-
     my @sortable;
     for my $field ( @{ $schema->all_fields } ) {
         my $type = $schema->fetch_type($field);
         next unless $type->sortable;
         push @sortable, $field;
     }
-
 
 
 
@@ -65,8 +63,6 @@ C<< indexed >>.
 
 
 
-
-
 =head1 METHODS
 
 =head2 get_boost()
@@ -93,7 +89,7 @@ Indicate whether the field contains binary data.
 
 =head1 INHERITANCE
 
-Lucy::Plan::FieldType isa L<Lucy::Object::Obj>.
+Lucy::Plan::FieldType isa Clownfish::Obj.
 
 
 =cut

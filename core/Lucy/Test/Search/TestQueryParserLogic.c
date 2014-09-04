@@ -14,18 +14,19 @@
  * limitations under the License.
  */
 
-#define C_LUCY_TESTQUERYPARSERLOGIC
-#define C_LUCY_TESTQUERYPARSER
+#define C_TESTLUCY_TESTQUERYPARSERLOGIC
+#define C_TESTLUCY_TESTQUERYPARSER
+#define TESTLUCY_USE_SHORT_NAMES
 #include "Lucy/Util/ToolSet.h"
 #include <string.h>
 
+#include "Clownfish/TestHarness/TestBatchRunner.h"
 #include "Lucy/Test.h"
 #include "Lucy/Test/Search/TestQueryParserLogic.h"
 #include "Lucy/Test/Search/TestQueryParser.h"
 #include "Lucy/Test/TestSchema.h"
 #include "Lucy/Test/TestUtils.h"
 #include "Lucy/Analysis/Analyzer.h"
-#include "Lucy/Analysis/RegexTokenizer.h"
 #include "Lucy/Document/Doc.h"
 #include "Lucy/Index/Indexer.h"
 #include "Lucy/Search/Hits.h"
@@ -42,9 +43,14 @@
 #include "Lucy/Search/RequiredOptionalQuery.h"
 #include "Lucy/Store/RAMFolder.h"
 
-#define make_leaf_query   (Query*)lucy_TestUtils_make_leaf_query
-#define make_not_query    (Query*)lucy_TestUtils_make_not_query
-#define make_poly_query   (Query*)lucy_TestUtils_make_poly_query
+#define make_leaf_query   (Query*)TestUtils_make_leaf_query
+#define make_not_query    (Query*)TestUtils_make_not_query
+#define make_poly_query   (Query*)TestUtils_make_poly_query
+
+TestQueryParserLogic*
+TestQPLogic_new() {
+    return (TestQueryParserLogic*)Class_Make_Obj(TESTQUERYPARSERLOGIC);
+}
 
 static TestQueryParser*
 logical_test_empty_phrase(uint32_t boolop) {
@@ -769,9 +775,9 @@ prune_test_not_and_not() {
 /***************************************************************************/
 
 typedef TestQueryParser*
-(*lucy_TestQPLogic_logical_test_t)(uint32_t boolop_sym);
+(*LUCY_TestQPLogic_Logical_Test_t)(uint32_t boolop_sym);
 
-static lucy_TestQPLogic_logical_test_t logical_test_funcs[] = {
+static LUCY_TestQPLogic_Logical_Test_t logical_test_funcs[] = {
     logical_test_empty_phrase,
     logical_test_empty_parens,
     logical_test_nested_empty_parens,
@@ -837,9 +843,9 @@ static lucy_TestQPLogic_logical_test_t logical_test_funcs[] = {
 };
 
 typedef TestQueryParser*
-(*lucy_TestQPLogic_prune_test_t)();
+(*LUCY_TestQPLogic_Prune_Test_t)();
 
-static lucy_TestQPLogic_prune_test_t prune_test_funcs[] = {
+static LUCY_TestQPLogic_Prune_Test_t prune_test_funcs[] = {
     prune_test_null_querystring,
     prune_test_matchall,
     prune_test_nomatch,
@@ -852,13 +858,13 @@ static lucy_TestQPLogic_prune_test_t prune_test_funcs[] = {
 
 static Folder*
 S_create_index() {
-    Schema     *schema  = (Schema*)TestSchema_new();
+    Schema     *schema  = (Schema*)TestSchema_new(false);
     RAMFolder  *folder  = RAMFolder_new(NULL);
     VArray     *doc_set = TestUtils_doc_set();
     Indexer    *indexer = Indexer_new(schema, (Obj*)folder, NULL, 0);
     uint32_t i, max;
 
-    CharBuf *field = (CharBuf*)ZCB_WRAP_STR("content", 7);
+    String *field = (String*)SSTR_WRAP_UTF8("content", 7);
     for (i = 0, max = VA_Get_Size(doc_set); i < max; i++) {
         Doc *doc = Doc_new(NULL, 0);
         Doc_Store(doc, field, VA_Fetch(doc_set, i));
@@ -876,88 +882,89 @@ S_create_index() {
 }
 
 void
-TestQPLogic_run_tests() {
+TestQPLogic_Run_IMP(TestQueryParserLogic *self, TestBatchRunner *runner) {
+    TestBatchRunner_Plan(runner, (TestBatch*)self, 258);
+
     uint32_t i;
-    TestBatch     *batch      = TestBatch_new(258);
     Folder        *folder     = S_create_index();
     IndexSearcher *searcher   = IxSearcher_new((Obj*)folder);
     QueryParser   *or_parser  = QParser_new(IxSearcher_Get_Schema(searcher),
                                             NULL, NULL, NULL);
-    ZombieCharBuf *AND        = ZCB_WRAP_STR("AND", 3);
+    StackString *AND        = SSTR_WRAP_UTF8("AND", 3);
     QueryParser   *and_parser = QParser_new(IxSearcher_Get_Schema(searcher),
-                                            NULL, (CharBuf*)AND, NULL);
+                                            NULL, (String*)AND, NULL);
     QParser_Set_Heed_Colons(or_parser, true);
     QParser_Set_Heed_Colons(and_parser, true);
 
-    TestBatch_Plan(batch);
-
     // Run logical tests with default boolop of OR.
     for (i = 0; logical_test_funcs[i] != NULL; i++) {
-        lucy_TestQPLogic_logical_test_t test_func = logical_test_funcs[i];
-        TestQueryParser *test_case = test_func(BOOLOP_OR);
+        LUCY_TestQPLogic_Logical_Test_t test_func = logical_test_funcs[i];
+        TestQueryParser *test_case_obj = test_func(BOOLOP_OR);
+        TestQueryParserIVARS *test_case = TestQP_IVARS(test_case_obj);
         Query *tree     = QParser_Tree(or_parser, test_case->query_string);
         Query *parsed   = QParser_Parse(or_parser, test_case->query_string);
         Hits  *hits     = IxSearcher_Hits(searcher, (Obj*)parsed, 0, 10, NULL);
 
-        TEST_TRUE(batch, Query_Equals(tree, (Obj*)test_case->tree),
-                  "tree() OR   %s", (char*)CB_Get_Ptr8(test_case->query_string));
-        TEST_INT_EQ(batch, Hits_Total_Hits(hits), test_case->num_hits,
-                    "hits: OR   %s", (char*)CB_Get_Ptr8(test_case->query_string));
+        TEST_TRUE(runner, Query_Equals(tree, (Obj*)test_case->tree),
+                  "tree() OR   %s", Str_Get_Ptr8(test_case->query_string));
+        TEST_INT_EQ(runner, Hits_Total_Hits(hits), test_case->num_hits,
+                    "hits: OR   %s", Str_Get_Ptr8(test_case->query_string));
         DECREF(hits);
         DECREF(parsed);
         DECREF(tree);
-        DECREF(test_case);
+        DECREF(test_case_obj);
     }
 
     // Run logical tests with default boolop of AND.
     for (i = 0; logical_test_funcs[i] != NULL; i++) {
-        lucy_TestQPLogic_logical_test_t test_func = logical_test_funcs[i];
-        TestQueryParser *test_case = test_func(BOOLOP_AND);
+        LUCY_TestQPLogic_Logical_Test_t test_func = logical_test_funcs[i];
+        TestQueryParser *test_case_obj = test_func(BOOLOP_AND);
+        TestQueryParserIVARS *test_case = TestQP_IVARS(test_case_obj);
         Query *tree     = QParser_Tree(and_parser, test_case->query_string);
         Query *parsed   = QParser_Parse(and_parser, test_case->query_string);
         Hits  *hits     = IxSearcher_Hits(searcher, (Obj*)parsed, 0, 10, NULL);
 
-        TEST_TRUE(batch, Query_Equals(tree, (Obj*)test_case->tree),
-                  "tree() AND   %s", (char*)CB_Get_Ptr8(test_case->query_string));
-        TEST_INT_EQ(batch, Hits_Total_Hits(hits), test_case->num_hits,
-                    "hits: AND   %s", (char*)CB_Get_Ptr8(test_case->query_string));
+        TEST_TRUE(runner, Query_Equals(tree, (Obj*)test_case->tree),
+                  "tree() AND   %s", Str_Get_Ptr8(test_case->query_string));
+        TEST_INT_EQ(runner, Hits_Total_Hits(hits), test_case->num_hits,
+                    "hits: AND   %s", Str_Get_Ptr8(test_case->query_string));
         DECREF(hits);
         DECREF(parsed);
         DECREF(tree);
-        DECREF(test_case);
+        DECREF(test_case_obj);
     }
 
     // Run tests for QParser_Prune().
     for (i = 0; prune_test_funcs[i] != NULL; i++) {
-        lucy_TestQPLogic_prune_test_t test_func = prune_test_funcs[i];
-        TestQueryParser *test_case = test_func();
-        CharBuf *qstring = test_case->tree
-                           ? Query_To_String(test_case->tree)
-                           : CB_new_from_trusted_utf8("(NULL)", 6);
+        LUCY_TestQPLogic_Prune_Test_t test_func = prune_test_funcs[i];
+        TestQueryParser *test_case_obj = test_func();
+        TestQueryParserIVARS *test_case = TestQP_IVARS(test_case_obj);
+        String *qstring = test_case->tree
+                          ? Query_To_String(test_case->tree)
+                          : Str_new_from_trusted_utf8("(NULL)", 6);
         Query *tree = test_case->tree;
         Query *wanted = test_case->expanded;
         Query *pruned   = QParser_Prune(or_parser, tree);
         Query *expanded;
         Hits  *hits;
 
-        TEST_TRUE(batch, Query_Equals(pruned, (Obj*)wanted),
-                  "prune()   %s", (char*)CB_Get_Ptr8(qstring));
+        TEST_TRUE(runner, Query_Equals(pruned, (Obj*)wanted),
+                  "prune()   %s", Str_Get_Ptr8(qstring));
         expanded = QParser_Expand(or_parser, pruned);
         hits = IxSearcher_Hits(searcher, (Obj*)expanded, 0, 10, NULL);
-        TEST_INT_EQ(batch, Hits_Total_Hits(hits), test_case->num_hits,
-                    "hits:    %s", (char*)CB_Get_Ptr8(qstring));
+        TEST_INT_EQ(runner, Hits_Total_Hits(hits), test_case->num_hits,
+                    "hits:    %s", Str_Get_Ptr8(qstring));
 
         DECREF(hits);
         DECREF(expanded);
         DECREF(pruned);
         DECREF(qstring);
-        DECREF(test_case);
+        DECREF(test_case_obj);
     }
 
     DECREF(and_parser);
     DECREF(or_parser);
     DECREF(searcher);
     DECREF(folder);
-    DECREF(batch);
 }
 

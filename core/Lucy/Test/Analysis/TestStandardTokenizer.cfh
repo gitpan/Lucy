@@ -14,11 +14,16 @@
  * limitations under the License.
  */
 
-parcel Lucy;
+parcel TestLucy;
 
-inert class Lucy::Test::Analysis::TestStandardTokenizer {
-    inert void
-    run_tests();
+class Lucy::Test::Analysis::TestStandardTokenizer
+    inherits Clownfish::TestHarness::TestBatch {
+
+    inert incremented TestStandardTokenizer*
+    new();
+
+    void
+    Run(TestStandardTokenizer *self, TestBatchRunner *runner);
 }
 
 

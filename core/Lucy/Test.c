@@ -14,281 +14,142 @@
  * limitations under the License.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#define C_LUCY_TESTBATCH
-#include "Lucy/Util/ToolSet.h"
+#define CFISH_USE_SHORT_NAMES
+#define TESTLUCY_USE_SHORT_NAMES
 
 #include "Lucy/Test.h"
 
-TestBatch*
-TestBatch_new(int64_t num_tests) {
-    TestBatch *self = (TestBatch*)VTable_Make_Obj(TESTBATCH);
-    return TestBatch_init(self, num_tests);
-}
+#include "Clownfish/TestHarness/TestBatch.h"
+#include "Clownfish/TestHarness/TestSuite.h"
 
-TestBatch*
-TestBatch_init(TestBatch *self, int64_t num_tests) {
-    // Assign.
-    self->num_tests       = num_tests;
+#include "Lucy/Test/Analysis/TestAnalyzer.h"
+#include "Lucy/Test/Analysis/TestCaseFolder.h"
+#include "Lucy/Test/Analysis/TestNormalizer.h"
+#include "Lucy/Test/Analysis/TestPolyAnalyzer.h"
+#include "Lucy/Test/Analysis/TestRegexTokenizer.h"
+#include "Lucy/Test/Analysis/TestSnowballStemmer.h"
+#include "Lucy/Test/Analysis/TestSnowballStopFilter.h"
+#include "Lucy/Test/Analysis/TestStandardTokenizer.h"
+#include "Lucy/Test/Highlight/TestHeatMap.h"
+#include "Lucy/Test/Highlight/TestHighlighter.h"
+#include "Lucy/Test/Index/TestDocWriter.h"
+#include "Lucy/Test/Index/TestHighlightWriter.h"
+#include "Lucy/Test/Index/TestIndexManager.h"
+#include "Lucy/Test/Index/TestPolyReader.h"
+#include "Lucy/Test/Index/TestPostingListWriter.h"
+#include "Lucy/Test/Index/TestSegWriter.h"
+#include "Lucy/Test/Index/TestSegment.h"
+#include "Lucy/Test/Index/TestSnapshot.h"
+#include "Lucy/Test/Index/TestSortWriter.h"
+#include "Lucy/Test/Index/TestTermInfo.h"
+#include "Lucy/Test/Object/TestBitVector.h"
+#include "Lucy/Test/Object/TestI32Array.h"
+#include "Lucy/Test/Plan/TestBlobType.h"
+#include "Lucy/Test/Plan/TestFieldMisc.h"
+#include "Lucy/Test/Plan/TestFieldType.h"
+#include "Lucy/Test/Plan/TestFullTextType.h"
+#include "Lucy/Test/Plan/TestNumericType.h"
+#include "Lucy/Test/Search/TestLeafQuery.h"
+#include "Lucy/Test/Search/TestMatchAllQuery.h"
+#include "Lucy/Test/Search/TestNOTQuery.h"
+#include "Lucy/Test/Search/TestNoMatchQuery.h"
+#include "Lucy/Test/Search/TestPhraseQuery.h"
+#include "Lucy/Test/Search/TestPolyQuery.h"
+#include "Lucy/Test/Search/TestQueryParserLogic.h"
+#include "Lucy/Test/Search/TestQueryParserSyntax.h"
+#include "Lucy/Test/Search/TestRangeQuery.h"
+#include "Lucy/Test/Search/TestReqOptQuery.h"
+#include "Lucy/Test/Search/TestSeriesMatcher.h"
+#include "Lucy/Test/Search/TestSortSpec.h"
+#include "Lucy/Test/Search/TestSpan.h"
+#include "Lucy/Test/Search/TestTermQuery.h"
+#include "Lucy/Test/Store/TestCompoundFileReader.h"
+#include "Lucy/Test/Store/TestCompoundFileWriter.h"
+#include "Lucy/Test/Store/TestFSDirHandle.h"
+#include "Lucy/Test/Store/TestFSFileHandle.h"
+#include "Lucy/Test/Store/TestFSFolder.h"
+#include "Lucy/Test/Store/TestFileHandle.h"
+#include "Lucy/Test/Store/TestFolder.h"
+#include "Lucy/Test/Store/TestIOChunks.h"
+#include "Lucy/Test/Store/TestIOPrimitives.h"
+#include "Lucy/Test/Store/TestInStream.h"
+#include "Lucy/Test/Store/TestRAMDirHandle.h"
+#include "Lucy/Test/Store/TestRAMFileHandle.h"
+#include "Lucy/Test/Store/TestRAMFolder.h"
+#include "Lucy/Test/TestSchema.h"
+#include "Lucy/Test/Util/TestIndexFileNames.h"
+#include "Lucy/Test/Util/TestJson.h"
+#include "Lucy/Test/Util/TestMemoryPool.h"
+#include "Lucy/Test/Util/TestPriorityQueue.h"
+#include "Lucy/Test/Util/TestSortExternal.h"
 
-    // Initialize.
-    self->test_num        = 0;
-    self->num_passed      = 0;
-    self->num_failed      = 0;
-    self->num_skipped     = 0;
+TestSuite*
+Test_create_test_suite() {
+    TestSuite *suite = TestSuite_new();
 
-    // Unbuffer stdout. TODO: move this elsewhere.
-    int check_val = setvbuf(stdout, NULL, _IONBF, 0);
-    if (check_val != 0) {
-        fprintf(stderr, "Failed when trying to unbuffer stdout\n");
-    }
+    TestSuite_Add_Batch(suite, (TestBatch*)TestPriQ_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestBitVector_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestSortExternal_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestMemPool_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestIxFileNames_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestJson_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestI32Arr_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestRAMFH_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestFSFH_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestInStream_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestFH_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestIOPrimitives_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestIOChunks_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestRAMDH_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestFSDH_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestFSFolder_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestRAMFolder_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestFolder_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestIxManager_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestCFWriter_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestCFReader_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestAnalyzer_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestPolyAnalyzer_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestCaseFolder_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestRegexTokenizer_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestSnowStop_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestSnowStemmer_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestNormalizer_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestStandardTokenizer_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestSnapshot_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestTermInfo_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestFieldMisc_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestBatchSchema_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestDocWriter_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestHLWriter_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestPListWriter_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestSegWriter_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestSortWriter_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestPolyReader_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestFullTextType_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestBlobType_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestNumericType_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestFType_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestSeg_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestHighlighter_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestSpan_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestHeatMap_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestTermQuery_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestPhraseQuery_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestSortSpec_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestRangeQuery_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestANDQuery_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestMatchAllQuery_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestNOTQuery_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestReqOptQuery_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestLeafQuery_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestNoMatchQuery_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestSeriesMatcher_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestORQuery_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestQPLogic_new());
+    TestSuite_Add_Batch(suite, (TestBatch*)TestQPSyntax_new());
 
-    return self;
-}
-
-void
-TestBatch_plan(TestBatch *self) {
-    printf("1..%" I64P "\n", self->num_tests);
-}
-
-bool_t
-TestBatch_test_true(void *vself, bool_t condition, const char *pattern, ...) {
-    va_list args;
-    va_start(args, pattern);
-    bool_t result = TestBatch_VTest_True((TestBatch*)vself, condition,
-                                         pattern, args);
-    va_end(args);
-    return result;
-}
-
-bool_t
-TestBatch_test_false(void *vself, bool_t condition, const char *pattern, ...) {
-    va_list args;
-    va_start(args, pattern);
-    bool_t result = TestBatch_VTest_False((TestBatch*)vself, condition,
-                                          pattern, args);
-    va_end(args);
-    return result;
-}
-
-bool_t
-TestBatch_test_int_equals(void *vself, long got, long expected,
-                          const char *pattern, ...) {
-    va_list args;
-    va_start(args, pattern);
-    bool_t result = TestBatch_VTest_Int_Equals((TestBatch*)vself, got,
-                                               expected, pattern, args);
-    va_end(args);
-    return result;
-}
-
-bool_t
-TestBatch_test_float_equals(void *vself, double got, double expected,
-                            const char *pattern, ...) {
-    va_list args;
-    va_start(args, pattern);
-    bool_t result = TestBatch_VTest_Float_Equals((TestBatch*)vself, got,
-                                                 expected, pattern, args);
-    va_end(args);
-    return result;
-}
-
-bool_t
-TestBatch_test_string_equals(void *vself, const char *got,
-                             const char *expected, const char *pattern, ...) {
-    va_list args;
-    va_start(args, pattern);
-    bool_t result = TestBatch_VTest_String_Equals((TestBatch*)vself, got,
-                                                  expected, pattern, args);
-    va_end(args);
-    return result;
-}
-
-bool_t
-TestBatch_pass(void *vself, const char *pattern, ...) {
-    va_list args;
-    va_start(args, pattern);
-    bool_t result = TestBatch_VPass((TestBatch*)vself, pattern, args);
-    va_end(args);
-    return result;
-}
-
-bool_t
-TestBatch_fail(void *vself, const char *pattern, ...) {
-    va_list args;
-    va_start(args, pattern);
-    bool_t result = TestBatch_VFail((TestBatch*)vself, pattern, args);
-    va_end(args);
-    return result;
-}
-
-void
-TestBatch_skip(void *vself, const char *pattern, ...) {
-    va_list args;
-    va_start(args, pattern);
-    TestBatch_VSkip((TestBatch*)vself, pattern, args);
-    va_end(args);
-}
-
-bool_t
-TestBatch_vtest_true(TestBatch *self, bool_t condition, const char *pattern,
-                     va_list args) {
-    // Increment test number.
-    self->test_num++;
-
-    // Test condition and pass or fail.
-    if (condition) {
-        self->num_passed++;
-        printf("ok %" I64P " - ", self->test_num);
-        vprintf(pattern, args);
-        printf("\n");
-        return true;
-    }
-    else {
-        self->num_failed++;
-        printf("not ok %" I64P " - ", self->test_num);
-        vprintf(pattern, args);
-        printf("\n");
-        return false;
-    }
-}
-
-bool_t
-TestBatch_vtest_false(TestBatch *self, bool_t condition,
-                      const char *pattern, va_list args) {
-    // Increment test number.
-    self->test_num++;
-
-    // Test condition and pass or fail.
-    if (!condition) {
-        self->num_passed++;
-        printf("ok %" I64P " - ", self->test_num);
-        vprintf(pattern, args);
-        printf("\n");
-        return true;
-    }
-    else {
-        self->num_failed++;
-        printf("not ok %" I64P " - ", self->test_num);
-        vprintf(pattern, args);
-        printf("\n");
-        return false;
-    }
-}
-
-bool_t
-TestBatch_vtest_int_equals(TestBatch *self, long got, long expected,
-                           const char *pattern, va_list args) {
-    // Increment test number.
-    self->test_num++;
-
-    // Test condition and pass or fail.
-    if (expected == got) {
-        self->num_passed++;
-        printf("ok %" I64P " - ", self->test_num);
-        vprintf(pattern, args);
-        printf("\n");
-        return true;
-    }
-    else {
-        self->num_failed++;
-        printf("not ok %" I64P " - Expected '%ld', got '%ld'\n    ",
-               self->test_num, expected, got);
-        vprintf(pattern, args);
-        printf("\n");
-        return false;
-    }
-}
-
-bool_t
-TestBatch_vtest_float_equals(TestBatch *self, double got, double expected,
-                             const char *pattern, va_list args) {
-    double diff = expected / got;
-
-    // Increment test number.
-    self->test_num++;
-
-    // Evaluate condition and pass or fail.
-    if (diff > 0.00001) {
-        self->num_passed++;
-        printf("ok %" I64P " - ", self->test_num);
-        vprintf(pattern, args);
-        printf("\n");
-        return true;
-    }
-    else {
-        self->num_failed++;
-        printf("not ok %" I64P " - Expected '%f', got '%f'\n    ",
-               self->test_num, expected, got);
-        vprintf(pattern, args);
-        printf("\n");
-        return false;
-    }
-}
-
-bool_t
-TestBatch_vtest_string_equals(TestBatch *self, const char *got,
-                              const char *expected, const char *pattern,
-                              va_list args) {
-    // Increment test number.
-    self->test_num++;
-
-    // Test condition and pass or fail.
-    if (strcmp(expected, got) == 0) {
-        self->num_passed++;
-        printf("ok %" I64P " - ", self->test_num);
-        vprintf(pattern, args);
-        printf("\n");
-        return true;
-    }
-    else {
-        self->num_failed++;
-        printf("not ok %" I64P " - Expected '%s', got '%s'\n    ",
-               self->test_num, expected, got);
-        vprintf(pattern, args);
-        printf("\n");
-        return false;
-    }
-}
-
-bool_t
-TestBatch_vpass(TestBatch *self, const char *pattern, va_list args) {
-    // Increment test number.
-    self->test_num++;
-
-    // Update counter, indicate pass.
-    self->num_passed++;
-    printf("ok %" I64P " - ", self->test_num);
-    vprintf(pattern, args);
-    printf("\n");
-
-    return true;
-}
-
-bool_t
-TestBatch_vfail(TestBatch *self, const char *pattern, va_list args) {
-    // Increment test number.
-    self->test_num++;
-
-    // Update counter, indicate failure.
-    self->num_failed++;
-    printf("not ok %" I64P " - ", self->test_num);
-    vprintf(pattern, args);
-    printf("\n");
-
-    return false;
-}
-
-void
-TestBatch_vskip(TestBatch *self, const char *pattern, va_list args) {
-    self->test_num++;
-    printf("ok %" I64P " # SKIP ", self->test_num);
-    vprintf(pattern, args);
-    printf("\n");
-    self->num_skipped++;
+    return suite;
 }
 
 

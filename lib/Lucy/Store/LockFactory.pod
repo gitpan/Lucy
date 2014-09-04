@@ -68,8 +68,6 @@ B<host> - An identifier which should be unique per-machine.
 
 
 
-
-
 =head1 METHODS
 
 =head2 make_lock( I<[labeled params]> )
@@ -123,7 +121,7 @@ B<interval> - Time in milliseconds between retries.
 
 =head1 INHERITANCE
 
-Lucy::Store::LockFactory isa L<Lucy::Object::Obj>.
+Lucy::Store::LockFactory isa Clownfish::Obj.
 
 
 =cut

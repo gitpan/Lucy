@@ -14,22 +14,31 @@
  * limitations under the License.
  */
 
-#define C_LUCY_TESTSTANDARDTOKENIZER
+#define C_TESTLUCY_TESTSTANDARDTOKENIZER
+#define TESTLUCY_USE_SHORT_NAMES
 #include "Lucy/Util/ToolSet.h"
 
+#include "Clownfish/TestHarness/TestBatchRunner.h"
 #include "Lucy/Test.h"
 #include "Lucy/Test/Analysis/TestStandardTokenizer.h"
 #include "Lucy/Analysis/StandardTokenizer.h"
 #include "Lucy/Store/FSFolder.h"
+#include "Lucy/Test/TestUtils.h"
 #include "Lucy/Util/Json.h"
 
+TestStandardTokenizer*
+TestStandardTokenizer_new() {
+    return (TestStandardTokenizer*)Class_Make_Obj(TESTSTANDARDTOKENIZER);
+}
+
 static void
-test_Dump_Load_and_Equals(TestBatch *batch) {
+test_Dump_Load_and_Equals(TestBatchRunner *runner) {
     StandardTokenizer *tokenizer = StandardTokenizer_new();
     Obj *dump  = StandardTokenizer_Dump(tokenizer);
-    StandardTokenizer *clone = (StandardTokenizer*)StandardTokenizer_Load(tokenizer, dump);
+    StandardTokenizer *clone
+        = (StandardTokenizer*)StandardTokenizer_Load(tokenizer, dump);
 
-    TEST_TRUE(batch,
+    TEST_TRUE(runner,
               StandardTokenizer_Equals(tokenizer, (Obj*)clone),
               "Dump => Load round trip");
 
@@ -39,10 +48,10 @@ test_Dump_Load_and_Equals(TestBatch *batch) {
 }
 
 static void
-test_tokenizer(TestBatch *batch) {
+test_tokenizer(TestBatchRunner *runner) {
     StandardTokenizer *tokenizer = StandardTokenizer_new();
 
-    ZombieCharBuf *word = ZCB_WRAP_STR(
+    StackString *word = SSTR_WRAP_UTF8(
                               " ."
                               "tha\xCC\x82t's"
                               ":"
@@ -52,59 +61,50 @@ test_tokenizer(TestBatch *batch) {
                               "a"
                               "/",
                               35);
-    VArray *got = StandardTokenizer_Split(tokenizer, (CharBuf*)word);
-    CharBuf *token = (CharBuf*)VA_Fetch(got, 0);
-    TEST_TRUE(batch,
+    VArray *got = StandardTokenizer_Split(tokenizer, (String*)word);
+    String *token = (String*)VA_Fetch(got, 0);
+    TEST_TRUE(runner,
               token
-              && CB_Is_A(token, CHARBUF)
-              && CB_Equals_Str(token, "tha\xcc\x82t's", 8),
-              "Token: %s", CB_Get_Ptr8(token));
-    token = (CharBuf*)VA_Fetch(got, 1);
-    TEST_TRUE(batch,
+              && Str_Is_A(token, STRING)
+              && Str_Equals_Utf8(token, "tha\xcc\x82t's", 8),
+              "Token: %s", Str_Get_Ptr8(token));
+    token = (String*)VA_Fetch(got, 1);
+    TEST_TRUE(runner,
               token
-              && CB_Is_A(token, CHARBUF)
-              && CB_Equals_Str(token, "1,02\xC2\xADZ4.38", 11),
-              "Token: %s", CB_Get_Ptr8(token));
-    token = (CharBuf*)VA_Fetch(got, 2);
-    TEST_TRUE(batch,
+              && Str_Is_A(token, STRING)
+              && Str_Equals_Utf8(token, "1,02\xC2\xADZ4.38", 11),
+              "Token: %s", Str_Get_Ptr8(token));
+    token = (String*)VA_Fetch(got, 2);
+    TEST_TRUE(runner,
               token
-              && CB_Is_A(token, CHARBUF)
-              && CB_Equals_Str(token, "\xE0\xB8\x81\xC2\xAD\xC2\xAD", 7),
-              "Token: %s", CB_Get_Ptr8(token));
-    token = (CharBuf*)VA_Fetch(got, 3);
-    TEST_TRUE(batch,
+              && Str_Is_A(token, STRING)
+              && Str_Equals_Utf8(token, "\xE0\xB8\x81\xC2\xAD\xC2\xAD", 7),
+              "Token: %s", Str_Get_Ptr8(token));
+    token = (String*)VA_Fetch(got, 3);
+    TEST_TRUE(runner,
               token
-              && CB_Is_A(token, CHARBUF)
-              && CB_Equals_Str(token, "\xF0\xA0\x80\x80", 4),
-              "Token: %s", CB_Get_Ptr8(token));
-    token = (CharBuf*)VA_Fetch(got, 4);
-    TEST_TRUE(batch,
+              && Str_Is_A(token, STRING)
+              && Str_Equals_Utf8(token, "\xF0\xA0\x80\x80", 4),
+              "Token: %s", Str_Get_Ptr8(token));
+    token = (String*)VA_Fetch(got, 4);
+    TEST_TRUE(runner,
               token
-              && CB_Is_A(token, CHARBUF)
-              && CB_Equals_Str(token, "a", 1),
-              "Token: %s", CB_Get_Ptr8(token));
+              && Str_Is_A(token, STRING)
+              && Str_Equals_Utf8(token, "a", 1),
+              "Token: %s", Str_Get_Ptr8(token));
     DECREF(got);
 
-    CharBuf  *path           = CB_newf("modules");
-    FSFolder *modules_folder = FSFolder_new(path);
-    if (!FSFolder_Check(modules_folder)) {
-        DECREF(modules_folder);
-        CB_setf(path, "../modules");
-        modules_folder = FSFolder_new(path);
-        if (!FSFolder_Check(modules_folder)) {
-            THROW(ERR, "Can't open modules folder");
-        }
-    }
-    CB_setf(path, "unicode/ucd/WordBreakTest.json");
+    FSFolder *modules_folder = TestUtils_modules_folder();
+    String *path = Str_newf("unicode/ucd/WordBreakTest.json");
     VArray *tests = (VArray*)Json_slurp_json((Folder*)modules_folder, path);
     if (!tests) { RETHROW(Err_get_error()); }
 
     for (uint32_t i = 0, max = VA_Get_Size(tests); i < max; i++) {
         Hash *test = (Hash*)VA_Fetch(tests, i);
-        CharBuf *text = (CharBuf*)Hash_Fetch_Str(test, "text", 4);
-        VArray *wanted = (VArray*)Hash_Fetch_Str(test, "words", 5);
+        String *text = (String*)Hash_Fetch_Utf8(test, "text", 4);
+        VArray *wanted = (VArray*)Hash_Fetch_Utf8(test, "words", 5);
         VArray *got = StandardTokenizer_Split(tokenizer, text);
-        TEST_TRUE(batch, VA_Equals(wanted, (Obj*)got), "UCD test #%d", i + 1);
+        TEST_TRUE(runner, VA_Equals(wanted, (Obj*)got), "UCD test #%d", i + 1);
         DECREF(got);
     }
 
@@ -116,15 +116,10 @@ test_tokenizer(TestBatch *batch) {
 }
 
 void
-TestStandardTokenizer_run_tests() {
-    TestBatch *batch = TestBatch_new(984);
-
-    TestBatch_Plan(batch);
-
-    test_Dump_Load_and_Equals(batch);
-    test_tokenizer(batch);
-
-    DECREF(batch);
+TestStandardTokenizer_Run_IMP(TestStandardTokenizer *self, TestBatchRunner *runner) {
+    TestBatchRunner_Plan(runner, (TestBatch*)self, 1378);
+    test_Dump_Load_and_Equals(runner);
+    test_tokenizer(runner);
 }
 
 

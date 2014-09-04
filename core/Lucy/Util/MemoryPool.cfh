@@ -26,8 +26,8 @@ parcel Lucy;
  * class to specific applications.
  */
 
-class Lucy::Util::MemoryPool cnick MemPool
-    inherits Lucy::Object::Obj {
+class Lucy::Util::MemoryPool nickname MemPool
+    inherits Clownfish::Obj {
 
     uint32_t     arena_size;
     VArray      *arenas;
@@ -57,18 +57,10 @@ class Lucy::Util::MemoryPool cnick MemPool
     void
     Resize(MemoryPool *self, void *ptr, size_t revised_amount);
 
-    /** Tell the pool to consider all previous allocations released.
+    /** Bulk free all previous allocations.
      */
     void
     Release_All(MemoryPool *self);
-
-    /** Take ownership of all the arenas in another MemoryPool.  Can only be
-     * called when the original memory pool has no outstanding allocations,
-     * typically just after a call to Release_All.  The purpose is to support
-     * bulk reallocation.
-     */
-    void
-    Eat(MemoryPool *self, MemoryPool *other);
 
     size_t
     Get_Consumed(MemoryPool *self);

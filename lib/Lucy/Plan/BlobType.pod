@@ -54,11 +54,9 @@ B<stored> - boolean indicating whether the field should be stored.
 
 
 
-
-
 =head1 INHERITANCE
 
-Lucy::Plan::BlobType isa L<Lucy::Plan::FieldType> isa L<Lucy::Object::Obj>.
+Lucy::Plan::BlobType isa L<Lucy::Plan::FieldType> isa Clownfish::Obj.
 
 
 =cut

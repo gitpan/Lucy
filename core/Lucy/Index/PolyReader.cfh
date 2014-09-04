@@ -26,7 +26,7 @@ parcel Lucy;
  * may be less efficient or complete than the single-segment implementations
  * accessed via L<SegReader|Lucy::Index::SegReader>.
  */
-class Lucy::Index::PolyReader inherits Lucy::Index::IndexReader {
+public class Lucy::Index::PolyReader inherits Lucy::Index::IndexReader {
 
     VArray   *sub_readers;
     int32_t   doc_max;
@@ -56,21 +56,7 @@ class Lucy::Index::PolyReader inherits Lucy::Index::IndexReader {
          Snapshot *snapshot = NULL, IndexManager *manager = NULL,
          VArray *sub_readers = NULL);
 
-    /** Attempt to open a SegReader for each Segment that the Snapshot knows
-     * about.  If an exception occurs, catch it and return its error message.
-     * If the opening succeeds, return a VArray full of SegReaders.
-     */
-    incremented Obj*
-    Try_Open_SegReaders(PolyReader *self, VArray *segments);
-
-    /** Attempt to read a snapshot file.  If the operation succeeds, return
-     * NULL.  If an exception occurs, catch it and return its error message.
-     */
-    inert incremented nullable CharBuf*
-    try_read_snapshot(Snapshot *snapshot, Folder *folder,
-                      const CharBuf *path);
-
-    inert CharBuf* race_condition_debug1;
+    inert String  *race_condition_debug1;
     inert int32_t  debug1_num_passes;
 
     /** Determine which sub-reader a document id belongs to.

@@ -18,8 +18,16 @@
 use strict;
 use warnings;
 
-use lib '../devel/benchmarks/indexers';
-use lib 'devel/benchmarks/indexers';
+use FindBin qw( $Bin );
+use lib $Bin;
+use lib "$Bin/../../clownfish/runtime/perl/blib/arch";
+use lib "$Bin/../../clownfish/runtime/perl/blib/lib";
+use lib "$Bin/../../../clownfish/runtime/perl/blib/arch";
+use lib "$Bin/../../../clownfish/runtime/perl/blib/lib";
+use lib "$Bin/../../../blib/arch";
+use lib "$Bin/../../../blib/lib";
+use lib "$Bin/../../../perl/blib/arch";
+use lib "$Bin/../../../perl/blib/lib";
 
 use Getopt::Long;
 use Cwd qw( getcwd );
@@ -59,7 +67,7 @@ else {
         for (@INC) {
             next unless /\bblib\b/;
             # Propagate -Mblib to the child.
-            $command .= "-Mblib ";
+            $command .= "-Mblib=$_ ";
             last;
         }
         $command .= "$0 --build_index=1 ";

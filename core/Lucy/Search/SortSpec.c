@@ -25,17 +25,18 @@
 #include "Lucy/Search/SortRule.h"
 #include "Lucy/Store/InStream.h"
 #include "Lucy/Store/OutStream.h"
-#include "Lucy/Util/SortUtils.h"
+#include "Clownfish/Util/SortUtils.h"
 
 SortSpec*
 SortSpec_new(VArray *rules) {
-    SortSpec *self = (SortSpec*)VTable_Make_Obj(SORTSPEC);
+    SortSpec *self = (SortSpec*)Class_Make_Obj(SORTSPEC);
     return SortSpec_init(self, rules);
 }
 
 SortSpec*
 SortSpec_init(SortSpec *self, VArray *rules) {
-    self->rules = VA_Shallow_Copy(rules);
+    SortSpecIVARS *const ivars = SortSpec_IVARS(self);
+    ivars->rules = VA_Shallow_Copy(rules);
     for (int32_t i = 0, max = VA_Get_Size(rules); i < max; i++) {
         SortRule *rule = (SortRule*)VA_Fetch(rules, i);
         CERTIFY(rule, SORTRULE);
@@ -44,22 +45,21 @@ SortSpec_init(SortSpec *self, VArray *rules) {
 }
 
 void
-SortSpec_destroy(SortSpec *self) {
-    DECREF(self->rules);
+SortSpec_Destroy_IMP(SortSpec *self) {
+    SortSpecIVARS *const ivars = SortSpec_IVARS(self);
+    DECREF(ivars->rules);
     SUPER_DESTROY(self, SORTSPEC);
 }
 
 SortSpec*
-SortSpec_deserialize(SortSpec *self, InStream *instream) {
+SortSpec_Deserialize_IMP(SortSpec *self, InStream *instream) {
     uint32_t num_rules = InStream_Read_C32(instream);
     VArray *rules = VA_new(num_rules);
 
-    // Create base object.
-    self = self ? self : (SortSpec*)VTable_Make_Obj(SORTSPEC);
-
     // Add rules.
     for (uint32_t i = 0; i < num_rules; i++) {
-        VA_Push(rules, (Obj*)SortRule_deserialize(NULL, instream));
+        SortRule *blank = (SortRule*)Class_Make_Obj(SORTRULE);
+        VA_Push(rules, (Obj*)SortRule_Deserialize(blank, instream));
     }
     SortSpec_init(self, rules);
     DECREF(rules);
@@ -68,16 +68,17 @@ SortSpec_deserialize(SortSpec *self, InStream *instream) {
 }
 
 VArray*
-SortSpec_get_rules(SortSpec *self) {
-    return self->rules;
+SortSpec_Get_Rules_IMP(SortSpec *self) {
+    return SortSpec_IVARS(self)->rules;
 }
 
 void
-SortSpec_serialize(SortSpec *self, OutStream *target) {
-    uint32_t num_rules = VA_Get_Size(self->rules);
+SortSpec_Serialize_IMP(SortSpec *self, OutStream *target) {
+    SortSpecIVARS *const ivars = SortSpec_IVARS(self);
+    uint32_t num_rules = VA_Get_Size(ivars->rules);
     OutStream_Write_C32(target, num_rules);
     for (uint32_t i = 0; i < num_rules; i++) {
-        SortRule *rule = (SortRule*)VA_Fetch(self->rules, i);
+        SortRule *rule = (SortRule*)VA_Fetch(ivars->rules, i);
         SortRule_Serialize(rule, target);
     }
 }

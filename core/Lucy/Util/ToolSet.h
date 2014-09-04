@@ -28,27 +28,26 @@ extern "C" {
  * header files, so that the header files remain as sparse as possible.
  */
 
+#define CFISH_USE_SHORT_NAMES
 #define LUCY_USE_SHORT_NAMES
-#define CHY_USE_SHORT_NAMES
 
-#include "charmony.h"
 #include <limits.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
-#include "Lucy/Object/Obj.h"
+#include "Clownfish/Obj.h"
 #include "Lucy/Object/BitVector.h"
-#include "Lucy/Object/ByteBuf.h"
-#include "Lucy/Object/CharBuf.h"
-#include "Lucy/Object/Err.h"
-#include "Lucy/Object/Hash.h"
+#include "Clownfish/ByteBuf.h"
+#include "Clownfish/String.h"
+#include "Clownfish/Err.h"
+#include "Clownfish/Hash.h"
 #include "Lucy/Object/I32Array.h"
-#include "Lucy/Object/Num.h"
-#include "Lucy/Object/VArray.h"
-#include "Lucy/Object/VTable.h"
-#include "Lucy/Util/NumberUtils.h"
-#include "Lucy/Util/Memory.h"
-#include "Lucy/Util/StringHelper.h"
+#include "Clownfish/Num.h"
+#include "Clownfish/VArray.h"
+#include "Clownfish/Class.h"
+#include "Clownfish/Util/NumberUtils.h"
+#include "Clownfish/Util/Memory.h"
+#include "Clownfish/Util/StringHelper.h"
 
 #ifdef __cplusplus
 }

@@ -57,8 +57,6 @@ B<term> - Term text.
 
 
 
-
-
 =head1 METHODS
 
 =head2 get_field()
@@ -73,7 +71,7 @@ Accessor for object's C<< term >> member.
 
 =head1 INHERITANCE
 
-Lucy::Search::TermQuery isa L<Lucy::Search::Query> isa L<Lucy::Object::Obj>.
+Lucy::Search::TermQuery isa L<Lucy::Search::Query> isa Clownfish::Obj.
 
 
 =cut

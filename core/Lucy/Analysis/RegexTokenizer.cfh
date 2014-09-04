@@ -47,14 +47,20 @@ parcel Lucy;
  * ... the difference being that the word character tokenizer skips over
  * punctuation as well as whitespace when determining token boundaries.
  */
-class Lucy::Analysis::RegexTokenizer
+public class Lucy::Analysis::RegexTokenizer
     inherits Lucy::Analysis::Analyzer {
 
-    CharBuf *pattern;
-    void    *token_re;
+    String *pattern;
+    void   *token_re;
+
+    /**
+     * @return true if RegexTokenizer is available in this build.
+     */
+    inert bool
+    is_available();
 
     inert incremented RegexTokenizer*
-    new(const CharBuf *pattern = NULL);
+    new(String *pattern = NULL);
 
     /**
      * @param pattern A string specifying a Perl-syntax regular expression
@@ -63,20 +69,20 @@ class Lucy::Analysis::RegexTokenizer
      * "it" and "O'Henry's" as well as "Henry".
      */
     public inert RegexTokenizer*
-    init(RegexTokenizer *self, const CharBuf *pattern = NULL);
+    init(RegexTokenizer *self, String *pattern = NULL);
 
     public incremented Inversion*
     Transform(RegexTokenizer *self, Inversion *inversion);
 
     public incremented Inversion*
-    Transform_Text(RegexTokenizer *self, CharBuf *text);
+    Transform_Text(RegexTokenizer *self, String *text);
 
     /** Tokenize the supplied string and add any Tokens generated to the
      * supplied Inversion.
      */
     void
-    Tokenize_Str(RegexTokenizer *self, const char *text, size_t len,
-                 Inversion *inversion);
+    Tokenize_Utf8(RegexTokenizer *self, const char *text, size_t len,
+                  Inversion *inversion);
 
     /** Set the compiled regular expression for matching a token.  Also sets
      * <code>pattern</code> as a side effect.
@@ -90,7 +96,7 @@ class Lucy::Analysis::RegexTokenizer
     public incremented RegexTokenizer*
     Load(RegexTokenizer *self, Obj *dump);
 
-    public bool_t
+    public bool
     Equals(RegexTokenizer *self, Obj *other);
 
     public void

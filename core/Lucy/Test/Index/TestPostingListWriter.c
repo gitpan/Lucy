@@ -14,18 +14,23 @@
  * limitations under the License.
  */
 
-#define C_LUCY_TESTPOSTINGLISTWRITER
+#define C_TESTLUCY_TESTPOSTINGLISTWRITER
+#define TESTLUCY_USE_SHORT_NAMES
 #include "Lucy/Util/ToolSet.h"
 
+#include "Clownfish/TestHarness/TestBatchRunner.h"
 #include "Lucy/Test.h"
 #include "Lucy/Test/Index/TestPostingListWriter.h"
 
+TestPostingListWriter*
+TestPListWriter_new() {
+    return (TestPostingListWriter*)Class_Make_Obj(TESTPOSTINGLISTWRITER);
+}
+
 void
-TestPListWriter_run_tests() {
-    TestBatch *batch = TestBatch_new(1);
-    TestBatch_Plan(batch);
-    PASS(batch, "Placeholder");
-    DECREF(batch);
+TestPListWriter_Run_IMP(TestPostingListWriter *self, TestBatchRunner *runner) {
+    TestBatchRunner_Plan(runner, (TestBatch*)self, 1);
+    PASS(runner, "Placeholder");
 }
 
 

@@ -14,15 +14,20 @@
  * limitations under the License.
  */
 
-parcel Lucy;
+parcel TestLucy;
 
 /** Tests for basic functionality of InStream using both memory-mapped and
  * streamed sources.
  */
 
-inert class Lucy::Test::Store::TestInStream {
-    inert void
-    run_tests();
+class Lucy::Test::Store::TestInStream
+    inherits Clownfish::TestHarness::TestBatch {
+
+    inert incremented TestInStream*
+    new();
+
+    void
+    Run(TestInStream *self, TestBatchRunner *runner);
 }
 
 

@@ -23,7 +23,7 @@ package NonMergingIndexManager;
 use base qw( Lucy::Index::IndexManager );
 
 sub recycle {
-    return Lucy::Object::VArray->new( capacity => 0 );
+    return Clownfish::VArray->new;
 }
 
 # BiggerSchema is like TestSchema, but it has an extra field named "aux".
@@ -36,7 +36,7 @@ use base qw( Lucy::Test::TestSchema );
 sub new {
     my $self = shift->SUPER::new(@_);
     my $type = Lucy::Plan::FullTextType->new(
-        analyzer      => Lucy::Analysis::RegexTokenizer->new,
+        analyzer      => Lucy::Analysis::StandardTokenizer->new,
         highlightable => 1,
     );
     $self->spec_field( name => 'content', type => $type );

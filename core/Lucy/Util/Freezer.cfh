@@ -27,6 +27,69 @@ inert class Lucy::Util::Freezer {
      */
     inert incremented Obj*
     thaw(InStream *instream);
+
+    /** Serialize an object to the outstream, but without the context provided
+     * by freeze().
+     */
+    inert void
+    serialize(Obj *obj, OutStream *outstream);
+
+    /** Deserialize an object from the instream, according to the class of the
+     * supplied blank.
+     */
+    inert incremented Obj*
+    deserialize(Obj *obj, InStream *instream);
+
+    /** Return a representation of the object using only scalars, hashes, and
+     * arrays.  Some classes support JSON serialization via dump() and its
+     * companion, load(); for others, dump() is only a debugging aid.
+     * The default simply calls To_String().
+     */
+    inert incremented Obj*
+    dump(Obj *obj);
+
+    /** Create an object from the output of a call to dump().
+     *
+     * @param dump The output of dump().
+     */
+    inert incremented Obj*
+    load(Obj *dump);
+
+    inert void
+    serialize_string(String *string, OutStream *outstream);
+
+    inert incremented String*
+    deserialize_string(decremented String *string, InStream *instream);
+
+    inert incremented String*
+    read_string(InStream *instream);
+
+    inert void
+    serialize_bytebuf(ByteBuf *bytebuf, OutStream *outstream);
+
+    inert incremented ByteBuf*
+    deserialize_bytebuf(decremented ByteBuf *bytebuf, InStream *instream);
+
+    inert incremented ByteBuf*
+    read_bytebuf(InStream *instream);
+
+    inert void
+    serialize_varray(VArray *array, OutStream *outstream);
+
+    inert incremented VArray*
+    deserialize_varray(decremented VArray *array, InStream *instream);
+
+    inert incremented VArray*
+    read_varray(InStream *instream);
+
+    inert void
+    serialize_hash(Hash *hash, OutStream *outstream);
+
+    inert incremented Hash*
+    deserialize_hash(decremented Hash *hash, InStream *instream);
+
+    inert incremented Hash*
+    read_hash(InStream *instream);
 }
 
 __C__

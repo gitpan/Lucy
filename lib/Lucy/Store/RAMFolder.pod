@@ -55,11 +55,9 @@ B<path> - Relative path, used for subfolders.
 
 
 
-
-
 =head1 INHERITANCE
 
-Lucy::Store::RAMFolder isa L<Lucy::Store::Folder> isa L<Lucy::Object::Obj>.
+Lucy::Store::RAMFolder isa L<Lucy::Store::Folder> isa Clownfish::Obj.
 
 
 =cut

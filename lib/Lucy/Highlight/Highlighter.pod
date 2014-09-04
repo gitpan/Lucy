@@ -78,8 +78,6 @@ B<excerpt_length> - Maximum length of the excerpt, in characters.
 
 
 
-
-
 =head1 METHODS
 
 =head2 create_excerpt(hit_doc)
@@ -141,7 +139,7 @@ Accessor.
 
 =head1 INHERITANCE
 
-Lucy::Highlight::Highlighter isa L<Lucy::Object::Obj>.
+Lucy::Highlight::Highlighter isa Clownfish::Obj.
 
 
 =cut

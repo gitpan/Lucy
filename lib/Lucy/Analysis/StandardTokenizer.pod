@@ -25,7 +25,7 @@ Lucy::Analysis::StandardTokenizer - Split a string into tokens.
 
     # Then... once you have a tokenizer, put it into a PolyAnalyzer:
     my $polyanalyzer = Lucy::Analysis::PolyAnalyzer->new(
-        analyzers => [ $case_folder, $tokenizer, $stemmer ], );
+        analyzers => [ $tokenizer, $normalizer, $stemmer ], );
 
 
 
@@ -51,11 +51,9 @@ Constructor.  Takes no arguments.
 
 
 
-
-
 =head1 INHERITANCE
 
-Lucy::Analysis::StandardTokenizer isa L<Lucy::Analysis::Analyzer> isa L<Lucy::Object::Obj>.
+Lucy::Analysis::StandardTokenizer isa L<Lucy::Analysis::Analyzer> isa Clownfish::Obj.
 
 
 =cut

@@ -15,43 +15,11 @@
 
 package Lucy::Analysis::SnowballStopFilter;
 use Lucy;
-our $VERSION = '0.003003';
+our $VERSION = '0.004000';
 $VERSION = eval $VERSION;
 
 1;
 
 __END__
-
-__BINDING__
-
-my $synopsis = <<'END_SYNOPSIS';
-    my $stopfilter = Lucy::Analysis::SnowballStopFilter->new(
-        language => 'fr',
-    );
-    my $polyanalyzer = Lucy::Analysis::PolyAnalyzer->new(
-        analyzers => [ $case_folder, $tokenizer, $stopfilter, $stemmer ],
-    );
-END_SYNOPSIS
-
-my $constructor = <<'END_CONSTRUCTOR';
-    my $stopfilter = Lucy::Analysis::SnowballStopFilter->new(
-        language => 'de',
-    );
-    
-    # or...
-    my $stopfilter = Lucy::Analysis::SnowballStopFilter->new(
-        stoplist => \%stoplist,
-    );
-END_CONSTRUCTOR
-
-Clownfish::CFC::Binding::Perl::Class->register(
-    parcel            => "Lucy",
-    class_name        => "Lucy::Analysis::SnowballStopFilter",
-    bind_constructors => ["new"],
-    make_pod          => {
-        synopsis    => $synopsis,
-        constructor => { sample => $constructor }
-    },
-);
 
 

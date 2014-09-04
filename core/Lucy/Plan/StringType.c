@@ -23,7 +23,7 @@
 
 StringType*
 StringType_new() {
-    StringType *self = (StringType*)VTable_Make_Obj(STRINGTYPE);
+    StringType *self = (StringType*)Class_Make_Obj(STRINGTYPE);
     return StringType_init(self);
 }
 
@@ -33,87 +33,90 @@ StringType_init(StringType *self) {
 }
 
 StringType*
-StringType_init2(StringType *self, float boost, bool_t indexed,
-                 bool_t stored, bool_t sortable) {
+StringType_init2(StringType *self, float boost, bool indexed,
+                 bool stored, bool sortable) {
     FType_init((FieldType*)self);
-    self->boost      = boost;
-    self->indexed    = indexed;
-    self->stored     = stored;
-    self->sortable   = sortable;
+    StringTypeIVARS *const ivars = StringType_IVARS(self);
+    ivars->boost      = boost;
+    ivars->indexed    = indexed;
+    ivars->stored     = stored;
+    ivars->sortable   = sortable;
     return self;
 }
 
-bool_t
-StringType_equals(StringType *self, Obj *other) {
-    StringType *twin = (StringType*)other;
-    if (twin == self)                           { return true; }
-    if (!FType_equals((FieldType*)self, other)) { return false; }
+bool
+StringType_Equals_IMP(StringType *self, Obj *other) {
+    if ((StringType*)other == self) { return true; }
+    StringType_Equals_t super_equals
+        = (StringType_Equals_t)SUPER_METHOD_PTR(STRINGTYPE,
+                                                LUCY_StringType_Equals);
+    if (!super_equals(self, other)) { return false; }
     return true;
 }
 
 Hash*
-StringType_dump_for_schema(StringType *self) {
+StringType_Dump_For_Schema_IMP(StringType *self) {
+    StringTypeIVARS *const ivars = StringType_IVARS(self);
     Hash *dump = Hash_new(0);
-    Hash_Store_Str(dump, "type", 4, (Obj*)CB_newf("string"));
+    Hash_Store_Utf8(dump, "type", 4, (Obj*)Str_newf("string"));
 
     // Store attributes that override the defaults.
-    if (self->boost != 1.0) {
-        Hash_Store_Str(dump, "boost", 5, (Obj*)CB_newf("%f64", self->boost));
+    if (ivars->boost != 1.0) {
+        Hash_Store_Utf8(dump, "boost", 5, (Obj*)Str_newf("%f64", ivars->boost));
     }
-    if (!self->indexed) {
-        Hash_Store_Str(dump, "indexed", 7, (Obj*)CFISH_FALSE);
+    if (!ivars->indexed) {
+        Hash_Store_Utf8(dump, "indexed", 7, (Obj*)CFISH_FALSE);
     }
-    if (!self->stored) {
-        Hash_Store_Str(dump, "stored", 6, (Obj*)CFISH_FALSE);
+    if (!ivars->stored) {
+        Hash_Store_Utf8(dump, "stored", 6, (Obj*)CFISH_FALSE);
     }
-    if (self->sortable) {
-        Hash_Store_Str(dump, "sortable", 8, (Obj*)CFISH_TRUE);
+    if (ivars->sortable) {
+        Hash_Store_Utf8(dump, "sortable", 8, (Obj*)CFISH_TRUE);
     }
 
     return dump;
 }
 
 Hash*
-StringType_dump(StringType *self) {
+StringType_Dump_IMP(StringType *self) {
     Hash *dump = StringType_Dump_For_Schema(self);
-    Hash_Store_Str(dump, "_class", 6,
-                   (Obj*)CB_Clone(StringType_Get_Class_Name(self)));
-    DECREF(Hash_Delete_Str(dump, "type", 4));
+    Hash_Store_Utf8(dump, "_class", 6,
+                    (Obj*)Str_Clone(StringType_Get_Class_Name(self)));
+    DECREF(Hash_Delete_Utf8(dump, "type", 4));
     return dump;
 }
 
 StringType*
-StringType_load(StringType *self, Obj *dump) {
+StringType_Load_IMP(StringType *self, Obj *dump) {
     Hash *source = (Hash*)CERTIFY(dump, HASH);
-    CharBuf *class_name = (CharBuf*)Hash_Fetch_Str(source, "_class", 6);
-    VTable *vtable
-        = (class_name != NULL && Obj_Is_A((Obj*)class_name, CHARBUF))
-          ? VTable_singleton(class_name, NULL)
+    String *class_name = (String*)Hash_Fetch_Utf8(source, "_class", 6);
+    Class *klass
+        = (class_name != NULL && Obj_Is_A((Obj*)class_name, STRING))
+          ? Class_singleton(class_name, NULL)
           : STRINGTYPE;
-    StringType *loaded   = (StringType*)VTable_Make_Obj(vtable);
-    Obj *boost_dump      = Hash_Fetch_Str(source, "boost", 5);
-    Obj *indexed_dump    = Hash_Fetch_Str(source, "indexed", 7);
-    Obj *stored_dump     = Hash_Fetch_Str(source, "stored", 6);
-    Obj *sortable_dump   = Hash_Fetch_Str(source, "sortable", 8);
+    StringType *loaded   = (StringType*)Class_Make_Obj(klass);
+    Obj *boost_dump      = Hash_Fetch_Utf8(source, "boost", 5);
+    Obj *indexed_dump    = Hash_Fetch_Utf8(source, "indexed", 7);
+    Obj *stored_dump     = Hash_Fetch_Utf8(source, "stored", 6);
+    Obj *sortable_dump   = Hash_Fetch_Utf8(source, "sortable", 8);
     UNUSED_VAR(self);
 
-    StringType_init(loaded);
-    if (boost_dump)    { loaded->boost    = (float)Obj_To_F64(boost_dump); }
-    if (indexed_dump)  { loaded->indexed  = Obj_To_Bool(indexed_dump); }
-    if (stored_dump)   { loaded->stored   = Obj_To_Bool(stored_dump); }
-    if (sortable_dump) { loaded->sortable = Obj_To_Bool(sortable_dump); }
+    float boost    = boost_dump    ? (float)Obj_To_F64(boost_dump) : 1.0f;
+    bool  indexed  = indexed_dump  ? Obj_To_Bool(indexed_dump)     : true;
+    bool  stored   = stored_dump   ? Obj_To_Bool(stored_dump)      : true;
+    bool  sortable = sortable_dump ? Obj_To_Bool(sortable_dump)    : false;
 
-    return loaded;
+    return StringType_init2(loaded, boost, indexed, stored, sortable);
 }
 
 Similarity*
-StringType_make_similarity(StringType *self) {
+StringType_Make_Similarity_IMP(StringType *self) {
     UNUSED_VAR(self);
     return Sim_new();
 }
 
 Posting*
-StringType_make_posting(StringType *self, Similarity *similarity) {
+StringType_Make_Posting_IMP(StringType *self, Similarity *similarity) {
     if (similarity) {
         return (Posting*)ScorePost_new(similarity);
     }

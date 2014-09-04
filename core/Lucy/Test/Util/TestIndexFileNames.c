@@ -14,73 +14,61 @@
  * limitations under the License.
  */
 
+#define TESTLUCY_USE_SHORT_NAMES
 #include "Lucy/Util/ToolSet.h"
 
+#include "Clownfish/TestHarness/TestBatchRunner.h"
 #include "Lucy/Test.h"
 #include "Lucy/Test/Util/TestIndexFileNames.h"
 #include "Lucy/Util/IndexFileNames.h"
 
-static void
-test_local_part(TestBatch *batch) {
-    ZombieCharBuf *source = ZCB_BLANK();
-    ZombieCharBuf *got    = ZCB_BLANK();
-
-    got = IxFileNames_local_part((CharBuf*)source, got);
-    TEST_TRUE(batch, ZCB_Equals(got, (Obj*)source), "simple name");
-
-    ZCB_Assign_Str(source, "foo.txt", 7);
-    got = IxFileNames_local_part((CharBuf*)source, got);
-    TEST_TRUE(batch, ZCB_Equals(got, (Obj*)source), "name with extension");
-
-    ZCB_Assign_Str(source, "/foo", 4);
-    got = IxFileNames_local_part((CharBuf*)source, got);
-    TEST_TRUE(batch, ZCB_Equals_Str(got, "foo", 3), "strip leading slash");
-
-    ZCB_Assign_Str(source, "/foo/", 5);
-    got = IxFileNames_local_part((CharBuf*)source, got);
-    TEST_TRUE(batch, ZCB_Equals_Str(got, "foo", 3), "strip trailing slash");
-
-    ZCB_Assign_Str(source, "foo/bar\\ ", 9);
-    got = IxFileNames_local_part((CharBuf*)source, got);
-    TEST_TRUE(batch, ZCB_Equals_Str(got, "bar\\ ", 5),
-              "Include garbage like backslashes and spaces");
-
-    ZCB_Assign_Str(source, "foo/bar/baz.txt", 15);
-    got = IxFileNames_local_part((CharBuf*)source, got);
-    TEST_TRUE(batch, ZCB_Equals_Str(got, "baz.txt", 7), "find last component");
+TestIndexFileNames*
+TestIxFileNames_new() {
+    return (TestIndexFileNames*)Class_Make_Obj(TESTINDEXFILENAMES);
 }
 
 static void
-test_extract_gen(TestBatch *batch) {
-    ZombieCharBuf *source = ZCB_WRAP_STR("", 0);
+S_test_local_part(TestBatchRunner *runner, const char *source,
+                  const char *wanted, const char *test_name) {
+    StackString *source_str = SSTR_WRAP_UTF8(source, strlen(source));
+    String *got = IxFileNames_local_part((String*)source_str);
+    TEST_TRUE(runner, Str_Equals_Utf8(got, wanted, strlen(wanted)), test_name);
+    DECREF(got);
+}
 
-    ZCB_Assign_Str(source, "seg_9", 5);
-    TEST_TRUE(batch, IxFileNames_extract_gen((CharBuf*)source) == 9,
-              "extract_gen");
+static void
+test_local_part(TestBatchRunner *runner) {
+    S_test_local_part(runner, "", "", "simple name");
+    S_test_local_part(runner, "foo.txt", "foo.txt", "name with extension");
+    S_test_local_part(runner, "/foo", "foo", "strip leading slash");
+    S_test_local_part(runner, "/foo/", "foo", "strip trailing slash");
+    S_test_local_part(runner, "foo/bar\\ ", "bar\\ ",
+                      "Include garbage like backslashes and spaces");
+    S_test_local_part(runner, "foo/bar/baz.txt", "baz.txt",
+                      "find last component");
+}
 
-    ZCB_Assign_Str(source, "seg_9/", 6);
-    TEST_TRUE(batch, IxFileNames_extract_gen((CharBuf*)source) == 9,
-              "deal with trailing slash");
+static void
+S_test_extract_gen(TestBatchRunner *runner, const char *name, uint64_t gen,
+                   const char *test_name) {
+    StackString *source = SSTR_WRAP_UTF8(name, strlen(name));
+    TEST_TRUE(runner, IxFileNames_extract_gen((String*)source) == gen,
+              test_name);
+}
 
-    ZCB_Assign_Str(source, "seg_9_8", 7);
-    TEST_TRUE(batch, IxFileNames_extract_gen((CharBuf*)source) == 9,
-              "Only go past first underscore");
-
-    ZCB_Assign_Str(source, "snapshot_5.json", 15);
-    TEST_TRUE(batch, IxFileNames_extract_gen((CharBuf*)source) == 5,
-              "Deal with file suffix");
+static void
+test_extract_gen(TestBatchRunner *runner) {
+    S_test_extract_gen(runner, "seg_9", 9, "extract_gen");
+    S_test_extract_gen(runner, "seg_9/", 9, "deal with trailing slash");
+    S_test_extract_gen(runner, "seg_9_8", 9, "Only go past first underscore");
+    S_test_extract_gen(runner, "snapshot_5.json", 5, "Deal with file suffix");
 }
 
 void
-TestIxFileNames_run_tests() {
-    TestBatch *batch = TestBatch_new(10);
-
-    TestBatch_Plan(batch);
-
-    test_local_part(batch);
-    test_extract_gen(batch);
-
-    DECREF(batch);
+TestIxFileNames_Run_IMP(TestIndexFileNames *self, TestBatchRunner *runner) {
+    TestBatchRunner_Plan(runner, (TestBatch*)self, 10);
+    test_local_part(runner);
+    test_extract_gen(runner);
 }
 
 

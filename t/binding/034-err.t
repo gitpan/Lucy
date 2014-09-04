@@ -15,11 +15,56 @@
 
 use strict;
 use warnings;
-
-use Test::More tests => 1;
 use Lucy::Test;
 
-my $err = Lucy::Object::Err->new("Bad stuff happened");
+package Nirvana;
 
-isa_ok( $err, 'Lucy::Object::Err', "new" );
+sub enter {
+    die Clownfish::Err->new("blam");
+}
+
+package GloriousDeath;
+use base qw( Clownfish::Err );
+
+package main;
+use Test::More tests => 10;
+
+isa_ok( Clownfish::Err->new("Bad stuff happened"),
+    'Clownfish::Err', "new" );
+
+my $glorious = GloriousDeath->new("Banzai");
+isa_ok( $glorious, 'GloriousDeath',     "subclass" );
+isa_ok( $glorious, 'Clownfish::Err', "subclass" );
+
+isa_ok( Clownfish::Err::trap( "bite_the_dust", undef ),
+    'Clownfish::Err', "trap string call" );
+
+isa_ok( Clownfish::Err::trap( "Nirvana::enter", undef ),
+    'Clownfish::Err', "trap string call in another package" );
+
+isa_ok( Clownfish::Err::trap( \&bite_the_dust, undef ),
+    'Clownfish::Err', "trap sub ref" );
+
+isa_ok( Clownfish::Err::trap( \&Nirvana::enter, undef ),
+    'Clownfish::Err', "trap sub ref to another package" );
+
+isa_ok( Clownfish::Err::trap( \&judge_gladiator, "down" ),
+    'Clownfish::Err', "pass argument to 'trap'" );
+
+my $last_words = sub { die "Rosebud" };
+isa_ok( Clownfish::Err::trap( $last_words, undef ),
+    'Clownfish::Err', "Wrap host exception in Err" );
+
+my $succeed = sub { };
+ok( !defined( Clownfish::Err::trap( $succeed, undef ) ),
+    "nothing to trap" );
+
+sub bite_the_dust { die Clownfish::Err->new("gasp") }
+
+sub judge_gladiator {
+    my $thumb = shift;
+    if ( $thumb and $thumb eq 'down' ) {
+        die GloriousDeath->new("gurgle");
+    }
+}
 

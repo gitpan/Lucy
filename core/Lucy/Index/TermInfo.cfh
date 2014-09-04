@@ -26,7 +26,7 @@ parcel Lucy;
  * .lexx stream; it is a filepointer to a locations in the main .lex file.
  */
 
-class Lucy::Index::TermInfo cnick TInfo inherits Lucy::Object::Obj {
+class Lucy::Index::TermInfo nickname TInfo inherits Clownfish::Obj {
 
     int32_t doc_freq;
     int64_t post_filepos;
@@ -75,7 +75,7 @@ class Lucy::Index::TermInfo cnick TInfo inherits Lucy::Object::Obj {
     public incremented TermInfo*
     Clone(TermInfo *self);
 
-    public incremented CharBuf*
+    public incremented String*
     To_String(TermInfo *self);
 }
 

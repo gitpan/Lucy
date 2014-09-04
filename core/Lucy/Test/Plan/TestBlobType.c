@@ -14,26 +14,33 @@
  * limitations under the License.
  */
 
-#define C_LUCY_TESTBLOBTYPE
+#define C_TESTLUCY_TESTBLOBTYPE
+#define TESTLUCY_USE_SHORT_NAMES
 #include "Lucy/Util/ToolSet.h"
 
+#include "Clownfish/TestHarness/TestBatchRunner.h"
 #include "Lucy/Test.h"
 #include "Lucy/Test/Plan/TestBlobType.h"
 #include "Lucy/Test/TestUtils.h"
 #include "Lucy/Plan/BlobType.h"
-#include "Lucy/Analysis/RegexTokenizer.h"
+#include "Lucy/Util/Freezer.h"
+
+TestBlobType*
+TestBlobType_new() {
+    return (TestBlobType*)Class_Make_Obj(TESTBLOBTYPE);
+}
 
 static void
-test_Dump_Load_and_Equals(TestBatch *batch) {
+test_Dump_Load_and_Equals(TestBatchRunner *runner) {
     BlobType *type            = BlobType_new(true);
     Obj      *dump            = (Obj*)BlobType_Dump(type);
-    Obj      *clone           = Obj_Load(dump, dump);
+    Obj      *clone           = Freezer_load(dump);
     Obj      *another_dump    = (Obj*)BlobType_Dump_For_Schema(type);
-    BlobType *another_clone   = BlobType_load(type, another_dump);
+    BlobType *another_clone   = BlobType_Load(type, another_dump);
 
-    TEST_TRUE(batch, BlobType_Equals(type, (Obj*)clone),
+    TEST_TRUE(runner, BlobType_Equals(type, (Obj*)clone),
               "Dump => Load round trip");
-    TEST_TRUE(batch, BlobType_Equals(type, (Obj*)another_clone),
+    TEST_TRUE(runner, BlobType_Equals(type, (Obj*)another_clone),
               "Dump_For_Schema => Load round trip");
 
     DECREF(type);
@@ -44,11 +51,9 @@ test_Dump_Load_and_Equals(TestBatch *batch) {
 }
 
 void
-TestBlobType_run_tests() {
-    TestBatch *batch = TestBatch_new(2);
-    TestBatch_Plan(batch);
-    test_Dump_Load_and_Equals(batch);
-    DECREF(batch);
+TestBlobType_Run_IMP(TestBlobType *self, TestBatchRunner *runner) {
+    TestBatchRunner_Plan(runner, (TestBatch*)self, 2);
+    test_Dump_Load_and_Equals(runner);
 }
 
 

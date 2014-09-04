@@ -33,7 +33,7 @@ Lucy::Analysis::RegexTokenizer - Split a string into tokens.
 
     # Then... once you have a tokenizer, put it into a PolyAnalyzer:
     my $polyanalyzer = Lucy::Analysis::PolyAnalyzer->new(
-        analyzers => [ $case_folder, $word_char_tokenizer, $stemmer ], );
+        analyzers => [ $word_char_tokenizer, $normalizer, $stemmer ], );
 
 
 
@@ -91,11 +91,9 @@ C<< \w+(?:[\x{2019}']\w+)* >>, which matches "it's" as well as
 
 
 
-
-
 =head1 INHERITANCE
 
-Lucy::Analysis::RegexTokenizer isa L<Lucy::Analysis::Analyzer> isa L<Lucy::Object::Obj>.
+Lucy::Analysis::RegexTokenizer isa L<Lucy::Analysis::Analyzer> isa Clownfish::Obj.
 
 
 =cut

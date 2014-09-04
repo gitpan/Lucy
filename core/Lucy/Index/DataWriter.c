@@ -29,68 +29,70 @@
 DataWriter*
 DataWriter_init(DataWriter *self, Schema *schema, Snapshot *snapshot,
                 Segment *segment, PolyReader *polyreader) {
-    self->snapshot   = (Snapshot*)INCREF(snapshot);
-    self->segment    = (Segment*)INCREF(segment);
-    self->polyreader = (PolyReader*)INCREF(polyreader);
-    self->schema     = (Schema*)INCREF(schema);
-    self->folder     = (Folder*)INCREF(PolyReader_Get_Folder(polyreader));
+    DataWriterIVARS *const ivars = DataWriter_IVARS(self);
+    ivars->snapshot   = (Snapshot*)INCREF(snapshot);
+    ivars->segment    = (Segment*)INCREF(segment);
+    ivars->polyreader = (PolyReader*)INCREF(polyreader);
+    ivars->schema     = (Schema*)INCREF(schema);
+    ivars->folder     = (Folder*)INCREF(PolyReader_Get_Folder(polyreader));
     ABSTRACT_CLASS_CHECK(self, DATAWRITER);
     return self;
 }
 
 void
-DataWriter_destroy(DataWriter *self) {
-    DECREF(self->snapshot);
-    DECREF(self->segment);
-    DECREF(self->polyreader);
-    DECREF(self->schema);
-    DECREF(self->folder);
+DataWriter_Destroy_IMP(DataWriter *self) {
+    DataWriterIVARS *const ivars = DataWriter_IVARS(self);
+    DECREF(ivars->snapshot);
+    DECREF(ivars->segment);
+    DECREF(ivars->polyreader);
+    DECREF(ivars->schema);
+    DECREF(ivars->folder);
     SUPER_DESTROY(self, DATAWRITER);
 }
 
 Snapshot*
-DataWriter_get_snapshot(DataWriter *self) {
-    return self->snapshot;
+DataWriter_Get_Snapshot_IMP(DataWriter *self) {
+    return DataWriter_IVARS(self)->snapshot;
 }
 
 Segment*
-DataWriter_get_segment(DataWriter *self) {
-    return self->segment;
+DataWriter_Get_Segment_IMP(DataWriter *self) {
+    return DataWriter_IVARS(self)->segment;
 }
 
 PolyReader*
-DataWriter_get_polyreader(DataWriter *self) {
-    return self->polyreader;
+DataWriter_Get_PolyReader_IMP(DataWriter *self) {
+    return DataWriter_IVARS(self)->polyreader;
 }
 
 Schema*
-DataWriter_get_schema(DataWriter *self) {
-    return self->schema;
+DataWriter_Get_Schema_IMP(DataWriter *self) {
+    return DataWriter_IVARS(self)->schema;
 }
 
 Folder*
-DataWriter_get_folder(DataWriter *self) {
-    return self->folder;
+DataWriter_Get_Folder_IMP(DataWriter *self) {
+    return DataWriter_IVARS(self)->folder;
 }
 
 void
-DataWriter_delete_segment(DataWriter *self, SegReader *reader) {
+DataWriter_Delete_Segment_IMP(DataWriter *self, SegReader *reader) {
     UNUSED_VAR(self);
     UNUSED_VAR(reader);
 }
 
 void
-DataWriter_merge_segment(DataWriter *self, SegReader *reader,
-                         I32Array *doc_map) {
+DataWriter_Merge_Segment_IMP(DataWriter *self, SegReader *reader,
+                             I32Array *doc_map) {
     DataWriter_Add_Segment(self, reader, doc_map);
     DataWriter_Delete_Segment(self, reader);
 }
 
 Hash*
-DataWriter_metadata(DataWriter *self) {
+DataWriter_Metadata_IMP(DataWriter *self) {
     Hash *metadata = Hash_new(0);
-    Hash_Store_Str(metadata, "format", 6,
-                   (Obj*)CB_newf("%i32", DataWriter_Format(self)));
+    Hash_Store_Utf8(metadata, "format", 6,
+                    (Obj*)Str_newf("%i32", DataWriter_Format(self)));
     return metadata;
 }
 

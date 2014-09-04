@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-#define C_LUCY_TESTARCHITECTURE
+#define C_TESTLUCY_TESTARCHITECTURE
+#define TESTLUCY_USE_SHORT_NAMES
 #include "Lucy/Util/ToolSet.h"
 
 #include "Lucy/Test.h"
@@ -24,7 +25,7 @@
 TestArchitecture*
 TestArch_new() {
     TestArchitecture *self
-        = (TestArchitecture*)VTable_Make_Obj(TESTARCHITECTURE);
+        = (TestArchitecture*)Class_Make_Obj(TESTARCHITECTURE);
     return TestArch_init(self);
 }
 
@@ -35,13 +36,13 @@ TestArch_init(TestArchitecture *self) {
 }
 
 int32_t
-TestArch_index_interval(TestArchitecture *self) {
+TestArch_Index_Interval_IMP(TestArchitecture *self) {
     UNUSED_VAR(self);
     return 5;
 }
 
 int32_t
-TestArch_skip_interval(TestArchitecture *self) {
+TestArch_Skip_Interval_IMP(TestArchitecture *self) {
     UNUSED_VAR(self);
     return 3;
 }

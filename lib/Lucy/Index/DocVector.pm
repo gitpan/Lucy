@@ -15,20 +15,11 @@
 
 package Lucy::Index::DocVector;
 use Lucy;
-our $VERSION = '0.003003';
+our $VERSION = '0.004000';
 $VERSION = eval $VERSION;
 
 1;
 
 __END__
-
-__BINDING__
-
-Clownfish::CFC::Binding::Perl::Class->register(
-    parcel            => "Lucy",
-    class_name        => "Lucy::Index::DocVector",
-    bind_methods      => [qw( Term_Vector Field_Buf Add_Field_Buf )],
-    bind_constructors => ["new"],
-);
 
 

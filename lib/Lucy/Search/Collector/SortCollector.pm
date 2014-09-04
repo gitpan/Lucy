@@ -15,20 +15,11 @@
 
 package Lucy::Search::Collector::SortCollector;
 use Lucy;
-our $VERSION = '0.003003';
+our $VERSION = '0.004000';
 $VERSION = eval $VERSION;
 
 1;
 
 __END__
-
-__BINDING__
-
-Clownfish::CFC::Binding::Perl::Class->register(
-    parcel            => "Lucy",
-    class_name        => "Lucy::Search::Collector::SortCollector",
-    bind_methods      => [qw( Pop_Match_Docs Get_Total_Hits )],
-    bind_constructors => ["new"],
-);
 
 

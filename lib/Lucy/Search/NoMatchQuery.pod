@@ -40,11 +40,9 @@ Constructor. Takes no arguments.
 
 
 
-
-
 =head1 INHERITANCE
 
-Lucy::Search::NoMatchQuery isa L<Lucy::Search::Query> isa L<Lucy::Object::Obj>.
+Lucy::Search::NoMatchQuery isa L<Lucy::Search::Query> isa Clownfish::Obj.
 
 
 =cut

@@ -54,8 +54,8 @@ parcel Lucy;
  *     |-----------------------|
  */
 
-class Lucy::Analysis::SnowballStopFilter cnick SnowStop
-    inherits Lucy::Analysis::Analyzer : dumpable {
+public class Lucy::Analysis::SnowballStopFilter nickname SnowStop
+    inherits Lucy::Analysis::Analyzer {
 
     Hash *stoplist;
 
@@ -74,39 +74,34 @@ class Lucy::Analysis::SnowballStopFilter cnick SnowStop
     inert const uint8_t** snow_sv;
 
     inert incremented SnowballStopFilter*
-    new(const CharBuf *language = NULL, Hash *stoplist = NULL);
+    new(String *language = NULL, Hash *stoplist = NULL);
 
     /**
      * @param stoplist A hash with stopwords as the keys.
      * @param language The ISO code for a supported language.
      */
     public inert SnowballStopFilter*
-    init(SnowballStopFilter *self, const CharBuf *language = NULL,
+    init(SnowballStopFilter *self, String *language = NULL,
          Hash *stoplist = NULL);
 
     /** Return a Hash with the Snowball stoplist for the supplied language.
      */
     inert incremented Hash*
-    gen_stoplist(const CharBuf *language);
+    gen_stoplist(String *language);
 
     public incremented Inversion*
     Transform(SnowballStopFilter *self, Inversion *inversion);
 
-    public bool_t
+    public bool
     Equals(SnowballStopFilter *self, Obj *other);
+
+    public incremented Obj*
+    Dump(SnowballStopFilter *self);
+
+    public incremented Obj*
+    Load(SnowballStopFilter *self, Obj *dump);
 
     public void
     Destroy(SnowballStopFilter *self);
-}
-
-class Lucy::Analysis::SnowballStopFilter::NoCloneHash inherits Lucy::Object::Hash {
-    inert incremented NoCloneHash*
-    new(uint32_t capacity = 0);
-
-    inert NoCloneHash*
-    init(NoCloneHash *self, uint32_t capacity = 0);
-
-    public incremented Obj*
-    Make_Key(NoCloneHash *self, Obj *key, int32_t hash_sum);
 }
 

@@ -20,28 +20,29 @@
 #include "Lucy/Util/IndexFileNames.h"
 #include "Lucy/Store/DirHandle.h"
 #include "Lucy/Store/Folder.h"
-#include "Lucy/Util/StringHelper.h"
+#include "Clownfish/Util/StringHelper.h"
 
-CharBuf*
+String*
 IxFileNames_latest_snapshot(Folder *folder) {
     DirHandle *dh = Folder_Open_Dir(folder, NULL);
-    CharBuf   *entry = dh ? DH_Get_Entry(dh) : NULL;
-    CharBuf   *retval   = NULL;
+    String    *retval   = NULL;
     uint64_t   latest_gen = 0;
 
     if (!dh) { RETHROW(INCREF(Err_get_error())); }
 
     while (DH_Next(dh)) {
-        if (CB_Starts_With_Str(entry, "snapshot_", 9)
-            && CB_Ends_With_Str(entry, ".json", 5)
+        String *entry = DH_Get_Entry(dh);
+        if (Str_Starts_With_Utf8(entry, "snapshot_", 9)
+            && Str_Ends_With_Utf8(entry, ".json", 5)
            ) {
             uint64_t gen = IxFileNames_extract_gen(entry);
             if (gen > latest_gen) {
                 latest_gen = gen;
-                if (!retval) { retval = CB_Clone(entry); }
-                else         { CB_Mimic(retval, (Obj*)entry); }
+                DECREF(retval);
+                retval = Str_Clone(entry);
             }
         }
+        DECREF(entry);
     }
 
     DECREF(dh);
@@ -49,46 +50,52 @@ IxFileNames_latest_snapshot(Folder *folder) {
 }
 
 uint64_t
-IxFileNames_extract_gen(const CharBuf *name) {
-    ZombieCharBuf *num_string = ZCB_WRAP(name);
+IxFileNames_extract_gen(String *name) {
+    StringIterator *iter = Str_Top(name);
 
     // Advance past first underscore.  Bail if we run out of string or if we
     // encounter a NULL.
     while (1) {
-        uint32_t code_point = ZCB_Nip_One(num_string);
-        if (code_point == 0) { return 0; }
+        int32_t code_point = StrIter_Next(iter);
+        if (code_point == STRITER_DONE) { return 0; }
         else if (code_point == '_') { break; }
     }
 
-    return (uint64_t)ZCB_BaseX_To_I64(num_string, 36);
+    String *num_string = StrIter_substring(iter, NULL);
+    uint64_t retval = (uint64_t)Str_BaseX_To_I64(num_string, 36);
+
+    DECREF(num_string);
+    DECREF(iter);
+    return retval;
 }
 
-ZombieCharBuf*
-IxFileNames_local_part(const CharBuf *path, ZombieCharBuf *target) {
-    ZombieCharBuf *scratch = ZCB_WRAP(path);
-    size_t local_part_start = CB_Length(path);
-    uint32_t code_point;
-
-    ZCB_Assign(target, path);
+String*
+IxFileNames_local_part(String *path) {
+    StringIterator *top = Str_Tail(path);
+    int32_t code_point = StrIter_Prev(top);
 
     // Trim trailing slash.
-    while (ZCB_Code_Point_From(target, 1) == '/') {
-        ZCB_Chop(target, 1);
-        ZCB_Chop(scratch, 1);
-        local_part_start--;
+    while (code_point == '/') {
+        code_point = StrIter_Prev(top);
     }
+
+    StringIterator *tail = StrIter_Clone(top);
+    StrIter_Advance(tail, 1);
 
     // Substring should start after last slash.
-    while (0 != (code_point = ZCB_Code_Point_From(scratch, 1))) {
+    while (code_point != STRITER_DONE) {
         if (code_point == '/') {
-            ZCB_Nip(target, local_part_start);
+            StrIter_Advance(top, 1);
             break;
         }
-        ZCB_Chop(scratch, 1);
-        local_part_start--;
+        code_point = StrIter_Prev(top);
     }
 
-    return target;
+    String *retval = StrIter_substring(top, tail);
+
+    DECREF(tail);
+    DECREF(top);
+    return retval;
 }
 
 

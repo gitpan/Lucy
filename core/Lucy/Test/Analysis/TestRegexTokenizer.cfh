@@ -14,11 +14,16 @@
  * limitations under the License.
  */
 
-parcel Lucy;
+parcel TestLucy;
 
-inert class Lucy::Test::Analysis::TestRegexTokenizer {
-    inert void
-    run_tests();
+class Lucy::Test::Analysis::TestRegexTokenizer
+    inherits Clownfish::TestHarness::TestBatch {
+
+    inert incremented TestRegexTokenizer*
+    new();
+
+    void
+    Run(TestRegexTokenizer *self, TestBatchRunner *runner);
 }
 
 

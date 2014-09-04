@@ -97,11 +97,9 @@ B<seg_name> - The name of the segment.
 
 
 
-
-
 =head1 INHERITANCE
 
-Lucy::Index::DeletionsWriter isa L<Lucy::Index::DataWriter> isa L<Lucy::Object::Obj>.
+Lucy::Index::DeletionsWriter isa L<Lucy::Index::DataWriter> isa Clownfish::Obj.
 
 
 =cut

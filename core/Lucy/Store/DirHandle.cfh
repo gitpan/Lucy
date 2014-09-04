@@ -18,53 +18,52 @@ parcel Lucy;
 
 /** Iterate over the files in a directory.
  */
-abstract class Lucy::Store::DirHandle cnick DH
-    inherits Lucy::Object::Obj {
+abstract class Lucy::Store::DirHandle nickname DH
+    inherits Clownfish::Obj {
 
-    CharBuf  *dir;
-    CharBuf  *entry;
+    String   *dir;
+    String   *entry;
 
     /** Abstract constructor.
      *
      * @param dir The path to the directory.
      */
     inert DirHandle*
-    init(DirHandle *self, const CharBuf *dir);
+    init(DirHandle *self, String *dir);
 
     /** Proceed to the next entry in the directory.
      *
      * @return true on success, false when finished.
      */
-    abstract bool_t
+    abstract bool
     Next(DirHandle *self);
 
     /** Attempt to close the DirHandle.  Returns true on success, sets
      * Err_error and returns false on failure.
      */
-    abstract bool_t
+    abstract bool
     Close(DirHandle *self);
 
     /** Return the object's <code>dir</code> attribute.
      */
-    CharBuf*
+    String*
     Get_Dir(DirHandle *self);
 
-    /** Return the path of the current entry.  The value is updated by each
-     * call to Next(), and is only valid when Next() has returned
-     * successfully.
+    /** Return the path of the current entry.  The value is only valid when
+     * Next() has returned successfully.
      */
-    CharBuf*
+    incremented String*
     Get_Entry(DirHandle *self);
 
     /** Returns true if the current entry is a directory, false otherwise.
      */
-    abstract bool_t
+    abstract bool
     Entry_Is_Dir(DirHandle *self);
 
     /** Returns true if the current entry is a symbolic link (or a Windows
      * junction), false otherwise.
      */
-    abstract bool_t
+    abstract bool
     Entry_Is_Symlink(DirHandle *self);
 
     /** Invokes Close(), but ignores any errors.

@@ -40,8 +40,8 @@ PListReader_init(PostingListReader *self, Schema *schema, Folder *folder,
 }
 
 PostingListReader*
-PListReader_aggregator(PostingListReader *self, VArray *readers,
-                       I32Array *offsets) {
+PListReader_Aggregator_IMP(PostingListReader *self, VArray *readers,
+                           I32Array *offsets) {
     UNUSED_VAR(self);
     UNUSED_VAR(readers);
     UNUSED_VAR(offsets);
@@ -53,7 +53,7 @@ DefPListReader_new(Schema *schema, Folder *folder, Snapshot *snapshot,
                    VArray *segments, int32_t seg_tick,
                    LexiconReader *lex_reader) {
     DefaultPostingListReader *self
-        = (DefaultPostingListReader*)VTable_Make_Obj(DEFAULTPOSTINGLISTREADER);
+        = (DefaultPostingListReader*)Class_Make_Obj(DEFAULTPOSTINGLISTREADER);
     return DefPListReader_init(self, schema, folder, snapshot, segments,
                                seg_tick, lex_reader);
 }
@@ -64,19 +64,20 @@ DefPListReader_init(DefaultPostingListReader *self, Schema *schema,
                     int32_t seg_tick, LexiconReader *lex_reader) {
     PListReader_init((PostingListReader*)self, schema, folder, snapshot,
                      segments, seg_tick);
+    DefaultPostingListReaderIVARS *const ivars = DefPListReader_IVARS(self);
     Segment *segment = DefPListReader_Get_Segment(self);
 
     // Derive.
-    self->lex_reader = (LexiconReader*)INCREF(lex_reader);
+    ivars->lex_reader = (LexiconReader*)INCREF(lex_reader);
 
     // Check format.
-    Hash *my_meta = (Hash*)Seg_Fetch_Metadata_Str(segment, "postings", 8);
+    Hash *my_meta = (Hash*)Seg_Fetch_Metadata_Utf8(segment, "postings", 8);
     if (!my_meta) {
-        my_meta = (Hash*)Seg_Fetch_Metadata_Str(segment, "posting_list", 12);
+        my_meta = (Hash*)Seg_Fetch_Metadata_Utf8(segment, "posting_list", 12);
     }
 
     if (my_meta) {
-        Obj *format = Hash_Fetch_Str(my_meta, "format", 6);
+        Obj *format = Hash_Fetch_Utf8(my_meta, "format", 6);
         if (!format) { THROW(ERR, "Missing 'format' var"); }
         else {
             if (Obj_To_I64(format) != PListWriter_current_file_format) {
@@ -90,24 +91,27 @@ DefPListReader_init(DefaultPostingListReader *self, Schema *schema,
 }
 
 void
-DefPListReader_close(DefaultPostingListReader *self) {
-    if (self->lex_reader) {
-        LexReader_Close(self->lex_reader);
-        DECREF(self->lex_reader);
-        self->lex_reader = NULL;
+DefPListReader_Close_IMP(DefaultPostingListReader *self) {
+    DefaultPostingListReaderIVARS *const ivars = DefPListReader_IVARS(self);
+    if (ivars->lex_reader) {
+        LexReader_Close(ivars->lex_reader);
+        DECREF(ivars->lex_reader);
+        ivars->lex_reader = NULL;
     }
 }
 
 void
-DefPListReader_destroy(DefaultPostingListReader *self) {
-    DECREF(self->lex_reader);
+DefPListReader_Destroy_IMP(DefaultPostingListReader *self) {
+    DefaultPostingListReaderIVARS *const ivars = DefPListReader_IVARS(self);
+    DECREF(ivars->lex_reader);
     SUPER_DESTROY(self, DEFAULTPOSTINGLISTREADER);
 }
 
 SegPostingList*
-DefPListReader_posting_list(DefaultPostingListReader *self,
-                            const CharBuf *field, Obj *target) {
-    FieldType *type = Schema_Fetch_Type(self->schema, field);
+DefPListReader_Posting_List_IMP(DefaultPostingListReader *self,
+                                String *field, Obj *target) {
+    DefaultPostingListReaderIVARS *const ivars = DefPListReader_IVARS(self);
+    FieldType *type = Schema_Fetch_Type(ivars->schema, field);
 
     // Only return an object if we've got an indexed field.
     if (type != NULL && FType_Indexed(type)) {
@@ -121,7 +125,7 @@ DefPListReader_posting_list(DefaultPostingListReader *self,
 }
 
 LexiconReader*
-DefPListReader_get_lex_reader(DefaultPostingListReader *self) {
-    return self->lex_reader;
+DefPListReader_Get_Lex_Reader_IMP(DefaultPostingListReader *self) {
+    return DefPListReader_IVARS(self)->lex_reader;
 }
 

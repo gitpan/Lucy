@@ -32,22 +32,24 @@
 
 Searcher*
 Searcher_init(Searcher *self, Schema *schema) {
-    self->schema  = (Schema*)INCREF(schema);
-    self->qparser = NULL;
+    SearcherIVARS *const ivars = Searcher_IVARS(self);
+    ivars->schema  = (Schema*)INCREF(schema);
+    ivars->qparser = NULL;
     ABSTRACT_CLASS_CHECK(self, SEARCHER);
     return self;
 }
 
 void
-Searcher_destroy(Searcher *self) {
-    DECREF(self->schema);
-    DECREF(self->qparser);
+Searcher_Destroy_IMP(Searcher *self) {
+    SearcherIVARS *const ivars = Searcher_IVARS(self);
+    DECREF(ivars->schema);
+    DECREF(ivars->qparser);
     SUPER_DESTROY(self, SEARCHER);
 }
 
 Hits*
-Searcher_hits(Searcher *self, Obj *query, uint32_t offset, uint32_t num_wanted,
-              SortSpec *sort_spec) {
+Searcher_Hits_IMP(Searcher *self, Obj *query, uint32_t offset,
+                  uint32_t num_wanted, SortSpec *sort_spec) {
     Query   *real_query = Searcher_Glean_Query(self, query);
     uint32_t doc_max    = Searcher_Doc_Max(self);
     uint32_t wanted     = offset + num_wanted > doc_max
@@ -62,7 +64,8 @@ Searcher_hits(Searcher *self, Obj *query, uint32_t offset, uint32_t num_wanted,
 }
 
 Query*
-Searcher_glean_query(Searcher *self, Obj *query) {
+Searcher_Glean_Query_IMP(Searcher *self, Obj *query) {
+    SearcherIVARS *const ivars = Searcher_IVARS(self);
     Query *real_query = NULL;
 
     if (!query) {
@@ -71,11 +74,11 @@ Searcher_glean_query(Searcher *self, Obj *query) {
     else if (Obj_Is_A(query, QUERY)) {
         real_query = (Query*)INCREF(query);
     }
-    else if (Obj_Is_A(query, CHARBUF)) {
-        if (!self->qparser) {
-            self->qparser = QParser_new(self->schema, NULL, NULL, NULL);
+    else if (Obj_Is_A(query, STRING)) {
+        if (!ivars->qparser) {
+            ivars->qparser = QParser_new(ivars->schema, NULL, NULL, NULL);
         }
-        real_query = QParser_Parse(self->qparser, (CharBuf*)query);
+        real_query = QParser_Parse(ivars->qparser, (String*)query);
     }
     else {
         THROW(ERR, "Invalid type for 'query' param: %o",
@@ -86,12 +89,12 @@ Searcher_glean_query(Searcher *self, Obj *query) {
 }
 
 Schema*
-Searcher_get_schema(Searcher *self) {
-    return self->schema;
+Searcher_Get_Schema_IMP(Searcher *self) {
+    return Searcher_IVARS(self)->schema;
 }
 
 void
-Searcher_close(Searcher *self) {
+Searcher_Close_IMP(Searcher *self) {
     UNUSED_VAR(self);
 }
 

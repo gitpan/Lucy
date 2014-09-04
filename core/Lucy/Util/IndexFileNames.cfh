@@ -18,32 +18,28 @@ parcel Lucy;
 
 /** Utilities for parsing, interpreting and generating index file names.
  */
-inert class Lucy::Util::IndexFileNames cnick IxFileNames {
+inert class Lucy::Util::IndexFileNames nickname IxFileNames {
 
-    /** Skip past the first instance of an underscore in the CharBuf, then
+    /** Skip past the first instance of an underscore in the String, then
      * attempt to decode a base 36 number.  For example, "snapshot_5.json"
      * yields 5, and "seg_a1" yields 27.
      *
      * @return a generation number, or 0 if no number can be extracted.
      */
     inert uint64_t
-    extract_gen(const CharBuf *name);
+    extract_gen(String *name);
 
     /** Return the name of the latest generation snapshot file in the Folder,
      * or NULL if no such file exists.
      */
-    inert incremented nullable CharBuf*
+    inert incremented nullable String*
     latest_snapshot(Folder *folder);
 
-    /** Split the <code>path</code> on '/' and assign the last component to
-     * <code>target</code>, which will remain valid only as long as
-     * <code>path</code> is unmodified.  Trailing slashes will be stripped.
-     *
-     * @param target The target string to assign to.
-     * @return target, allowing an assignment idiom.
+    /** Split the <code>path</code> on '/' and return the last component.
+     * Trailing slashes will be stripped.
      */
-    inert incremented ZombieCharBuf*
-    local_part(const CharBuf *path, ZombieCharBuf *target);
+    inert incremented String*
+    local_part(String *path);
 }
 
 

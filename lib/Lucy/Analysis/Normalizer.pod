@@ -17,24 +17,22 @@
 
 =head1 NAME
 
-Lucy::Analysis::Normalizer - Unicode normalization, case folding and accent stripping
-
-Normalizer is an L<Analyzer|Lucy::Analysis::Analyzer> which normalizes
-tokens to one of the Unicode normalization forms.
+Lucy::Analysis::Normalizer - Unicode normalization, case folding and accent stripping.
 
 =head1 SYNOPSIS
 
     my $normalizer = Lucy::Analysis::Normalizer->new;
     
     my $polyanalyzer = Lucy::Analysis::PolyAnalyzer->new(
-        analyzers => [ $normalizer, $tokenizer, $stemmer ],
+        analyzers => [ $tokenizer, $normalizer, $stemmer ],
     );
 
 
 
 =head1 DESCRIPTION
 
-Optionally, it
+Normalizer is an L<Analyzer|Lucy::Analysis::Analyzer> which normalizes
+tokens to one of the Unicode normalization forms. Optionally, it
 performs Unicode case folding and converts accented characters to their
 base character.
 
@@ -72,11 +70,9 @@ B<strip_accents> - Strip accents, default is false.
 
 
 
-
-
 =head1 INHERITANCE
 
-Lucy::Analysis::Normalizer isa L<Lucy::Analysis::Analyzer> isa L<Lucy::Object::Obj>.
+Lucy::Analysis::Normalizer isa L<Lucy::Analysis::Analyzer> isa Clownfish::Obj.
 
 
 =cut

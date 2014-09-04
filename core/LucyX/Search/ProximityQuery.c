@@ -20,6 +20,8 @@
 #include "Lucy/Util/ToolSet.h"
 
 #include "LucyX/Search/ProximityQuery.h"
+
+#include "Clownfish/CharBuf.h"
 #include "Lucy/Index/DocVector.h"
 #include "Lucy/Index/Posting.h"
 #include "Lucy/Index/Posting/ScorePosting.h"
@@ -41,102 +43,140 @@
 // Shared initialization routine which assumes that it's ok to assume control
 // over [field] and [terms], eating their refcounts.
 static ProximityQuery*
-S_do_init(ProximityQuery *self, CharBuf *field, VArray *terms, float boost,
+S_do_init(ProximityQuery *self, String *field, VArray *terms, float boost,
           uint32_t within);
 
 ProximityQuery*
-ProximityQuery_new(const CharBuf *field, VArray *terms, uint32_t within) {
-    ProximityQuery *self = (ProximityQuery*)VTable_Make_Obj(PROXIMITYQUERY);
+ProximityQuery_new(String *field, VArray *terms, uint32_t within) {
+    ProximityQuery *self = (ProximityQuery*)Class_Make_Obj(PROXIMITYQUERY);
     return ProximityQuery_init(self, field, terms, within);
 }
 
 ProximityQuery*
-ProximityQuery_init(ProximityQuery *self, const CharBuf *field, VArray *terms,
+ProximityQuery_init(ProximityQuery *self, String *field, VArray *terms,
                     uint32_t within) {
-    return S_do_init(self, CB_Clone(field), VA_Clone(terms), 1.0f, within);
+    return S_do_init(self, Str_Clone(field), VA_Clone(terms), 1.0f, within);
 }
 
 void
-ProximityQuery_destroy(ProximityQuery *self) {
-    DECREF(self->terms);
-    DECREF(self->field);
+ProximityQuery_Destroy_IMP(ProximityQuery *self) {
+    ProximityQueryIVARS *const ivars = ProximityQuery_IVARS(self);
+    DECREF(ivars->terms);
+    DECREF(ivars->field);
     SUPER_DESTROY(self, PROXIMITYQUERY);
 }
 
 static ProximityQuery*
-S_do_init(ProximityQuery *self, CharBuf *field, VArray *terms, float boost,
+S_do_init(ProximityQuery *self, String *field, VArray *terms, float boost,
           uint32_t within) {
     Query_init((Query*)self, boost);
+    ProximityQueryIVARS *const ivars = ProximityQuery_IVARS(self);
     for (uint32_t i = 0, max = VA_Get_Size(terms); i < max; i++) {
         CERTIFY(VA_Fetch(terms, i), OBJ);
     }
-    self->field  = field;
-    self->terms  = terms;
-    self->within = within;
+    ivars->field  = field;
+    ivars->terms  = terms;
+    ivars->within = within;
     return self;
 }
 
 void
-ProximityQuery_serialize(ProximityQuery *self, OutStream *outstream) {
-    OutStream_Write_F32(outstream, self->boost);
-    CB_Serialize(self->field, outstream);
-    VA_Serialize(self->terms, outstream);
-    OutStream_Write_C32(outstream, self->within);
+ProximityQuery_Serialize_IMP(ProximityQuery *self, OutStream *outstream) {
+    ProximityQueryIVARS *const ivars = ProximityQuery_IVARS(self);
+    OutStream_Write_F32(outstream, ivars->boost);
+    Freezer_serialize_string(ivars->field, outstream);
+    Freezer_serialize_varray(ivars->terms, outstream);
+    OutStream_Write_C32(outstream, ivars->within);
 }
 
 ProximityQuery*
-ProximityQuery_deserialize(ProximityQuery *self, InStream *instream) {
-    float     boost  = InStream_Read_F32(instream);
-    CharBuf  *field  = CB_deserialize(NULL, instream);
-    VArray   *terms  = VA_deserialize(NULL, instream);
-    uint32_t  within = InStream_Read_C32(instream);
-    self = self ? self : (ProximityQuery*)VTable_Make_Obj(PROXIMITYQUERY);
+ProximityQuery_Deserialize_IMP(ProximityQuery *self, InStream *instream) {
+    float boost = InStream_Read_F32(instream);
+    String *field = Freezer_read_string(instream);
+    VArray *terms = Freezer_read_varray(instream);
+    uint32_t within = InStream_Read_C32(instream);
     return S_do_init(self, field, terms, boost, within);
 }
 
-bool_t
-ProximityQuery_equals(ProximityQuery *self, Obj *other) {
-    ProximityQuery *twin = (ProximityQuery*)other;
-    if (twin == self)                     { return true; }
+Obj*
+ProximityQuery_Dump_IMP(ProximityQuery *self) {
+    ProximityQueryIVARS *ivars = ProximityQuery_IVARS(self);
+    ProximityQuery_Dump_t super_dump
+        = SUPER_METHOD_PTR(PROXIMITYQUERY, LUCY_ProximityQuery_Dump);
+    Hash *dump = (Hash*)CERTIFY(super_dump(self), HASH);
+    Hash_Store_Utf8(dump, "field", 5, Freezer_dump((Obj*)ivars->field));
+    Hash_Store_Utf8(dump, "terms", 5, Freezer_dump((Obj*)ivars->terms));
+    Hash_Store_Utf8(dump, "within", 6,
+                    (Obj*)Str_newf("%i64", (int64_t)ivars->within));
+    return (Obj*)dump;
+}
+
+Obj*
+ProximityQuery_Load_IMP(ProximityQuery *self, Obj *dump) {
+    Hash *source = (Hash*)CERTIFY(dump, HASH);
+    ProximityQuery_Load_t super_load
+        = SUPER_METHOD_PTR(PROXIMITYQUERY, LUCY_ProximityQuery_Load);
+    ProximityQuery *loaded = (ProximityQuery*)super_load(self, dump);
+    ProximityQueryIVARS *loaded_ivars = ProximityQuery_IVARS(loaded);
+    Obj *field = CERTIFY(Hash_Fetch_Utf8(source, "field", 5), OBJ);
+    loaded_ivars->field = (String*)CERTIFY(Freezer_load(field), STRING);
+    Obj *terms = CERTIFY(Hash_Fetch_Utf8(source, "terms", 5), OBJ);
+    loaded_ivars->terms = (VArray*)CERTIFY(Freezer_load(terms), VARRAY);
+    Obj *within = CERTIFY(Hash_Fetch_Utf8(source, "within", 6), OBJ);
+    loaded_ivars->within = (uint32_t)Obj_To_I64(within);
+    return (Obj*)loaded;
+}
+
+bool
+ProximityQuery_Equals_IMP(ProximityQuery *self, Obj *other) {
+    if ((ProximityQuery*)other == self)   { return true; }
     if (!Obj_Is_A(other, PROXIMITYQUERY)) { return false; }
-    if (self->boost != twin->boost)       { return false; }
-    if (self->field && !twin->field)      { return false; }
-    if (!self->field && twin->field)      { return false; }
-    if (self->field && !CB_Equals(self->field, (Obj*)twin->field)) {
+    ProximityQueryIVARS *const ivars = ProximityQuery_IVARS(self);
+    ProximityQueryIVARS *const ovars
+        = ProximityQuery_IVARS((ProximityQuery*)other);
+
+    if (ivars->boost != ovars->boost)       { return false; }
+    if (ivars->field && !ovars->field)      { return false; }
+    if (!ivars->field && ovars->field)      { return false; }
+    if (ivars->field && !Str_Equals(ivars->field, (Obj*)ovars->field)) {
         return false;
     }
-    if (!VA_Equals(twin->terms, (Obj*)self->terms)) { return false; }
-    if (self->within != twin->within)               { return false; }
+    if (!VA_Equals(ovars->terms, (Obj*)ivars->terms)) { return false; }
+    if (ivars->within != ovars->within)               { return false; }
     return true;
 }
 
-CharBuf*
-ProximityQuery_to_string(ProximityQuery *self) {
-    uint32_t num_terms = VA_Get_Size(self->terms);
-    CharBuf *retval = CB_Clone(self->field);
-    CB_Cat_Trusted_Str(retval, ":\"", 2);
+String*
+ProximityQuery_To_String_IMP(ProximityQuery *self) {
+    ProximityQueryIVARS *const ivars = ProximityQuery_IVARS(self);
+    uint32_t num_terms = VA_Get_Size(ivars->terms);
+    CharBuf *buf = CB_new_from_str(ivars->field);
+    CB_Cat_Trusted_Utf8(buf, ":\"", 2);
     for (uint32_t i = 0; i < num_terms; i++) {
-        Obj *term = VA_Fetch(self->terms, i);
-        CharBuf *term_string = Obj_To_String(term);
-        CB_Cat(retval, term_string);
+        Obj *term = VA_Fetch(ivars->terms, i);
+        String *term_string = Obj_To_String(term);
+        CB_Cat(buf, term_string);
         DECREF(term_string);
         if (i < num_terms - 1) {
-            CB_Cat_Trusted_Str(retval, " ",  1);
+            CB_Cat_Trusted_Utf8(buf, " ",  1);
         }
     }
-    CB_Cat_Trusted_Str(retval, "\"", 1);
-    CB_catf(retval, "~%u32", self->within);
+    CB_Cat_Trusted_Utf8(buf, "\"", 1);
+    CB_catf(buf, "~%u32", ivars->within);
+    String *retval = CB_Yield_String(buf);
+    DECREF(buf);
     return retval;
 }
 
 Compiler*
-ProximityQuery_make_compiler(ProximityQuery *self, Searcher *searcher,
-                             float boost, bool_t subordinate) {
-    if (VA_Get_Size(self->terms) == 1) {
+ProximityQuery_Make_Compiler_IMP(ProximityQuery *self, Searcher *searcher,
+                                 float boost, bool subordinate) {
+    ProximityQueryIVARS *const ivars = ProximityQuery_IVARS(self);
+    if (VA_Get_Size(ivars->terms) == 1) {
         // Optimize for one-term "phrases".
-        Obj *term = VA_Fetch(self->terms, 0);
-        TermQuery *term_query = TermQuery_new(self->field, term);
-        TermQuery_Set_Boost(term_query, self->boost);
+        Obj *term = VA_Fetch(ivars->terms, 0);
+        TermQuery *term_query = TermQuery_new(ivars->field, term);
+        TermQuery_Set_Boost(term_query, ivars->boost);
         TermCompiler *term_compiler
             = (TermCompiler*)TermQuery_Make_Compiler(term_query, searcher,
                                                      boost, subordinate);
@@ -145,7 +185,7 @@ ProximityQuery_make_compiler(ProximityQuery *self, Searcher *searcher,
     }
     else {
         ProximityCompiler *compiler
-            = ProximityCompiler_new(self, searcher, boost, self->within);
+            = ProximityCompiler_new(self, searcher, boost, ivars->within);
         if (!subordinate) {
             ProximityCompiler_Normalize(compiler);
         }
@@ -153,19 +193,19 @@ ProximityQuery_make_compiler(ProximityQuery *self, Searcher *searcher,
     }
 }
 
-CharBuf*
-ProximityQuery_get_field(ProximityQuery *self) {
-    return self->field;
+String*
+ProximityQuery_Get_Field_IMP(ProximityQuery *self) {
+    return ProximityQuery_IVARS(self)->field;
 }
 
 VArray*
-ProximityQuery_get_terms(ProximityQuery *self) {
-    return self->terms;
+ProximityQuery_Get_Terms_IMP(ProximityQuery *self) {
+    return ProximityQuery_IVARS(self)->terms;
 }
 
 uint32_t
-ProximityQuery_get_within(ProximityQuery  *self) {
-    return self->within;
+ProximityQuery_Get_Within_IMP(ProximityQuery  *self) {
+    return ProximityQuery_IVARS(self)->within;
 }
 
 /*********************************************************************/
@@ -174,18 +214,20 @@ ProximityCompiler*
 ProximityCompiler_new(ProximityQuery *parent, Searcher *searcher, float boost,
                       uint32_t within) {
     ProximityCompiler *self =
-        (ProximityCompiler*)VTable_Make_Obj(PROXIMITYCOMPILER);
+        (ProximityCompiler*)Class_Make_Obj(PROXIMITYCOMPILER);
     return ProximityCompiler_init(self, parent, searcher, boost, within);
 }
 
 ProximityCompiler*
 ProximityCompiler_init(ProximityCompiler *self, ProximityQuery *parent,
                        Searcher *searcher, float boost, uint32_t within) {
+    ProximityCompilerIVARS *const ivars = ProximityCompiler_IVARS(self);
+    ProximityQueryIVARS *const parent_ivars = ProximityQuery_IVARS(parent);
     Schema     *schema = Searcher_Get_Schema(searcher);
-    Similarity *sim    = Schema_Fetch_Sim(schema, parent->field);
-    VArray     *terms  = parent->terms;
+    Similarity *sim    = Schema_Fetch_Sim(schema, parent_ivars->field);
+    VArray     *terms  = parent_ivars->terms;
 
-    self->within = within;
+    ivars->within = within;
 
     // Try harder to find a Similarity if necessary.
     if (!sim) { sim = Schema_Get_Similarity(schema); }
@@ -194,77 +236,96 @@ ProximityCompiler_init(ProximityCompiler *self, ProximityQuery *parent,
     Compiler_init((Compiler*)self, (Query*)parent, searcher, sim, boost);
 
     // Store IDF for the phrase.
-    self->idf = 0;
+    ivars->idf = 0;
     for (uint32_t i = 0, max = VA_Get_Size(terms); i < max; i++) {
         Obj *term = VA_Fetch(terms, i);
         int32_t doc_max  = Searcher_Doc_Max(searcher);
-        int32_t doc_freq = Searcher_Doc_Freq(searcher, parent->field, term);
-        self->idf += Sim_IDF(sim, doc_freq, doc_max);
+        int32_t doc_freq
+            = Searcher_Doc_Freq(searcher, parent_ivars->field,term);
+        ivars->idf += Sim_IDF(sim, doc_freq, doc_max);
     }
 
     // Calculate raw weight.
-    self->raw_weight = self->idf * self->boost;
+    ivars->raw_weight = ivars->idf * ivars->boost;
 
     return self;
 }
 
 void
-ProximityCompiler_serialize(ProximityCompiler *self, OutStream *outstream) {
-    Compiler_serialize((Compiler*)self, outstream);
-    OutStream_Write_F32(outstream, self->idf);
-    OutStream_Write_F32(outstream, self->raw_weight);
-    OutStream_Write_F32(outstream, self->query_norm_factor);
-    OutStream_Write_F32(outstream, self->normalized_weight);
-    OutStream_Write_C32(outstream, self->within);
+ProximityCompiler_Serialize_IMP(ProximityCompiler *self,
+                                OutStream *outstream) {
+    ProximityCompiler_Serialize_t super_serialize
+            = SUPER_METHOD_PTR(PROXIMITYCOMPILER, LUCY_ProximityCompiler_Serialize);
+    super_serialize(self, outstream);
+    ProximityCompilerIVARS *const ivars = ProximityCompiler_IVARS(self);
+    OutStream_Write_F32(outstream, ivars->idf);
+    OutStream_Write_F32(outstream, ivars->raw_weight);
+    OutStream_Write_F32(outstream, ivars->query_norm_factor);
+    OutStream_Write_F32(outstream, ivars->normalized_weight);
+    OutStream_Write_C32(outstream, ivars->within);
 }
 
 ProximityCompiler*
-ProximityCompiler_deserialize(ProximityCompiler *self, InStream *instream) {
-    self = self ? self : (ProximityCompiler*)VTable_Make_Obj(PROXIMITYCOMPILER);
-    Compiler_deserialize((Compiler*)self, instream);
-    self->idf               = InStream_Read_F32(instream);
-    self->raw_weight        = InStream_Read_F32(instream);
-    self->query_norm_factor = InStream_Read_F32(instream);
-    self->normalized_weight = InStream_Read_F32(instream);
-    self->within            = InStream_Read_C32(instream);
+ProximityCompiler_Deserialize_IMP(ProximityCompiler *self,
+                                  InStream *instream) {
+    ProximityCompiler_Deserialize_t super_deserialize
+            = SUPER_METHOD_PTR(PROXIMITYCOMPILER, LUCY_ProximityCompiler_Deserialize);
+    self = super_deserialize(self, instream);
+    ProximityCompilerIVARS *const ivars = ProximityCompiler_IVARS(self);
+    ivars->idf               = InStream_Read_F32(instream);
+    ivars->raw_weight        = InStream_Read_F32(instream);
+    ivars->query_norm_factor = InStream_Read_F32(instream);
+    ivars->normalized_weight = InStream_Read_F32(instream);
+    ivars->within            = InStream_Read_C32(instream);
     return self;
 }
 
-bool_t
-ProximityCompiler_equals(ProximityCompiler *self, Obj *other) {
-    ProximityCompiler *twin = (ProximityCompiler*)other;
-    if (!Obj_Is_A(other, PROXIMITYCOMPILER))                { return false; }
-    if (!Compiler_equals((Compiler*)self, other))           { return false; }
-    if (self->idf != twin->idf)                             { return false; }
-    if (self->raw_weight != twin->raw_weight)               { return false; }
-    if (self->query_norm_factor != twin->query_norm_factor) { return false; }
-    if (self->normalized_weight != twin->normalized_weight) { return false; }
-    if (self->within            != twin->within)            { return false; }
+bool
+ProximityCompiler_Equals_IMP(ProximityCompiler *self, Obj *other) {
+    if ((ProximityCompiler*)other == self)        { return true; }
+    if (!Obj_Is_A(other, PROXIMITYCOMPILER))      { return false; }
+    ProximityCompiler_Equals_t super_equals
+        = (ProximityCompiler_Equals_t)SUPER_METHOD_PTR(PROXIMITYCOMPILER,
+                                                       LUCY_ProximityCompiler_Equals);
+    if (!super_equals(self, other)) { return false; }
+    ProximityCompilerIVARS *const ivars = ProximityCompiler_IVARS(self);
+    ProximityCompilerIVARS *const ovars
+        = ProximityCompiler_IVARS((ProximityCompiler*)other);
+    if (ivars->idf != ovars->idf)                             { return false; }
+    if (ivars->raw_weight != ovars->raw_weight)               { return false; }
+    if (ivars->query_norm_factor != ovars->query_norm_factor) { return false; }
+    if (ivars->normalized_weight != ovars->normalized_weight) { return false; }
+    if (ivars->within            != ovars->within)            { return false; }
     return true;
 }
 
 float
-ProximityCompiler_get_weight(ProximityCompiler *self) {
-    return self->normalized_weight;
+ProximityCompiler_Get_Weight_IMP(ProximityCompiler *self) {
+    return ProximityCompiler_IVARS(self)->normalized_weight;
 }
 
 float
-ProximityCompiler_sum_of_squared_weights(ProximityCompiler *self) {
-    return self->raw_weight * self->raw_weight;
+ProximityCompiler_Sum_Of_Squared_Weights_IMP(ProximityCompiler *self) {
+    ProximityCompilerIVARS *const ivars = ProximityCompiler_IVARS(self);
+    return ivars->raw_weight * ivars->raw_weight;
 }
 
 void
-ProximityCompiler_apply_norm_factor(ProximityCompiler *self, float factor) {
-    self->query_norm_factor = factor;
-    self->normalized_weight = self->raw_weight * self->idf * factor;
+ProximityCompiler_Apply_Norm_Factor_IMP(ProximityCompiler *self,
+                                        float factor) {
+    ProximityCompilerIVARS *const ivars = ProximityCompiler_IVARS(self);
+    ivars->query_norm_factor = factor;
+    ivars->normalized_weight = ivars->raw_weight * ivars->idf * factor;
 }
 
 Matcher*
-ProximityCompiler_make_matcher(ProximityCompiler *self, SegReader *reader,
-                               bool_t need_score) {
+ProximityCompiler_Make_Matcher_IMP(ProximityCompiler *self, SegReader *reader,
+                                   bool need_score) {
+    ProximityCompilerIVARS *const ivars = ProximityCompiler_IVARS(self);
     UNUSED_VAR(need_score);
-    ProximityQuery *const parent = (ProximityQuery*)self->parent;
-    VArray *const      terms     = parent->terms;
+    ProximityQueryIVARS *const parent_ivars
+        = ProximityQuery_IVARS((ProximityQuery*)ivars->parent);
+    VArray *const      terms     = parent_ivars->terms;
     uint32_t           num_terms = VA_Get_Size(terms);
 
     // Bail if there are no terms.
@@ -282,7 +343,7 @@ ProximityCompiler_make_matcher(ProximityCompiler *self, SegReader *reader,
     // Bail if there's no PostingListReader for this segment.
     PostingListReader *const plist_reader
         = (PostingListReader*)SegReader_Fetch(
-              reader, VTable_Get_Name(POSTINGLISTREADER));
+              reader, Class_Get_Name(POSTINGLISTREADER));
     if (!plist_reader) { return NULL; }
 
     // Look up each term.
@@ -290,7 +351,7 @@ ProximityCompiler_make_matcher(ProximityCompiler *self, SegReader *reader,
     for (uint32_t i = 0; i < num_terms; i++) {
         Obj *term = VA_Fetch(terms, i);
         PostingList *plist
-            = PListReader_Posting_List(plist_reader, parent->field, term);
+            = PListReader_Posting_List(plist_reader, parent_ivars->field, term);
 
         // Bail if any one of the terms isn't in the index.
         if (!plist || !PList_Get_Doc_Freq(plist)) {
@@ -302,23 +363,26 @@ ProximityCompiler_make_matcher(ProximityCompiler *self, SegReader *reader,
     }
 
     Matcher *retval
-        = (Matcher*)ProximityMatcher_new(sim, plists, (Compiler*)self, self->within);
+        = (Matcher*)ProximityMatcher_new(sim, plists, (Compiler*)self, ivars->within);
     DECREF(plists);
     return retval;
 }
 
 VArray*
-ProximityCompiler_highlight_spans(ProximityCompiler *self, Searcher *searcher,
-                                  DocVector *doc_vec, const CharBuf *field) {
-    ProximityQuery *const parent = (ProximityQuery*)self->parent;
-    VArray         *const terms  = parent->terms;
+ProximityCompiler_Highlight_Spans_IMP(ProximityCompiler *self,
+                                      Searcher *searcher, DocVector *doc_vec,
+                                      String *field) {
+    ProximityCompilerIVARS *const ivars = ProximityCompiler_IVARS(self);
+    ProximityQueryIVARS *const parent_ivars
+        = ProximityQuery_IVARS((ProximityQuery*)ivars->parent);
+    VArray         *const terms  = parent_ivars->terms;
     VArray         *const spans  = VA_new(0);
     const uint32_t  num_terms    = VA_Get_Size(terms);
     UNUSED_VAR(searcher);
 
     // Bail if no terms or field doesn't match.
     if (!num_terms) { return spans; }
-    if (!CB_Equals(field, (Obj*)parent->field)) { return spans; }
+    if (!Str_Equals(field, (Obj*)parent_ivars->field)) { return spans; }
 
     VArray      *term_vectors    = VA_new(num_terms);
     BitVector   *posit_vec       = BitVec_new(0);
@@ -326,7 +390,7 @@ ProximityCompiler_highlight_spans(ProximityCompiler *self, Searcher *searcher,
     for (uint32_t i = 0; i < num_terms; i++) {
         Obj *term = VA_Fetch(terms, i);
         TermVector *term_vector
-            = DocVec_Term_Vector(doc_vec, field, (CharBuf*)term);
+            = DocVec_Term_Vector(doc_vec, field, (String*)term);
 
         // Bail if any term is missing.
         if (!term_vector) {

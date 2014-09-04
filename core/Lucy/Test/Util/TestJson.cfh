@@ -14,11 +14,16 @@
  * limitations under the License.
  */
 
-parcel Lucy;
+parcel TestLucy;
 
-inert class Lucy::Test::Util::TestJson  {
-    inert void
-    run_tests();
+class Lucy::Test::Util::TestJson
+    inherits Clownfish::TestHarness::TestBatch {
+
+    inert incremented TestJson*
+    new();
+
+    void
+    Run(TestJson *self, TestBatchRunner *runner);
 }
 
 

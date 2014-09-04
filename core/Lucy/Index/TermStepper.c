@@ -21,36 +21,40 @@
 #include "Lucy/Plan/Schema.h"
 #include "Lucy/Store/InStream.h"
 #include "Lucy/Store/OutStream.h"
-#include "Lucy/Util/StringHelper.h"
+#include "Clownfish/Util/StringHelper.h"
 
 TermStepper*
 TermStepper_init(TermStepper *self) {
     Stepper_init((Stepper*)self);
-    self->value = NULL;
+    TermStepperIVARS *const ivars = TermStepper_IVARS(self);
+    ivars->value = NULL;
     return self;
 }
 
 void
-TermStepper_destroy(TermStepper *self) {
-    DECREF(self->value);
+TermStepper_Destroy_IMP(TermStepper *self) {
+    TermStepperIVARS *const ivars = TermStepper_IVARS(self);
+    DECREF(ivars->value);
     SUPER_DESTROY(self, TERMSTEPPER);
 }
 
 void
-TermStepper_reset(TermStepper *self) {
-    DECREF(self->value);
-    self->value = NULL;
+TermStepper_Reset_IMP(TermStepper *self) {
+    TermStepperIVARS *const ivars = TermStepper_IVARS(self);
+    DECREF(ivars->value);
+    ivars->value = NULL;
 }
 
 Obj*
-TermStepper_get_value(TermStepper *self) {
-    return self->value;
+TermStepper_Get_Value_IMP(TermStepper *self) {
+    return TermStepper_IVARS(self)->value;
 }
 
 void
-TermStepper_set_value(TermStepper *self, Obj *value) {
-    DECREF(self->value);
-    self->value = value ? INCREF(value) : NULL;
+TermStepper_Set_Value_IMP(TermStepper *self, Obj *value) {
+    TermStepperIVARS *const ivars = TermStepper_IVARS(self);
+    DECREF(ivars->value);
+    ivars->value = value ? INCREF(value) : NULL;
 }
 
 

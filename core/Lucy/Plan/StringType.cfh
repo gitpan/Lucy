@@ -20,8 +20,7 @@ parcel Lucy;
  *
  * Lucy::Plan::StringType is used for "exact-match" strings.
  */
-class Lucy::Plan::StringType
-    inherits Lucy::Plan::TextType : dumpable {
+public class Lucy::Plan::StringType inherits Lucy::Plan::TextType {
 
     /**
      * @param boost floating point per-field boost.
@@ -34,8 +33,8 @@ class Lucy::Plan::StringType
     init(StringType *self);
 
     inert StringType*
-    init2(StringType *self, float boost = 1.0, bool_t indexed = true,
-          bool_t stored = true, bool_t sortable = false);
+    init2(StringType *self, float boost = 1.0, bool indexed = true,
+          bool stored = true, bool sortable = false);
 
     public inert incremented StringType*
     new();
@@ -52,7 +51,7 @@ class Lucy::Plan::StringType
     public incremented StringType*
     Load(StringType *self, Obj *dump);
 
-    public bool_t
+    public bool
     Equals(StringType *self, Obj *other);
 }
 

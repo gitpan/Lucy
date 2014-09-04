@@ -22,10 +22,10 @@ parcel Lucy;
  * directory and multiple files.
  */
 
-class Lucy::Store::FSFolder inherits Lucy::Store::Folder {
+public class Lucy::Store::FSFolder inherits Lucy::Store::Folder {
 
     inert incremented FSFolder*
-    new(const CharBuf *path);
+    new(String *path);
 
     /**
      * @param path Location of the index. If the specified directory does
@@ -34,7 +34,7 @@ class Lucy::Store::FSFolder inherits Lucy::Store::Folder {
      * be necessary to create the directory yourself.
      */
     public inert FSFolder*
-    init(FSFolder *self, const CharBuf *path);
+    init(FSFolder *self, String *path);
 
     /** Attempt to create the directory specified by <code>path</code>.
      */
@@ -44,44 +44,39 @@ class Lucy::Store::FSFolder inherits Lucy::Store::Folder {
     /** Verify that <code>path</code> is a directory.  TODO: check
      * permissions.
      */
-    public bool_t
+    public bool
     Check(FSFolder *self);
 
     public void
     Close(FSFolder *self);
 
     incremented nullable FileHandle*
-    Local_Open_FileHandle(FSFolder *self, const CharBuf *name,
+    Local_Open_FileHandle(FSFolder *self, String *name,
                           uint32_t flags);
 
     incremented nullable DirHandle*
     Local_Open_Dir(FSFolder *self);
 
-    bool_t
-    Local_MkDir(FSFolder *self, const CharBuf *name);
+    bool
+    Local_MkDir(FSFolder *self, String *name);
 
-    bool_t
-    Local_Exists(FSFolder *self, const CharBuf *name);
+    bool
+    Local_Exists(FSFolder *self, String *name);
 
-    bool_t
-    Local_Is_Directory(FSFolder *self, const CharBuf *name);
+    bool
+    Local_Is_Directory(FSFolder *self, String *name);
 
     nullable Folder*
-    Local_Find_Folder(FSFolder *self, const CharBuf *name);
+    Local_Find_Folder(FSFolder *self, String *name);
 
-    bool_t
-    Local_Delete(FSFolder *self, const CharBuf *name);
+    bool
+    Local_Delete(FSFolder *self, String *name);
 
-    public bool_t
-    Rename(FSFolder *self, const CharBuf* from, const CharBuf *to);
+    public bool
+    Rename(FSFolder *self, String* from, String *to);
 
-    public bool_t
-    Hard_Link(FSFolder *self, const CharBuf *from, const CharBuf *to);
-
-    /** Transform a relative path into an abolute path.
-     */
-    inert incremented CharBuf*
-    absolutify(const CharBuf *path);
+    public bool
+    Hard_Link(FSFolder *self, String *from, String *to);
 }
 
 

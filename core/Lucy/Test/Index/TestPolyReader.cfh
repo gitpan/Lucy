@@ -14,10 +14,15 @@
  * limitations under the License.
  */
 
-parcel Lucy;
+parcel TestLucy;
 
-inert class Lucy::Test::Index::TestPolyReader {
-    inert void
-    run_tests();
+class Lucy::Test::Index::TestPolyReader
+    inherits Clownfish::TestHarness::TestBatch {
+
+    inert incremented TestPolyReader*
+    new();
+
+    void
+    Run(TestPolyReader *self, TestBatchRunner *runner);
 }
 

@@ -22,7 +22,7 @@ Lucy::Store::FSFolder - File System implementation of Folder.
 =head1 SYNOPSIS
 
     my $folder = Lucy::Store::FSFolder->new(
-        path   => '/path/to/folder',
+        path => '/path/to/folder',
     );
 
 
@@ -37,7 +37,7 @@ directory and multiple files.
 =head2 new( I<[labeled params]> )
 
     my $folder = Lucy::Store::FSFolder->new(
-        path   => '/path/to/folder',
+        path => '/path/to/folder',
     );
 
 =over
@@ -55,11 +55,9 @@ be necessary to create the directory yourself.
 
 
 
-
-
 =head1 INHERITANCE
 
-Lucy::Store::FSFolder isa L<Lucy::Store::Folder> isa L<Lucy::Object::Obj>.
+Lucy::Store::FSFolder isa L<Lucy::Store::Folder> isa Clownfish::Obj.
 
 
 =cut

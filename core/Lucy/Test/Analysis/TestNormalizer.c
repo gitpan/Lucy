@@ -14,35 +14,45 @@
  * limitations under the License.
  */
 
-#define C_LUCY_TESTNORMALIZER
+#define C_TESTLUCY_TESTNORMALIZER
 #define C_LUCY_NORMALIZER
+#define TESTLUCY_USE_SHORT_NAMES
 #include "Lucy/Util/ToolSet.h"
 
+#include "Clownfish/TestHarness/TestBatchRunner.h"
+#include "Clownfish/TestHarness/TestUtils.h"
 #include "Lucy/Test.h"
 #include "Lucy/Test/Analysis/TestNormalizer.h"
 #include "Lucy/Analysis/Normalizer.h"
 #include "Lucy/Store/FSFolder.h"
+#include "Lucy/Test/TestUtils.h"
 #include "Lucy/Util/Json.h"
+#include "utf8proc.h"
+
+TestNormalizer*
+TestNormalizer_new() {
+    return (TestNormalizer*)Class_Make_Obj(TESTNORMALIZER);
+}
 
 static void
-test_Dump_Load_and_Equals(TestBatch *batch) {
+test_Dump_Load_and_Equals(TestBatchRunner *runner) {
     Normalizer *normalizer[4];
 
-    CharBuf *NFC  = (CharBuf*)ZCB_WRAP_STR("NFC",  3);
-    CharBuf *NFKC = (CharBuf*)ZCB_WRAP_STR("NFKC", 4);
+    String *NFC  = (String*)SSTR_WRAP_UTF8("NFC",  3);
+    String *NFKC = (String*)SSTR_WRAP_UTF8("NFKC", 4);
 
     normalizer[0] = Normalizer_new(NFKC, true,  false);
     normalizer[1] = Normalizer_new(NFC,  true,  false);
     normalizer[2] = Normalizer_new(NFKC, false, false);
     normalizer[3] = Normalizer_new(NFKC, true,  true);
 
-    TEST_FALSE(batch,
+    TEST_FALSE(runner,
                Normalizer_Equals(normalizer[0], (Obj*)normalizer[1]),
                "Equals() false with different normalization form");
-    TEST_FALSE(batch,
+    TEST_FALSE(runner,
                Normalizer_Equals(normalizer[0], (Obj*)normalizer[2]),
                "Equals() false with different case_fold flag");
-    TEST_FALSE(batch,
+    TEST_FALSE(runner,
                Normalizer_Equals(normalizer[0], (Obj*)normalizer[3]),
                "Equals() false with different strip_accents flag");
 
@@ -50,7 +60,7 @@ test_Dump_Load_and_Equals(TestBatch *batch) {
         Obj *dump = (Obj*)Normalizer_Dump(normalizer[i]);
         Normalizer *clone = (Normalizer*)Normalizer_Load(normalizer[i], dump);
 
-        TEST_TRUE(batch,
+        TEST_TRUE(runner,
                   Normalizer_Equals(normalizer[i], (Obj*)clone),
                   "Dump => Load round trip");
 
@@ -61,42 +71,33 @@ test_Dump_Load_and_Equals(TestBatch *batch) {
 }
 
 static void
-test_normalization(TestBatch *batch) {
-    CharBuf  *path           = CB_newf("modules");
-    FSFolder *modules_folder = FSFolder_new(path);
-    if (!FSFolder_Check(modules_folder)) {
-        DECREF(modules_folder);
-        CB_setf(path, "../modules");
-        modules_folder = FSFolder_new(path);
-        if (!FSFolder_Check(modules_folder)) {
-            THROW(ERR, "Can't open modules folder");
-        }
-    }
-    CB_setf(path, "unicode/utf8proc/tests.json");
+test_normalization(TestBatchRunner *runner) {
+    FSFolder *modules_folder = TestUtils_modules_folder();
+    String *path = Str_newf("unicode/utf8proc/tests.json");
     VArray *tests = (VArray*)Json_slurp_json((Folder*)modules_folder, path);
     if (!tests) { RETHROW(Err_get_error()); }
 
     for (uint32_t i = 0, max = VA_Get_Size(tests); i < max; i++) {
         Hash *test = (Hash*)VA_Fetch(tests, i);
-        CharBuf *form = (CharBuf*)Hash_Fetch_Str(
+        String *form = (String*)Hash_Fetch_Utf8(
                             test, "normalization_form", 18);
-        bool_t case_fold = Bool_Get_Value((BoolNum*)Hash_Fetch_Str(
+        bool case_fold = Bool_Get_Value((BoolNum*)Hash_Fetch_Utf8(
                                               test, "case_fold", 9));
-        bool_t strip_accents = Bool_Get_Value((BoolNum*)Hash_Fetch_Str(
+        bool strip_accents = Bool_Get_Value((BoolNum*)Hash_Fetch_Utf8(
                                                   test, "strip_accents", 13));
         Normalizer *normalizer = Normalizer_new(form, case_fold, strip_accents);
-        VArray *words = (VArray*)Hash_Fetch_Str(test, "words", 5);
-        VArray *norms = (VArray*)Hash_Fetch_Str(test, "norms", 5);
+        VArray *words = (VArray*)Hash_Fetch_Utf8(test, "words", 5);
+        VArray *norms = (VArray*)Hash_Fetch_Utf8(test, "norms", 5);
         for (uint32_t j = 0, max = VA_Get_Size(words); j < max; j++) {
-            CharBuf *word = (CharBuf*)VA_Fetch(words, j);
-            VArray  *got  = Normalizer_Split(normalizer, word);
-            CharBuf *norm = (CharBuf*)VA_Fetch(got, 0);
-            TEST_TRUE(batch,
+            String *word = (String*)VA_Fetch(words, j);
+            VArray *got  = Normalizer_Split(normalizer, word);
+            String *norm = (String*)VA_Fetch(got, 0);
+            TEST_TRUE(runner,
                       norm
-                      && CB_Is_A(norm, CHARBUF)
-                      && CB_Equals(norm, VA_Fetch(norms, j)),
-                      "Normalize %s %d %d: %s", CB_Get_Ptr8(form),
-                      case_fold, strip_accents, CB_Get_Ptr8(word)
+                      && Str_Is_A(norm, STRING)
+                      && Str_Equals(norm, VA_Fetch(norms, j)),
+                      "Normalize %s %d %d: %s", Str_Get_Ptr8(form),
+                      case_fold, strip_accents, Str_Get_Ptr8(word)
                      );
             DECREF(got);
         }
@@ -108,16 +109,64 @@ test_normalization(TestBatch *batch) {
     DECREF(path);
 }
 
+static void
+test_utf8proc_normalization(TestBatchRunner *runner) {
+    SKIP(runner, "utf8proc can't handle control chars or Unicode non-chars");
+    return;
+
+    for (int32_t i = 0; i < 100; i++) {
+        String *source = TestUtils_random_string(rand() % 40);
+
+        // Normalize once.
+        uint8_t *normalized;
+        int32_t check = utf8proc_map((const uint8_t*)Str_Get_Ptr8(source),
+                                     Str_Get_Size(source),
+                                     &normalized,
+                                     UTF8PROC_STABLE  |
+                                     UTF8PROC_COMPOSE |
+                                     UTF8PROC_COMPAT  |
+                                     UTF8PROC_CASEFOLD);
+        if (check < 0) {
+            lucy_Json_set_tolerant(1);
+            String *json = lucy_Json_to_json((Obj*)source);
+            if (!json) {
+                json = Str_newf("[failed to encode]");
+            }
+            FAIL(runner, "Failed to normalize: %s", Str_Get_Ptr8(json));
+            DECREF(json);
+            DECREF(source);
+            return;
+        }
+
+        // Normalize again.
+        size_t normalized_len = strlen((char*)normalized);
+        uint8_t *dupe;
+        int32_t dupe_check = utf8proc_map(normalized, normalized_len, &dupe,
+                                          UTF8PROC_STABLE  |
+                                          UTF8PROC_COMPOSE |
+                                          UTF8PROC_COMPAT  |
+                                          UTF8PROC_CASEFOLD);
+        if (dupe_check < 0) {
+            THROW(ERR, "Unexpected normalization error: %i32", dupe_check);
+        }
+        int comparison = strcmp((char*)normalized, (char*)dupe);
+        free(dupe);
+        free(normalized);
+        DECREF(source);
+        if (comparison != 0) {
+            FAIL(runner, "Not fully normalized");
+            return;
+        }
+    }
+    PASS(runner, "Normalization successful.");
+}
+
 void
-TestNormalizer_run_tests() {
-    TestBatch *batch = TestBatch_new(20);
-
-    TestBatch_Plan(batch);
-
-    test_Dump_Load_and_Equals(batch);
-    test_normalization(batch);
-
-    DECREF(batch);
+TestNormalizer_Run_IMP(TestNormalizer *self, TestBatchRunner *runner) {
+    TestBatchRunner_Plan(runner, (TestBatch*)self, 21);
+    test_Dump_Load_and_Equals(runner);
+    test_normalization(runner);
+    test_utf8proc_normalization(runner);
 }
 
 

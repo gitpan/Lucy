@@ -74,8 +74,6 @@ B<lock_factory> - A LockFactory.
 
 
 
-
-
 =head1 METHODS
 
 =head2 make_write_lock()
@@ -146,7 +144,7 @@ Getter for write lock retry interval.
 
 =head1 INHERITANCE
 
-Lucy::Index::IndexManager isa L<Lucy::Object::Obj>.
+Lucy::Index::IndexManager isa Clownfish::Obj.
 
 
 =cut

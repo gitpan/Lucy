@@ -15,33 +15,11 @@
 
 package Lucy::Search::Matcher;
 use Lucy;
-our $VERSION = '0.003003';
+our $VERSION = '0.004000';
 $VERSION = eval $VERSION;
 
 1;
 
 __END__
-
-__BINDING__
-
-my $synopsis = <<'END_SYNOPSIS';
-    # abstract base class
-END_SYNOPSIS
-
-my $constructor = <<'END_CONSTRUCTOR_CODE_SAMPLE';
-    my $matcher = MyMatcher->SUPER::new;
-END_CONSTRUCTOR_CODE_SAMPLE
-
-Clownfish::CFC::Binding::Perl::Class->register(
-    parcel            => "Lucy",
-    class_name        => "Lucy::Search::Matcher",
-    bind_methods      => [qw( Next Advance Get_Doc_ID Score Collect )],
-    bind_constructors => ["new"],
-    make_pod          => {
-        synopsis    => $synopsis,
-        constructor => { sample => $constructor },
-        methods     => [qw( next advance get_doc_id score )],
-    }
-);
 
 

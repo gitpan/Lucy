@@ -21,9 +21,11 @@
 #include "Lucy/Analysis/RegexTokenizer.h"
 #include "Lucy/Analysis/Token.h"
 #include "Lucy/Analysis/Inversion.h"
-#include "Lucy/Object/Host.h"
-#include "Lucy/Util/Memory.h"
-#include "Lucy/Util/StringHelper.h"
+#include "Clownfish/Util/Memory.h"
+#include "Clownfish/Util/StringHelper.h"
+
+static SV*
+S_compile_token_re(cfish_String *pattern);
 
 static void
 S_set_token_re_but_not_pattern(lucy_RegexTokenizer *self, void *token_re);
@@ -31,39 +33,61 @@ S_set_token_re_but_not_pattern(lucy_RegexTokenizer *self, void *token_re);
 static void
 S_set_pattern_from_token_re(lucy_RegexTokenizer *self, void *token_re);
 
+bool
+lucy_RegexTokenizer_is_available(void) {
+    return true;
+}
+
 lucy_RegexTokenizer*
 lucy_RegexTokenizer_init(lucy_RegexTokenizer *self,
-                         const lucy_CharBuf *pattern) {
-    SV *token_re_sv;
-
+                         cfish_String *pattern) {
     lucy_Analyzer_init((lucy_Analyzer*)self);
+    lucy_RegexTokenizerIVARS *const ivars = lucy_RegexTokenizer_IVARS(self);
     #define DEFAULT_PATTERN "\\w+(?:['\\x{2019}]\\w+)*"
     if (pattern) {
-        if (Lucy_CB_Find_Str(pattern, "\\p", 2) != -1
-            || Lucy_CB_Find_Str(pattern, "\\P", 2) != -1
+        if (CFISH_Str_Find_Utf8(pattern, "\\p", 2) != -1
+            || CFISH_Str_Find_Utf8(pattern, "\\P", 2) != -1
            ) {
             CFISH_DECREF(self);
-            THROW(LUCY_ERR, "\\p and \\P constructs forbidden");
+            THROW(CFISH_ERR, "\\p and \\P constructs forbidden");
         }
-        self->pattern = Lucy_CB_Clone(pattern);
+        ivars->pattern = CFISH_Str_Clone(pattern);
     }
     else {
-        self->pattern = lucy_CB_new_from_trusted_utf8(
+        ivars->pattern = cfish_Str_new_from_trusted_utf8(
                             DEFAULT_PATTERN, sizeof(DEFAULT_PATTERN) - 1);
     }
 
     // Acquire a compiled regex engine for matching one token.
-    token_re_sv = (SV*)lucy_Host_callback_host(
-                      LUCY_REGEXTOKENIZER, "compile_token_re", 1,
-                      CFISH_ARG_STR("pattern", self->pattern));
+    SV *token_re_sv = S_compile_token_re(ivars->pattern);
     S_set_token_re_but_not_pattern(self, SvRV(token_re_sv));
     SvREFCNT_dec(token_re_sv);
 
     return self;
 }
 
+static SV*
+S_compile_token_re(cfish_String *pattern) {
+    dSP;
+    ENTER;
+    SAVETMPS;
+    EXTEND(SP, 1);
+    PUSHMARK(SP);
+    XPUSHs(XSBind_str_to_sv(pattern));
+    PUTBACK;
+    call_pv("Lucy::Analysis::RegexTokenizer::_compile_token_re", G_SCALAR);
+    SPAGAIN;
+    SV *token_re_sv = POPs;
+    (void)SvREFCNT_inc(token_re_sv);
+    PUTBACK;
+    FREETMPS;
+    LEAVE;
+    return token_re_sv;
+}
+
 static void
 S_set_token_re_but_not_pattern(lucy_RegexTokenizer *self, void *token_re) {
+    lucy_RegexTokenizerIVARS *const ivars = lucy_RegexTokenizer_IVARS(self);
 #if (PERL_VERSION > 10)
     REGEXP *rx = SvRX((SV*)token_re);
 #else
@@ -72,53 +96,58 @@ S_set_token_re_but_not_pattern(lucy_RegexTokenizer *self, void *token_re) {
         magic = mg_find((SV*)token_re, PERL_MAGIC_qr);
     }
     if (!magic) {
-        THROW(LUCY_ERR, "token_re is not a qr// entity");
+        THROW(CFISH_ERR, "token_re is not a qr// entity");
     }
     REGEXP *rx = (REGEXP*)magic->mg_obj;
 #endif
     if (rx == NULL) {
-        THROW(LUCY_ERR, "Failed to extract REGEXP from token_re '%s'",
+        THROW(CFISH_ERR, "Failed to extract REGEXP from token_re '%s'",
               SvPV_nolen((SV*)token_re));
     }
-    if (self->token_re) { ReREFCNT_dec(((REGEXP*)self->token_re)); }
-    self->token_re = rx;
-    (void)ReREFCNT_inc(((REGEXP*)self->token_re));
+    if (ivars->token_re) { ReREFCNT_dec(((REGEXP*)ivars->token_re)); }
+    ivars->token_re = rx;
+    (void)ReREFCNT_inc(((REGEXP*)ivars->token_re));
 }
 
 static void
 S_set_pattern_from_token_re(lucy_RegexTokenizer *self, void *token_re) {
+    lucy_RegexTokenizerIVARS *const ivars = lucy_RegexTokenizer_IVARS(self);
     SV *rv = newRV((SV*)token_re);
     STRLEN len = 0;
     char *ptr = SvPVutf8((SV*)rv, len);
-    Lucy_CB_Mimic_Str(self->pattern, ptr, len);
+    CFISH_DECREF(ivars->pattern);
+    ivars->pattern = cfish_Str_new_from_trusted_utf8(ptr, len);
     SvREFCNT_dec(rv);
 }
 
 void
-lucy_RegexTokenizer_set_token_re(lucy_RegexTokenizer *self, void *token_re) {
+LUCY_RegexTokenizer_Set_Token_RE_IMP(lucy_RegexTokenizer *self,
+                                     void *token_re) {
     S_set_token_re_but_not_pattern(self, token_re);
     // Set pattern as a side effect.
     S_set_pattern_from_token_re(self, token_re);
 }
 
 void
-lucy_RegexTokenizer_destroy(lucy_RegexTokenizer *self) {
-    CFISH_DECREF(self->pattern);
-    ReREFCNT_dec(((REGEXP*)self->token_re));
-    LUCY_SUPER_DESTROY(self, LUCY_REGEXTOKENIZER);
+LUCY_RegexTokenizer_Destroy_IMP(lucy_RegexTokenizer *self) {
+    lucy_RegexTokenizerIVARS *const ivars = lucy_RegexTokenizer_IVARS(self);
+    CFISH_DECREF(ivars->pattern);
+    ReREFCNT_dec(((REGEXP*)ivars->token_re));
+    CFISH_SUPER_DESTROY(self, LUCY_REGEXTOKENIZER);
 }
 
 void
-lucy_RegexTokenizer_tokenize_str(lucy_RegexTokenizer *self,
-                                 const char *string, size_t string_len,
-                                 lucy_Inversion *inversion) {
+LUCY_RegexTokenizer_Tokenize_Utf8_IMP(lucy_RegexTokenizer *self,
+                                      const char *string, size_t string_len,
+                                      lucy_Inversion *inversion) {
+    lucy_RegexTokenizerIVARS *const ivars = lucy_RegexTokenizer_IVARS(self);
     uint32_t   num_code_points = 0;
     SV        *wrapper    = sv_newmortal();
 #if (PERL_VERSION > 10)
-    REGEXP    *rx         = (REGEXP*)self->token_re;
+    REGEXP    *rx         = (REGEXP*)ivars->token_re;
     regexp    *rx_struct  = (regexp*)SvANY(rx);
 #else
-    REGEXP    *rx         = (REGEXP*)self->token_re;
+    REGEXP    *rx         = (REGEXP*)ivars->token_re;
     regexp    *rx_struct  = rx;
 #endif
     char      *string_beg = (char*)string;
@@ -149,22 +178,22 @@ lucy_RegexTokenizer_tokenize_str(lucy_RegexTokenizer *self,
 
         // Get start and end offsets in Unicode code points.
         for (; string_arg < start_ptr; num_code_points++) {
-            string_arg += lucy_StrHelp_UTF8_COUNT[(uint8_t)(*string_arg)];
+            string_arg += cfish_StrHelp_UTF8_COUNT[(uint8_t)(*string_arg)];
             if (string_arg > string_end) {
-                THROW(LUCY_ERR, "scanned past end of '%s'", string_beg);
+                THROW(CFISH_ERR, "scanned past end of '%s'", string_beg);
             }
         }
         start = num_code_points;
         for (; string_arg < end_ptr; num_code_points++) {
-            string_arg += lucy_StrHelp_UTF8_COUNT[(uint8_t)(*string_arg)];
+            string_arg += cfish_StrHelp_UTF8_COUNT[(uint8_t)(*string_arg)];
             if (string_arg > string_end) {
-                THROW(LUCY_ERR, "scanned past end of '%s'", string_beg);
+                THROW(CFISH_ERR, "scanned past end of '%s'", string_beg);
             }
         }
         end = num_code_points;
 
         // Add a token to the new inversion.
-        Lucy_Inversion_Append(inversion,
+        LUCY_Inversion_Append(inversion,
                               lucy_Token_new(
                                   start_ptr,
                                   (end_ptr - start_ptr),

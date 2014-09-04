@@ -14,11 +14,16 @@
  * limitations under the License.
  */
 
-parcel Lucy;
+parcel TestLucy;
 
-inert class Lucy::Test::Object::TestI32Array cnick TestI32Arr {
-    inert void
-    run_tests();
+class Lucy::Test::Object::TestI32Array nickname TestI32Arr
+    inherits Clownfish::TestHarness::TestBatch {
+
+    inert incremented TestI32Array*
+    new();
+
+    void
+    Run(TestI32Array *self, TestBatchRunner *runner);
 }
 
 

@@ -31,7 +31,7 @@ parcel Lucy;
  * merged into new ones.
  */
 
-abstract class Lucy::Index::DeletionsWriter cnick DelWriter
+public abstract class Lucy::Index::DeletionsWriter nickname DelWriter
     inherits Lucy::Index::DataWriter {
 
     inert DeletionsWriter*
@@ -47,7 +47,7 @@ abstract class Lucy::Index::DeletionsWriter cnick DelWriter
      * will be processed automatically (so don't pre-process it yourself).
      */
     public abstract void
-    Delete_By_Term(DeletionsWriter *self, const CharBuf *field, Obj *term);
+    Delete_By_Term(DeletionsWriter *self, String *field, Obj *term);
 
     /** Delete all documents in the index that match <code>query</code>.
      *
@@ -63,7 +63,7 @@ abstract class Lucy::Index::DeletionsWriter cnick DelWriter
 
     /** Returns true if there are updates that need to be written.
      */
-    public abstract bool_t
+    public abstract bool
     Updated(DeletionsWriter *self);
 
     /** Produce an array of int32_t which wraps around deleted documents.  The
@@ -92,19 +92,19 @@ abstract class Lucy::Index::DeletionsWriter cnick DelWriter
      * @param seg_name The name of the segment.
      */
     public abstract int32_t
-    Seg_Del_Count(DeletionsWriter *self, const CharBuf *seg_name);
+    Seg_Del_Count(DeletionsWriter *self, String *seg_name);
 }
 
 /** Implements DeletionsWriter using BitVector files.
  */
-class Lucy::Index::DefaultDeletionsWriter cnick DefDelWriter
+class Lucy::Index::DefaultDeletionsWriter nickname DefDelWriter
     inherits Lucy::Index::DeletionsWriter {
 
     VArray        *seg_readers;
     Hash          *name_to_tick;
     I32Array      *seg_starts;
     VArray        *bit_vecs;
-    bool_t        *updated;
+    bool          *updated;
     IndexSearcher *searcher;
 
     inert int32_t current_file_format;
@@ -124,7 +124,7 @@ class Lucy::Index::DefaultDeletionsWriter cnick DefDelWriter
          Segment *segment, PolyReader *polyreader);
 
     public void
-    Delete_By_Term(DefaultDeletionsWriter *self, const CharBuf *field,
+    Delete_By_Term(DefaultDeletionsWriter *self, String *field,
                    Obj *term);
 
     public void
@@ -133,14 +133,14 @@ class Lucy::Index::DefaultDeletionsWriter cnick DefDelWriter
     public void
     Delete_By_Doc_ID(DefaultDeletionsWriter *self, int32_t doc_id);
 
-    public bool_t
+    public bool
     Updated(DefaultDeletionsWriter *self);
 
     public incremented nullable Matcher*
     Seg_Deletions(DefaultDeletionsWriter *self, SegReader *seg_reader);
 
     public int32_t
-    Seg_Del_Count(DefaultDeletionsWriter *self, const CharBuf *seg_name);
+    Seg_Del_Count(DefaultDeletionsWriter *self, String *seg_name);
 
     public void
     Add_Segment(DefaultDeletionsWriter *self, SegReader *reader,

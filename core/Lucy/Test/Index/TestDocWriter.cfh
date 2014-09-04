@@ -14,11 +14,16 @@
  * limitations under the License.
  */
 
-parcel Lucy;
+parcel TestLucy;
 
-inert class Lucy::Test::Index::TestDocWriter {
-    inert void
-    run_tests();
+class Lucy::Test::Index::TestDocWriter
+    inherits Clownfish::TestHarness::TestBatch {
+
+    inert incremented TestDocWriter*
+    new();
+
+    void
+    Run(TestDocWriter *self, TestBatchRunner *runner);
 }
 
 

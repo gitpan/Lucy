@@ -14,15 +14,24 @@
  * limitations under the License.
  */
 
-#define C_LUCY_TESTQUERYPARSERSYNTAX
-#define C_LUCY_TESTQUERYPARSER
+#define C_TESTLUCY_TESTQUERYPARSERSYNTAX
+#define C_TESTLUCY_TESTQUERYPARSER
+#define TESTLUCY_USE_SHORT_NAMES
 #include "Lucy/Util/ToolSet.h"
 #include <string.h>
 
+#include "Clownfish/TestHarness/TestBatchRunner.h"
 #include "Lucy/Test.h"
 #include "Lucy/Test/Search/TestQueryParserSyntax.h"
 #include "Lucy/Test/Search/TestQueryParser.h"
 #include "Lucy/Test/TestUtils.h"
+#include "Lucy/Analysis/PolyAnalyzer.h"
+#include "Lucy/Analysis/RegexTokenizer.h"
+#include "Lucy/Analysis/SnowballStopFilter.h"
+#include "Lucy/Document/Doc.h"
+#include "Lucy/Index/Indexer.h"
+#include "Lucy/Plan/FullTextType.h"
+#include "Lucy/Plan/Schema.h"
 #include "Lucy/Search/Hits.h"
 #include "Lucy/Search/IndexSearcher.h"
 #include "Lucy/Search/QueryParser.h"
@@ -33,12 +42,82 @@
 #include "Lucy/Search/NOTQuery.h"
 #include "Lucy/Search/ORQuery.h"
 #include "Lucy/Store/Folder.h"
+#include "Lucy/Store/RAMFolder.h"
 
-#define make_term_query   (Query*)lucy_TestUtils_make_term_query
-#define make_phrase_query (Query*)lucy_TestUtils_make_phrase_query
-#define make_leaf_query   (Query*)lucy_TestUtils_make_leaf_query
-#define make_not_query    (Query*)lucy_TestUtils_make_not_query
-#define make_poly_query   (Query*)lucy_TestUtils_make_poly_query
+#define make_term_query   (Query*)TestUtils_make_term_query
+#define make_phrase_query (Query*)TestUtils_make_phrase_query
+#define make_leaf_query   (Query*)TestUtils_make_leaf_query
+#define make_not_query    (Query*)TestUtils_make_not_query
+#define make_poly_query   (Query*)TestUtils_make_poly_query
+
+TestQueryParserSyntax*
+TestQPSyntax_new() {
+    return (TestQueryParserSyntax*)Class_Make_Obj(TESTQUERYPARSERSYNTAX);
+}
+
+static Folder*
+build_index() {
+    // Plain type.
+    String         *pattern   = Str_newf("\\S+");
+    RegexTokenizer *tokenizer = RegexTokenizer_new(pattern);
+    FullTextType   *plain     = FullTextType_new((Analyzer*)tokenizer);
+
+    // Fancy type.
+
+    String         *word_pattern   = Str_newf("\\w+");
+    RegexTokenizer *word_tokenizer = RegexTokenizer_new(word_pattern);
+
+    Hash *stop_list = Hash_new(0);
+    Hash_Store_Utf8(stop_list, "x", 1, (Obj*)CFISH_TRUE);
+    SnowballStopFilter *stop_filter = SnowStop_new(NULL, stop_list);
+
+    VArray *analyzers = VA_new(0);
+    VA_Push(analyzers, (Obj*)word_tokenizer);
+    VA_Push(analyzers, (Obj*)stop_filter);
+    PolyAnalyzer *fancy_analyzer = PolyAnalyzer_new(NULL, analyzers);
+
+    FullTextType *fancy = FullTextType_new((Analyzer*)fancy_analyzer);
+
+    // Schema.
+    Schema *schema   = Schema_new();
+    String *plain_str = Str_newf("plain");
+    String *fancy_str = Str_newf("fancy");
+    Schema_Spec_Field(schema, plain_str, (FieldType*)plain);
+    Schema_Spec_Field(schema, fancy_str, (FieldType*)fancy);
+
+    // Indexer.
+    RAMFolder *folder  = RAMFolder_new(NULL);
+    Indexer   *indexer = Indexer_new(schema, (Obj*)folder, NULL, 0);
+
+    // Index documents.
+    VArray *doc_set = TestUtils_doc_set();
+    for (uint32_t i = 0; i < VA_Get_Size(doc_set); ++i) {
+        String *content_string = (String*)VA_Fetch(doc_set, i);
+        Doc *doc = Doc_new(NULL, 0);
+        Doc_Store(doc, plain_str, (Obj*)content_string);
+        Doc_Store(doc, fancy_str, (Obj*)content_string);
+        Indexer_Add_Doc(indexer, doc, 1.0);
+        DECREF(doc);
+    }
+    Indexer_Commit(indexer);
+
+    // Clean up.
+    DECREF(doc_set);
+    DECREF(indexer);
+    DECREF(fancy_str);
+    DECREF(plain_str);
+    DECREF(schema);
+    DECREF(fancy);
+    DECREF(fancy_analyzer);
+    DECREF(analyzers);
+    DECREF(stop_list);
+    DECREF(word_pattern);
+    DECREF(plain);
+    DECREF(tokenizer);
+    DECREF(pattern);
+
+    return (Folder*)folder;
+}
 
 static TestQueryParser*
 leaf_test_simple_term() {
@@ -223,6 +302,12 @@ syntax_test_unclosed_parens() {
 }
 
 static TestQueryParser*
+syntax_test_unmatched_parens() {
+    Query *tree = make_leaf_query(NULL, "a");
+    return TestQP_new(")a)", tree, NULL, 4);
+}
+
+static TestQueryParser*
 syntax_test_escaped_quotes_outside() {
     Query *tree = make_leaf_query(NULL, "\\\"a\\\"");
     return TestQP_new("\\\"a\\\"", tree, NULL, 4);
@@ -250,9 +335,9 @@ syntax_test_double_colon() {
 /***************************************************************************/
 
 typedef TestQueryParser*
-(*lucy_TestQPSyntax_test_t)();
+(*LUCY_TestQPSyntax_Test_t)();
 
-static lucy_TestQPSyntax_test_t leaf_test_funcs[] = {
+static LUCY_TestQPSyntax_Test_t leaf_test_funcs[] = {
     leaf_test_simple_term,
     leaf_test_simple_phrase,
     leaf_test_unclosed_quote,
@@ -270,7 +355,7 @@ static lucy_TestQPSyntax_test_t leaf_test_funcs[] = {
     NULL
 };
 
-static lucy_TestQPSyntax_test_t syntax_test_funcs[] = {
+static LUCY_TestQPSyntax_Test_t syntax_test_funcs[] = {
     syntax_test_minus_plus,
     syntax_test_plus_minus,
     syntax_test_minus_minus,
@@ -279,6 +364,7 @@ static lucy_TestQPSyntax_test_t syntax_test_funcs[] = {
     syntax_test_padded_plus,
     syntax_test_padded_minus,
     syntax_test_unclosed_parens,
+    syntax_test_unmatched_parens,
     syntax_test_escaped_quotes_outside,
     syntax_test_escaped_quotes_inside,
     syntax_test_identifier_field_name,
@@ -286,31 +372,44 @@ static lucy_TestQPSyntax_test_t syntax_test_funcs[] = {
     NULL
 };
 
-void
-TestQPSyntax_run_tests(Folder *index) {
-    uint32_t i;
-    TestBatch     *batch      = TestBatch_new(66);
-    IndexSearcher *searcher   = IxSearcher_new((Obj*)index);
-    QueryParser   *qparser    = QParser_new(IxSearcher_Get_Schema(searcher),
-                                            NULL, NULL, NULL);
+static void
+test_query_parser_syntax(TestBatchRunner *runner) {
+    if (!RegexTokenizer_is_available()) {
+        for (uint32_t i = 0; leaf_test_funcs[i] != NULL; i++) {
+            SKIP(runner, "RegexTokenizer not available");
+            SKIP(runner, "RegexTokenizer not available");
+            SKIP(runner, "RegexTokenizer not available");
+        }
+
+        for (uint32_t i = 0; syntax_test_funcs[i] != NULL; i++) {
+            SKIP(runner, "RegexTokenizer not available");
+            SKIP(runner, "RegexTokenizer not available");
+        }
+
+        return;
+    }
+
+    Folder        *index    = build_index();
+    IndexSearcher *searcher = IxSearcher_new((Obj*)index);
+    QueryParser   *qparser  = QParser_new(IxSearcher_Get_Schema(searcher),
+                                          NULL, NULL, NULL);
     QParser_Set_Heed_Colons(qparser, true);
 
-    TestBatch_Plan(batch);
-
-    for (i = 0; leaf_test_funcs[i] != NULL; i++) {
-        lucy_TestQPSyntax_test_t test_func = leaf_test_funcs[i];
+    for (uint32_t i = 0; leaf_test_funcs[i] != NULL; i++) {
+        LUCY_TestQPSyntax_Test_t test_func = leaf_test_funcs[i];
         TestQueryParser *test_case = test_func();
-        Query *tree     = QParser_Tree(qparser, test_case->query_string);
-        Query *expanded = QParser_Expand_Leaf(qparser, test_case->tree);
-        Query *parsed   = QParser_Parse(qparser, test_case->query_string);
+        TestQueryParserIVARS *ivars = TestQP_IVARS(test_case);
+        Query *tree     = QParser_Tree(qparser, ivars->query_string);
+        Query *expanded = QParser_Expand_Leaf(qparser, ivars->tree);
+        Query *parsed   = QParser_Parse(qparser, ivars->query_string);
         Hits  *hits     = IxSearcher_Hits(searcher, (Obj*)parsed, 0, 10, NULL);
 
-        TEST_TRUE(batch, Query_Equals(tree, (Obj*)test_case->tree),
-                  "tree()    %s", (char*)CB_Get_Ptr8(test_case->query_string));
-        TEST_TRUE(batch, Query_Equals(expanded, (Obj*)test_case->expanded),
-                  "expand_leaf()    %s", (char*)CB_Get_Ptr8(test_case->query_string));
-        TEST_INT_EQ(batch, Hits_Total_Hits(hits), test_case->num_hits,
-                    "hits:    %s", (char*)CB_Get_Ptr8(test_case->query_string));
+        TEST_TRUE(runner, Query_Equals(tree, (Obj*)ivars->tree),
+                  "tree()    %s", Str_Get_Ptr8(ivars->query_string));
+        TEST_TRUE(runner, Query_Equals(expanded, (Obj*)ivars->expanded),
+                  "expand_leaf()    %s", Str_Get_Ptr8(ivars->query_string));
+        TEST_INT_EQ(runner, Hits_Total_Hits(hits), ivars->num_hits,
+                    "hits:    %s", Str_Get_Ptr8(ivars->query_string));
         DECREF(hits);
         DECREF(parsed);
         DECREF(expanded);
@@ -318,26 +417,33 @@ TestQPSyntax_run_tests(Folder *index) {
         DECREF(test_case);
     }
 
-    for (i = 0; syntax_test_funcs[i] != NULL; i++) {
-        lucy_TestQPSyntax_test_t test_func = syntax_test_funcs[i];
+    for (uint32_t i = 0; syntax_test_funcs[i] != NULL; i++) {
+        LUCY_TestQPSyntax_Test_t test_func = syntax_test_funcs[i];
         TestQueryParser *test_case = test_func();
-        Query *tree   = QParser_Tree(qparser, test_case->query_string);
-        Query *parsed = QParser_Parse(qparser, test_case->query_string);
+        TestQueryParserIVARS *ivars = TestQP_IVARS(test_case);
+        Query *tree   = QParser_Tree(qparser, ivars->query_string);
+        Query *parsed = QParser_Parse(qparser, ivars->query_string);
         Hits  *hits   = IxSearcher_Hits(searcher, (Obj*)parsed, 0, 10, NULL);
 
-        TEST_TRUE(batch, Query_Equals(tree, (Obj*)test_case->tree),
-                  "tree()    %s", (char*)CB_Get_Ptr8(test_case->query_string));
-        TEST_INT_EQ(batch, Hits_Total_Hits(hits), test_case->num_hits,
-                    "hits:    %s", (char*)CB_Get_Ptr8(test_case->query_string));
+        TEST_TRUE(runner, Query_Equals(tree, (Obj*)ivars->tree),
+                  "tree()    %s", Str_Get_Ptr8(ivars->query_string));
+        TEST_INT_EQ(runner, Hits_Total_Hits(hits), ivars->num_hits,
+                    "hits:    %s", Str_Get_Ptr8(ivars->query_string));
         DECREF(hits);
         DECREF(parsed);
         DECREF(tree);
         DECREF(test_case);
     }
 
-    DECREF(batch);
     DECREF(searcher);
     DECREF(qparser);
+    DECREF(index);
+}
+
+void
+TestQPSyntax_Run_IMP(TestQueryParserSyntax *self, TestBatchRunner *runner) {
+    TestBatchRunner_Plan(runner, (TestBatch*)self, 68);
+    test_query_parser_syntax(runner);
 }
 
 

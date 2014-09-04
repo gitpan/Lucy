@@ -22,46 +22,48 @@
 
 ANDMatcher*
 ANDMatcher_new(VArray *children, Similarity *sim) {
-    ANDMatcher *self = (ANDMatcher*)VTable_Make_Obj(ANDMATCHER);
+    ANDMatcher *self = (ANDMatcher*)Class_Make_Obj(ANDMATCHER);
     return ANDMatcher_init(self, children, sim);
 }
 
 ANDMatcher*
 ANDMatcher_init(ANDMatcher *self, VArray *children, Similarity *sim) {
-    uint32_t i;
+    ANDMatcherIVARS *const ivars = ANDMatcher_IVARS(self);
 
     // Init.
     PolyMatcher_init((PolyMatcher*)self, children, sim);
-    self->first_time       = true;
+    ivars->first_time   = true;
 
     // Assign.
-    self->more             = self->num_kids ? true : false;
-    self->kids             = (Matcher**)MALLOCATE(self->num_kids * sizeof(Matcher*));
-    for (i = 0; i < self->num_kids; i++) {
+    ivars->more         = ivars->num_kids ? true : false;
+    ivars->kids         = (Matcher**)MALLOCATE(ivars->num_kids * sizeof(Matcher*));
+    for (uint32_t i = 0; i < ivars->num_kids; i++) {
         Matcher *child = (Matcher*)VA_Fetch(children, i);
-        self->kids[i] = child;
-        if (!Matcher_Next(child)) { self->more = false; }
+        ivars->kids[i] = child;
+        if (!Matcher_Next(child)) { ivars->more = false; }
     }
 
     // Derive.
-    self->matching_kids = self->num_kids;
+    ivars->matching_kids = ivars->num_kids;
 
     return self;
 }
 
 void
-ANDMatcher_destroy(ANDMatcher *self) {
-    FREEMEM(self->kids);
+ANDMatcher_Destroy_IMP(ANDMatcher *self) {
+    ANDMatcherIVARS *const ivars = ANDMatcher_IVARS(self);
+    FREEMEM(ivars->kids);
     SUPER_DESTROY(self, ANDMATCHER);
 }
 
 int32_t
-ANDMatcher_next(ANDMatcher *self) {
-    if (self->first_time) {
+ANDMatcher_Next_IMP(ANDMatcher *self) {
+    ANDMatcherIVARS *const ivars = ANDMatcher_IVARS(self);
+    if (ivars->first_time) {
         return ANDMatcher_Advance(self, 1);
     }
-    if (self->more) {
-        const int32_t target = Matcher_Get_Doc_ID(self->kids[0]) + 1;
+    if (ivars->more) {
+        const int32_t target = Matcher_Get_Doc_ID(ivars->kids[0]) + 1;
         return ANDMatcher_Advance(self, target);
     }
     else {
@@ -70,32 +72,32 @@ ANDMatcher_next(ANDMatcher *self) {
 }
 
 int32_t
-ANDMatcher_advance(ANDMatcher *self, int32_t target) {
-    Matcher **const kids     = self->kids;
-    const uint32_t  num_kids = self->num_kids;
+ANDMatcher_Advance_IMP(ANDMatcher *self, int32_t target) {
+    ANDMatcherIVARS *const ivars = ANDMatcher_IVARS(self);
+    Matcher **const kids     = ivars->kids;
+    const uint32_t  num_kids = ivars->num_kids;
     int32_t         highest  = 0;
 
-    if (!self->more) { return 0; }
+    if (!ivars->more) { return 0; }
 
     // First step: Advance first child and use its doc as a starting point.
-    if (self->first_time) {
-        self->first_time = false;
+    if (ivars->first_time) {
+        ivars->first_time = false;
     }
     else {
         highest = Matcher_Advance(kids[0], target);
         if (!highest) {
-            self->more = false;
+            ivars->more = false;
             return 0;
         }
     }
 
     // Second step: reconcile.
     while (1) {
-        uint32_t i;
-        bool_t agreement = true;
+        bool agreement = true;
 
         // Scoot all Matchers up.
-        for (i = 0; i < num_kids; i++) {
+        for (uint32_t i = 0; i < num_kids; i++) {
             Matcher *const child = kids[i];
             int32_t candidate = Matcher_Get_Doc_ID(child);
 
@@ -114,14 +116,14 @@ ANDMatcher_advance(ANDMatcher *self, int32_t target) {
                 // This Matcher is definitely the highest right now.
                 highest = Matcher_Advance(child, target);
                 if (!highest) {
-                    self->more = false;
+                    ivars->more = false;
                     return 0;
                 }
             }
         }
 
         // If Matchers don't agree, send back through the loop.
-        for (i = 0; i < num_kids; i++) {
+        for (uint32_t i = 0; i < num_kids; i++) {
             Matcher *const child = kids[i];
             const int32_t candidate = Matcher_Get_Doc_ID(child);
             if (candidate != highest) {
@@ -142,21 +144,21 @@ ANDMatcher_advance(ANDMatcher *self, int32_t target) {
 }
 
 int32_t
-ANDMatcher_get_doc_id(ANDMatcher *self) {
-    return Matcher_Get_Doc_ID(self->kids[0]);
+ANDMatcher_Get_Doc_ID_IMP(ANDMatcher *self) {
+    return Matcher_Get_Doc_ID(ANDMatcher_IVARS(self)->kids[0]);
 }
 
 float
-ANDMatcher_score(ANDMatcher *self) {
-    uint32_t i;
-    Matcher **const kids = self->kids;
+ANDMatcher_Score_IMP(ANDMatcher *self) {
+    ANDMatcherIVARS *const ivars = ANDMatcher_IVARS(self);
+    Matcher **const kids = ivars->kids;
     float score = 0.0f;
 
-    for (i = 0; i < self->num_kids; i++) {
+    for (uint32_t i = 0; i < ivars->num_kids; i++) {
         score += Matcher_Score(kids[i]);
     }
 
-    score *= self->coord_factors[self->matching_kids];
+    score *= ivars->coord_factors[ivars->matching_kids];
 
     return score;
 }

@@ -14,43 +14,48 @@
  * limitations under the License.
  */
 
-#define C_LUCY_TESTMEMORYPOOL
+#define C_TESTLUCY_TESTMEMORYPOOL
 #define C_LUCY_MEMORYPOOL
+#define TESTLUCY_USE_SHORT_NAMES
 #include "Lucy/Util/ToolSet.h"
 
+#include "Clownfish/TestHarness/TestBatchRunner.h"
 #include "Lucy/Test.h"
 #include "Lucy/Test/Util/TestMemoryPool.h"
 #include "Lucy/Util/MemoryPool.h"
 
+TestMemoryPool*
+TestMemPool_new() {
+    return (TestMemoryPool*)Class_Make_Obj(TESTMEMORYPOOL);
+}
+
 void
-TestMemPool_run_tests() {
-    TestBatch  *batch     = TestBatch_new(4);
-    MemoryPool *mem_pool  = MemPool_new(0);
-    MemoryPool *other     = MemPool_new(0);
+TestMemPool_Run_IMP(TestMemoryPool *self, TestBatchRunner *runner) {
+    TestBatchRunner_Plan(runner, (TestBatch*)self, 5);
+
+    MemoryPool *mem_pool = MemPool_new(0);
+    MemoryPoolIVARS *const ivars = MemPool_IVARS(mem_pool);
     char *ptr_a, *ptr_b;
 
-    TestBatch_Plan(batch);
-
     ptr_a = (char*)MemPool_Grab(mem_pool, 10);
-    strcpy(ptr_a, "foo");
-    MemPool_Release_All(mem_pool);
-
+    size_t expected = sizeof(void*) == 8 ? 16 : 12;
+    TEST_INT_EQ(runner, MemPool_Get_Consumed(mem_pool), expected,
+                "Round up allocation to word size");
     ptr_b = (char*)MemPool_Grab(mem_pool, 10);
-    TEST_STR_EQ(batch, ptr_b, "foo", "Recycle RAM on Release_All");
+    TEST_INT_EQ(runner, MemPool_Get_Consumed(mem_pool), expected * 2,
+                "Accumulate consumed.");
 
-    ptr_a = mem_pool->buf;
+    ptr_a = ivars->buf;
     MemPool_Resize(mem_pool, ptr_b, 6);
-    TEST_TRUE(batch, mem_pool->buf < ptr_a, "Resize");
+    TEST_TRUE(runner, ivars->buf < ptr_a, "Resize adjusts next allocation");
+    TEST_TRUE(runner, MemPool_Get_Consumed(mem_pool) < expected * 2,
+                "Resize() adjusts `consumed`");
 
-    ptr_a = (char*)MemPool_Grab(other, 20);
-    MemPool_Release_All(other);
-    MemPool_Eat(other, mem_pool);
-    TEST_TRUE(batch, other->buf == mem_pool->buf, "Eat");
-    TEST_TRUE(batch, other->buf != NULL, "Eat");
+    MemPool_Release_All(mem_pool);
+    TEST_INT_EQ(runner, MemPool_Get_Consumed(mem_pool), 0,
+                "Release_All() resets `consumed`");
 
     DECREF(mem_pool);
-    DECREF(other);
-    DECREF(batch);
 }
 
 

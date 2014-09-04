@@ -27,7 +27,7 @@ parcel Lucy;
  * posting format, and
  * L<ScorePosting|Lucy::Index::Posting::ScorePosting>, the default.
  */
-class Lucy::Index::Posting cnick Post inherits Lucy::Util::Stepper {
+class Lucy::Index::Posting nickname Post inherits Lucy::Util::Stepper {
 
     int32_t doc_id;
 
@@ -40,7 +40,7 @@ class Lucy::Index::Posting cnick Post inherits Lucy::Util::Stepper {
      */
     abstract incremented RawPosting*
     Read_Raw(Posting *self, InStream *instream, int32_t last_doc_id,
-             CharBuf *term_text, MemoryPool *mem_pool);
+             String *term_text, MemoryPool *mem_pool);
 
     /** Process an Inversion into RawPosting objects and add them all to the
      * supplied PostingPool.
@@ -61,10 +61,10 @@ class Lucy::Index::Posting cnick Post inherits Lucy::Util::Stepper {
      */
     abstract incremented Matcher*
     Make_Matcher(Posting *self, Similarity *sim, PostingList *plist,
-                 Compiler *compiler, bool_t need_score);
+                 Compiler *compiler, bool need_score);
 }
 
-abstract class Lucy::Index::Posting::PostingWriter cnick PostWriter
+abstract class Lucy::Index::Posting::PostingWriter nickname PostWriter
     inherits Lucy::Index::DataWriter {
 
     int32_t field_num;

@@ -14,13 +14,18 @@
  * limitations under the License.
  */
 
-parcel Lucy;
+parcel TestLucy;
 
 /** Tests reading and writing of composite types using InStream/OutStream.
  */
-inert class Lucy::Test::Store::TestIOChunks {
-    inert void
-    run_tests();
+class Lucy::Test::Store::TestIOChunks
+    inherits Clownfish::TestHarness::TestBatch {
+
+    inert incremented TestIOChunks*
+    new();
+
+    void
+    Run(TestIOChunks *self, TestBatchRunner *runner);
 }
 
 

@@ -39,10 +39,8 @@ Lucy::Store::LockErr - Lock exception.
 
 =head1 DESCRIPTION
 
-LockErr is a subclass of L<Err|Lucy::Object::Err> which indicates
+LockErr is a subclass of L<Err|Clownfish::Err> which indicates
 that a file locking problem occurred.
-
-
 
 
 
@@ -50,7 +48,7 @@ that a file locking problem occurred.
 
 =head1 INHERITANCE
 
-Lucy::Store::LockErr isa L<Lucy::Object::Err> isa L<Lucy::Object::Obj>.
+Lucy::Store::LockErr isa Clownfish::Err isa Clownfish::Obj.
 
 
 =cut

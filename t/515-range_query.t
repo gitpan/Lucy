@@ -24,7 +24,6 @@ use Lucy::Test;
 
 package RangeSchema;
 use base qw( Lucy::Plan::Schema );
-use Lucy::Analysis::RegexTokenizer;
 
 sub new {
     my $self = shift->SUPER::new(@_);
@@ -289,7 +288,10 @@ sub test_range_search {
     my $thawed = thaw($frozen);
     ok( $query->equals($thawed), 'equals' );
 
-    my $compiler = $query->make_compiler( searcher => $searcher );
+    my $compiler = $query->make_compiler(
+        searcher => $searcher,
+        boost    => $query->get_boost,
+    );
     $frozen = nfreeze($compiler);
     $thawed = thaw($frozen);
     ok( $compiler->equals($thawed), "freeze/thaw compiler" );

@@ -31,7 +31,7 @@ parcel Lucy;
  * Add_Inverted_Doc() invoked for each document supplied to SegWriter's
  * Add_Doc().
  */
-class Lucy::Index::SegWriter inherits Lucy::Index::DataWriter {
+public class Lucy::Index::SegWriter inherits Lucy::Index::DataWriter {
 
     Inverter          *inverter;
     VArray            *writers;
@@ -65,7 +65,7 @@ class Lucy::Index::SegWriter inherits Lucy::Index::DataWriter {
      * @param component A DataWriter.
      */
     public void
-    Register(SegWriter *self, const CharBuf *api,
+    Register(SegWriter *self, String *api,
              decremented DataWriter *component);
 
     /** Retrieve a registered component.
@@ -74,7 +74,7 @@ class Lucy::Index::SegWriter inherits Lucy::Index::DataWriter {
      * implements.
      */
     public nullable Obj*
-    Fetch(SegWriter *self, const CharBuf *api);
+    Fetch(SegWriter *self, String *api);
 
     /** Add a DataWriter to the SegWriter's stack of writers.
      */

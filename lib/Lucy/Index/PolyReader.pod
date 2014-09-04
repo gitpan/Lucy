@@ -46,11 +46,9 @@ accessed via L<SegReader|Lucy::Index::SegReader>.
 
 
 
-
-
 =head1 INHERITANCE
 
-Lucy::Index::PolyReader isa L<Lucy::Index::IndexReader> isa L<Lucy::Index::DataReader> isa L<Lucy::Object::Obj>.
+Lucy::Index::PolyReader isa L<Lucy::Index::IndexReader> isa L<Lucy::Index::DataReader> isa Clownfish::Obj.
 
 
 =cut

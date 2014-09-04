@@ -14,11 +14,16 @@
  * limitations under the License.
  */
 
-parcel Lucy;
+parcel TestLucy;
 
-inert class Lucy::Test::Search::TestRangeQuery {
-    inert void
-    run_tests();
+class Lucy::Test::Search::TestRangeQuery
+    inherits Clownfish::TestHarness::TestBatch {
+
+    inert incremented TestRangeQuery*
+    new();
+
+    void
+    Run(TestRangeQuery *self, TestBatchRunner *runner);
 }
 
 

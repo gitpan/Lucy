@@ -15,40 +15,11 @@
 
 package Lucy::Search::Hits;
 use Lucy;
-our $VERSION = '0.003003';
+our $VERSION = '0.004000';
 $VERSION = eval $VERSION;
 
 1;
 
 __END__
-
-__BINDING__
-
-my $synopsis = <<'END_SYNOPSIS';
-    my $hits = $searcher->hits(
-        query      => $query,
-        offset     => 0,
-        num_wanted => 10,
-    );
-    while ( my $hit = $hits->next ) {
-        print "<p>$hit->{title} <em>" . $hit->get_score . "</em></p>\n";
-    }
-END_SYNOPSIS
-
-Clownfish::CFC::Binding::Perl::Class->register(
-    parcel       => "Lucy",
-    class_name   => "Lucy::Search::Hits",
-    bind_methods => [
-        qw(
-            Total_Hits
-            Next
-            )
-    ],
-    bind_constructors => ["new"],
-    make_pod          => {
-        synopsis => $synopsis,
-        methods  => [qw( next total_hits )],
-    }
-);
 
 

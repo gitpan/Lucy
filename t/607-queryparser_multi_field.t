@@ -19,12 +19,12 @@ use lib 'buildlib';
 
 package MultiFieldSchema;
 use base qw( Lucy::Plan::Schema );
-use Lucy::Analysis::RegexTokenizer;
+use Lucy::Analysis::StandardTokenizer;
 
 sub new {
     my $self       = shift->SUPER::new(@_);
     my $plain_type = Lucy::Plan::FullTextType->new(
-        analyzer => Lucy::Analysis::RegexTokenizer->new );
+        analyzer => Lucy::Analysis::StandardTokenizer->new );
     my $not_analyzed_type = Lucy::Plan::StringType->new;
     $self->spec_field( name => 'a', type => $plain_type );
     $self->spec_field( name => 'b', type => $plain_type );
@@ -118,7 +118,7 @@ is( $hits->total_hits, 1, "QueryParser fields param works" );
 
 my $analyzer_parser = Lucy::Search::QueryParser->new(
     schema   => $schema,
-    analyzer => Lucy::Analysis::PolyAnalyzer->new( language => 'en' ),
+    analyzer => Lucy::Analysis::EasyAnalyzer->new( language => 'en' ),
 );
 
 $hits = $searcher->hits( query => 'United States' );

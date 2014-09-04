@@ -40,11 +40,11 @@
 
 
 #include "utf8proc.h"
-#include "utf8proc_data.c"
+#include "utf8proc_data.h"
 
 #include <stdio.h>
 static void
-warn(char *string) {
+warn(const char *string) {
     fprintf(stderr, "ERROR: %s\n", string);
 }
 
@@ -407,7 +407,7 @@ ssize_t utf8proc_decompose(
       if (decomp_result < 0) return decomp_result;
       wpos += decomp_result;
       /* prohibiting integer overflows due to too long strings: */
-      if (wpos < 0 || wpos > SSIZE_MAX/sizeof(int32_t)/2)
+      if (wpos < 0 || wpos > (ssize_t)(SSIZE_MAX/sizeof(int32_t)/2))
         return UTF8PROC_ERROR_OVERFLOW;
     }
   }

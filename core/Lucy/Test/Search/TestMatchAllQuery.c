@@ -14,24 +14,32 @@
  * limitations under the License.
  */
 
-#define C_LUCY_TESTMATCHALLQUERY
+#define C_TESTLUCY_TESTMATCHALLQUERY
+#define TESTLUCY_USE_SHORT_NAMES
 #include "Lucy/Util/ToolSet.h"
 #include <math.h>
 
+#include "Clownfish/TestHarness/TestBatchRunner.h"
 #include "Lucy/Test.h"
 #include "Lucy/Test/TestUtils.h"
 #include "Lucy/Test/Search/TestMatchAllQuery.h"
 #include "Lucy/Search/MatchAllQuery.h"
 
+TestMatchAllQuery*
+TestMatchAllQuery_new() {
+    return (TestMatchAllQuery*)Class_Make_Obj(TESTMATCHALLQUERY);
+}
+
 static void
-test_Dump_Load_and_Equals(TestBatch *batch) {
+test_Dump_Load_and_Equals(TestBatchRunner *runner) {
     MatchAllQuery *query = MatchAllQuery_new();
     Obj           *dump  = (Obj*)MatchAllQuery_Dump(query);
     MatchAllQuery *clone = (MatchAllQuery*)MatchAllQuery_Load(query, dump);
 
-    TEST_TRUE(batch, MatchAllQuery_Equals(query, (Obj*)clone),
+    TEST_TRUE(runner, MatchAllQuery_Equals(query, (Obj*)clone),
               "Dump => Load round trip");
-    TEST_FALSE(batch, MatchAllQuery_Equals(query, (Obj*)&EMPTY), "Equals");
+    TEST_FALSE(runner, MatchAllQuery_Equals(query, (Obj*)CFISH_TRUE),
+               "Equals");
 
     DECREF(query);
     DECREF(dump);
@@ -40,11 +48,9 @@ test_Dump_Load_and_Equals(TestBatch *batch) {
 
 
 void
-TestMatchAllQuery_run_tests() {
-    TestBatch *batch = TestBatch_new(2);
-    TestBatch_Plan(batch);
-    test_Dump_Load_and_Equals(batch);
-    DECREF(batch);
+TestMatchAllQuery_Run_IMP(TestMatchAllQuery *self, TestBatchRunner *runner) {
+    TestBatchRunner_Plan(runner, (TestBatch*)self, 2);
+    test_Dump_Load_and_Equals(runner);
 }
 
 

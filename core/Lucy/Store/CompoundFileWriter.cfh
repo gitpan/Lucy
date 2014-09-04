@@ -29,8 +29,8 @@ parcel Lucy;
  * Any given directory may only be consolidated once.
  */
 
-class Lucy::Store::CompoundFileWriter cnick CFWriter
-    inherits Lucy::Object::Obj {
+class Lucy::Store::CompoundFileWriter nickname CFWriter
+    inherits Clownfish::Obj {
 
     Folder      *folder;
 

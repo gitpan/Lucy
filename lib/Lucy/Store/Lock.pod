@@ -95,7 +95,7 @@ C<< name >> (though it might fail for other reasons).  If it is
 not shared() -- i.e. it's an exclusive (write) lock -- then other locks
 should cause request() to fail.
 
-Returns: true on success, false on failure (sets Lucy->error).
+Returns: true on success, false on failure (sets Clownfish->error).
 
 =head2 release()
 
@@ -114,8 +114,6 @@ Release all locks that meet the following three conditions: the lock
 name matches, the host id matches, and the process id that the lock
 was created under no longer identifies an active process.
 
-
-
 =head1 METHODS
 
 =head2 obtain()
@@ -123,13 +121,13 @@ was created under no longer identifies an active process.
 Call request() once per C<< interval >> until request() returns
 success or the C<< timeout >> has been reached.
 
-Returns: true on success, false on failure (sets Lucy->error).
+Returns: true on success, false on failure (sets Clownfish->error).
 
 
 
 =head1 INHERITANCE
 
-Lucy::Store::Lock isa L<Lucy::Object::Obj>.
+Lucy::Store::Lock isa Clownfish::Obj.
 
 
 =cut

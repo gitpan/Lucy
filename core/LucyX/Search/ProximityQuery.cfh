@@ -22,26 +22,25 @@ parcel Lucy;
  * against an ordered sequence of terms.
  */
 
-class LucyX::Search::ProximityQuery inherits Lucy::Search::Query
-    : dumpable {
+public class LucyX::Search::ProximityQuery inherits Lucy::Search::Query {
 
-    CharBuf       *field;
+    String        *field;
     VArray        *terms;
     uint32_t       within;
 
     inert incremented ProximityQuery*
-    new(const CharBuf *field, VArray *terms, uint32_t within);
+    new(String *field, VArray *terms, uint32_t within);
 
     /**
      * @param field The field that the phrase must occur in.
      * @param terms The ordered array of terms that must match.
      */
     public inert ProximityQuery*
-    init(ProximityQuery *self, const CharBuf *field, VArray *terms, uint32_t within);
+    init(ProximityQuery *self, String *field, VArray *terms, uint32_t within);
 
     /** Accessor for object's field attribute.
      */
-    public CharBuf*
+    public String*
     Get_Field(ProximityQuery *self);
 
     /** Accessor for object's array of terms.
@@ -56,19 +55,25 @@ class LucyX::Search::ProximityQuery inherits Lucy::Search::Query
 
     public incremented Compiler*
     Make_Compiler(ProximityQuery *self, Searcher *searcher, float boost,
-                  bool_t subordinate = false);
+                  bool subordinate = false);
 
-    public bool_t
+    public bool
     Equals(ProximityQuery *self, Obj *other);
 
-    public incremented CharBuf*
+    public incremented String*
     To_String(ProximityQuery *self);
 
     public void
     Serialize(ProximityQuery *self, OutStream *outstream);
 
     public incremented ProximityQuery*
-    Deserialize(ProximityQuery *self, InStream *instream);
+    Deserialize(decremented ProximityQuery *self, InStream *instream);
+
+    public incremented Obj*
+    Dump(ProximityQuery *self);
+
+    public incremented Obj*
+    Load(ProximityQuery *self, Obj *dump);
 
     public void
     Destroy(ProximityQuery *self);
@@ -91,7 +96,7 @@ class LucyX::Search::ProximityCompiler
          float boost, uint32_t within);
 
     public incremented nullable Matcher*
-    Make_Matcher(ProximityCompiler *self, SegReader *reader, bool_t need_score);
+    Make_Matcher(ProximityCompiler *self, SegReader *reader, bool need_score);
 
     public float
     Get_Weight(ProximityCompiler *self);
@@ -104,16 +109,16 @@ class LucyX::Search::ProximityCompiler
 
     public incremented VArray*
     Highlight_Spans(ProximityCompiler *self, Searcher *searcher,
-                    DocVector *doc_vec, const CharBuf *field);
+                    DocVector *doc_vec, String *field);
 
-    public bool_t
+    public bool
     Equals(ProximityCompiler *self, Obj *other);
 
     public void
     Serialize(ProximityCompiler *self, OutStream *outstream);
 
     public incremented ProximityCompiler*
-    Deserialize(ProximityCompiler *self, InStream *instream);
+    Deserialize(decremented ProximityCompiler *self, InStream *instream);
 }
 
 

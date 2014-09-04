@@ -14,7 +14,10 @@
  * limitations under the License.
  */
 
+#define TESTLUCY_USE_SHORT_NAMES
 #include "Lucy/Util/ToolSet.h"
+
+#include "charmony.h"
 
 // rmdir
 #ifdef CHY_HAS_DIRECT_H
@@ -26,23 +29,29 @@
   #include <unistd.h>
 #endif
 
+#include "Clownfish/TestHarness/TestBatchRunner.h"
 #include "Lucy/Test.h"
 #include "Lucy/Test/Store/TestFSDirHandle.h"
 #include "Lucy/Store/FSDirHandle.h"
 #include "Lucy/Store/FSFolder.h"
 #include "Lucy/Store/OutStream.h"
 
+TestFSDirHandle*
+TestFSDH_new() {
+    return (TestFSDirHandle*)Class_Make_Obj(TESTFSDIRHANDLE);
+}
+
 static void
-test_all(TestBatch *batch) {
-    CharBuf  *foo           = (CharBuf*)ZCB_WRAP_STR("foo", 3);
-    CharBuf  *boffo         = (CharBuf*)ZCB_WRAP_STR("boffo", 5);
-    CharBuf  *foo_boffo     = (CharBuf*)ZCB_WRAP_STR("foo/boffo", 9);
-    CharBuf  *test_dir      = (CharBuf*)ZCB_WRAP_STR("_fsdir_test", 11);
+test_all(TestBatchRunner *runner) {
+    String   *foo           = (String*)SSTR_WRAP_UTF8("foo", 3);
+    String   *boffo         = (String*)SSTR_WRAP_UTF8("boffo", 5);
+    String   *foo_boffo     = (String*)SSTR_WRAP_UTF8("foo/boffo", 9);
+    String   *test_dir      = (String*)SSTR_WRAP_UTF8("_fsdir_test", 11);
     FSFolder *folder        = FSFolder_new(test_dir);
-    bool_t    saw_foo       = false;
-    bool_t    saw_boffo     = false;
-    bool_t    foo_was_dir   = false;
-    bool_t    boffo_was_dir = false;
+    bool      saw_foo       = false;
+    bool      saw_boffo     = false;
+    bool      foo_was_dir   = false;
+    bool      boffo_was_dir = false;
     int       count         = 0;
 
     // Clean up after previous failed runs.
@@ -58,25 +67,26 @@ test_all(TestBatch *batch) {
     outstream = FSFolder_Open_Out(folder, foo_boffo);
     DECREF(outstream);
 
-    FSDirHandle  *dh    = FSDH_open(test_dir);
-    CharBuf      *entry = FSDH_Get_Entry(dh);
+    FSDirHandle *dh = FSDH_open(test_dir);
     while (FSDH_Next(dh)) {
         count++;
-        if (CB_Equals(entry, (Obj*)foo)) {
+        String *entry = FSDH_Get_Entry(dh);
+        if (Str_Equals(entry, (Obj*)foo)) {
             saw_foo = true;
             foo_was_dir = FSDH_Entry_Is_Dir(dh);
         }
-        else if (CB_Equals(entry, (Obj*)boffo)) {
+        else if (Str_Equals(entry, (Obj*)boffo)) {
             saw_boffo = true;
             boffo_was_dir = FSDH_Entry_Is_Dir(dh);
         }
+        DECREF(entry);
     }
-    TEST_INT_EQ(batch, 2, count, "correct number of entries");
-    TEST_TRUE(batch, saw_foo, "Directory was iterated over");
-    TEST_TRUE(batch, foo_was_dir,
+    TEST_INT_EQ(runner, 2, count, "correct number of entries");
+    TEST_TRUE(runner, saw_foo, "Directory was iterated over");
+    TEST_TRUE(runner, foo_was_dir,
               "Dir correctly identified by Entry_Is_Dir");
-    TEST_TRUE(batch, saw_boffo, "File was iterated over");
-    TEST_FALSE(batch, boffo_was_dir,
+    TEST_TRUE(runner, saw_boffo, "File was iterated over");
+    TEST_FALSE(runner, boffo_was_dir,
                "File correctly identified by Entry_Is_Dir");
 
     DECREF(dh);
@@ -88,13 +98,9 @@ test_all(TestBatch *batch) {
 }
 
 void
-TestFSDH_run_tests() {
-    TestBatch *batch = TestBatch_new(5);
-
-    TestBatch_Plan(batch);
-    test_all(batch);
-
-    DECREF(batch);
+TestFSDH_Run_IMP(TestFSDirHandle *self, TestBatchRunner *runner) {
+    TestBatchRunner_Plan(runner, (TestBatch*)self, 5);
+    test_all(runner);
 }
 
 

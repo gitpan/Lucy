@@ -18,36 +18,29 @@ parcel Lucy;
 
 /** Read a segment's sort caches.
  */
-class Lucy::Index::SortCache inherits Lucy::Object::Obj {
+class Lucy::Index::SortCache inherits Clownfish::Obj {
 
-    CharBuf   *field;
-    FieldType *type;
-    void      *ords;
-    int32_t    doc_max;
-    int32_t    cardinality;
-    int32_t    ord_width;
-    int32_t    null_ord;
-    bool_t     native_ords;
+    String     *field;
+    FieldType  *type;
+    const void *ords;
+    int32_t     doc_max;
+    int32_t     cardinality;
+    int32_t     ord_width;
+    int32_t     null_ord;
+    bool        native_ords;
 
     public inert SortCache*
-    init(SortCache *self, const CharBuf *field, FieldType *type,
-         void *ords, int32_t cardinality, int32_t doc_max, int32_t null_ord = -1,
+    init(SortCache *self, String *field, FieldType *type, const void *ords,
+         int32_t cardinality, int32_t doc_max, int32_t null_ord = -1,
          int32_t ord_width);
 
-    /** Assign the value for ordinal <code>ord</code> to <code>blank</code>.
-     *
-     * @return either <code>blank</code> (no longer blank), or NULL if the
-     * value for <code>ord</code> is NULL.
+    /** Return the value for ordinal <code>ord</code>, or NULL if the value
+     * for <code>ord</code> is NULL.
      */
-    public abstract nullable Obj*
-    Value(SortCache *self, int32_t ord, Obj *blank);
+    public abstract nullable incremented Obj*
+    Value(SortCache *self, int32_t ord);
 
-    /** Return an object appropriate for use as an argument to Value().
-     */
-    public abstract incremented Obj*
-    Make_Blank(SortCache *self);
-
-    public void*
+    public const void*
     Get_Ords(SortCache *self);
 
     public int32_t
@@ -76,9 +69,9 @@ class Lucy::Index::SortCache inherits Lucy::Object::Obj {
      * setting indicates whether this SortCache has such a bug.
      */
     void
-    Set_Native_Ords(SortCache *self, bool_t native_ords);
+    Set_Native_Ords(SortCache *self, bool native_ords);
 
-    bool_t
+    bool
     Get_Native_Ords(SortCache *self);
 
     public void

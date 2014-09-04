@@ -96,8 +96,6 @@ set this to 'AND'.
 
 
 
-
-
 =head1 METHODS
 
 =head2 parse(query_string)
@@ -308,7 +306,7 @@ Returns: A Query.
 
 =head1 INHERITANCE
 
-Lucy::Search::QueryParser isa L<Lucy::Object::Obj>.
+Lucy::Search::QueryParser isa Clownfish::Obj.
 
 
 =cut

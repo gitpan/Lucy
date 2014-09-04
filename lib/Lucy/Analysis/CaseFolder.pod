@@ -24,12 +24,15 @@ Lucy::Analysis::CaseFolder - Normalize case, facilitating case-insensitive searc
     my $case_folder = Lucy::Analysis::CaseFolder->new;
 
     my $polyanalyzer = Lucy::Analysis::PolyAnalyzer->new(
-        analyzers => [ $case_folder, $tokenizer, $stemmer ],
+        analyzers => [ $tokenizer, $case_folder, $stemmer ],
     );
 
 
 
 =head1 DESCRIPTION
+
+CaseFolder is DEPRECATED. Use L<Normalizer|Lucy::Analysis::Normalizer>
+instead.
 
 CaseFolder normalizes text according to Unicode case-folding rules, so that
 searches will be case-insensitive.
@@ -46,11 +49,9 @@ Constructor.  Takes no arguments.
 
 
 
-
-
 =head1 INHERITANCE
 
-Lucy::Analysis::CaseFolder isa L<Lucy::Analysis::Analyzer> isa L<Lucy::Object::Obj>.
+Lucy::Analysis::CaseFolder isa L<Lucy::Analysis::Analyzer> isa Clownfish::Obj.
 
 
 =cut

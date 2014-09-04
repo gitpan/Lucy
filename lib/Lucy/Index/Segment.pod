@@ -69,8 +69,6 @@ storing metadata themselves.
 
 
 
-
-
 =head1 METHODS
 
 =head2 add_field(field)
@@ -148,7 +146,7 @@ Getter for the object's document count.
 
 =head1 INHERITANCE
 
-Lucy::Index::Segment isa L<Lucy::Object::Obj>.
+Lucy::Index::Segment isa Clownfish::Obj.
 
 
 =cut

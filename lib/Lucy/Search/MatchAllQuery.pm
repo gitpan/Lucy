@@ -15,24 +15,11 @@
 
 package Lucy::Search::MatchAllQuery;
 use Lucy;
-our $VERSION = '0.003003';
+our $VERSION = '0.004000';
 $VERSION = eval $VERSION;
 
 1;
 
 __END__
-
-__BINDING__
-
-my $constructor = <<'END_CONSTRUCTOR';
-    my $match_all_query = Lucy::Search::MatchAllQuery->new;
-END_CONSTRUCTOR
-
-Clownfish::CFC::Binding::Perl::Class->register(
-    parcel            => "Lucy",
-    class_name        => "Lucy::Search::MatchAllQuery",
-    bind_constructors => ["new"],
-    make_pod          => { constructor => { sample => $constructor }, }
-);
 
 

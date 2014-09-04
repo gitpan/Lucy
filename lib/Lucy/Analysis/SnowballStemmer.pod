@@ -24,7 +24,7 @@ Lucy::Analysis::SnowballStemmer - Reduce related words to a shared root.
     my $stemmer = Lucy::Analysis::SnowballStemmer->new( language => 'es' );
     
     my $polyanalyzer = Lucy::Analysis::PolyAnalyzer->new(
-        analyzers => [ $case_folder, $tokenizer, $stemmer ],
+        analyzers => [ $tokenizer, $normalizer, $stemmer ],
     );
 
 This class is a wrapper around the Snowball stemming library, so it supports
@@ -59,11 +59,9 @@ by Snowball.
 
 
 
-
-
 =head1 INHERITANCE
 
-Lucy::Analysis::SnowballStemmer isa L<Lucy::Analysis::Analyzer> isa L<Lucy::Object::Obj>.
+Lucy::Analysis::SnowballStemmer isa L<Lucy::Analysis::Analyzer> isa Clownfish::Obj.
 
 
 =cut

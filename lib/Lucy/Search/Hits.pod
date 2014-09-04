@@ -38,8 +38,6 @@ Hits objects are iterators used to access the results of a search.
 
 
 
-
-
 =head1 METHODS
 
 =head2 next()
@@ -57,7 +55,7 @@ iterator.
 
 =head1 INHERITANCE
 
-Lucy::Search::Hits isa L<Lucy::Object::Obj>.
+Lucy::Search::Hits isa Clownfish::Obj.
 
 
 =cut

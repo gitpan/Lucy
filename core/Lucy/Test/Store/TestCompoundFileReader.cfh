@@ -14,12 +14,16 @@
  * limitations under the License.
  */
 
-parcel Lucy;
+parcel TestLucy;
 
-inert class Lucy::Test::Store::TestCompoundFileReader
-    cnick TestCFReader {
-    inert void
-    run_tests();
+class Lucy::Test::Store::TestCompoundFileReader nickname TestCFReader
+    inherits Clownfish::TestHarness::TestBatch {
+
+    inert incremented TestCompoundFileReader*
+    new();
+
+    void
+    Run(TestCompoundFileReader *self, TestBatchRunner *runner);
 }
 
 

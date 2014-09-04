@@ -14,22 +14,30 @@
  * limitations under the License.
  */
 
-#define C_LUCY_TESTPHRASEQUERY
+#define C_TESTLUCY_TESTPHRASEQUERY
+#define TESTLUCY_USE_SHORT_NAMES
 #include "Lucy/Util/ToolSet.h"
 #include <math.h>
 
+#include "Clownfish/TestHarness/TestBatchRunner.h"
 #include "Lucy/Test.h"
 #include "Lucy/Test/TestUtils.h"
 #include "Lucy/Test/Search/TestPhraseQuery.h"
 #include "Lucy/Search/PhraseQuery.h"
+#include "Lucy/Util/Freezer.h"
+
+TestPhraseQuery*
+TestPhraseQuery_new() {
+    return (TestPhraseQuery*)Class_Make_Obj(TESTPHRASEQUERY);
+}
 
 static void
-test_Dump_And_Load(TestBatch *batch) {
+test_Dump_And_Load(TestBatchRunner *runner) {
     PhraseQuery *query
         = TestUtils_make_phrase_query("content", "a", "b", "c", NULL);
     Obj         *dump  = (Obj*)PhraseQuery_Dump(query);
-    PhraseQuery *twin = (PhraseQuery*)Obj_Load(dump, dump);
-    TEST_TRUE(batch, PhraseQuery_Equals(query, (Obj*)twin),
+    PhraseQuery *twin = (PhraseQuery*)Freezer_load(dump);
+    TEST_TRUE(runner, PhraseQuery_Equals(query, (Obj*)twin),
               "Dump => Load round trip");
     DECREF(query);
     DECREF(dump);
@@ -37,11 +45,9 @@ test_Dump_And_Load(TestBatch *batch) {
 }
 
 void
-TestPhraseQuery_run_tests() {
-    TestBatch *batch = TestBatch_new(1);
-    TestBatch_Plan(batch);
-    test_Dump_And_Load(batch);
-    DECREF(batch);
+TestPhraseQuery_Run_IMP(TestPhraseQuery *self, TestBatchRunner *runner) {
+    TestBatchRunner_Plan(runner, (TestBatch*)self, 1);
+    test_Dump_And_Load(runner);
 }
 
 

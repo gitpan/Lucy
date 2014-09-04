@@ -27,12 +27,12 @@ parcel Lucy;
  * help clear away stale locks.
  */
 
-abstract class Lucy::Store::Lock inherits Lucy::Object::Obj {
+public abstract class Lucy::Store::Lock inherits Clownfish::Obj {
 
     Folder      *folder;
-    CharBuf     *name;
-    CharBuf     *lock_path;
-    CharBuf     *host;
+    String      *name;
+    String      *lock_path;
+    String      *host;
     int32_t      timeout;
     int32_t      interval;
 
@@ -47,12 +47,12 @@ abstract class Lucy::Store::Lock inherits Lucy::Object::Obj {
      * @param interval Time in milliseconds between retries.
      */
     public inert Lock*
-    init(Lock *self, Folder *folder, const CharBuf *name,
-         const CharBuf *host, int32_t timeout = 0, int32_t interval = 100);
+    init(Lock *self, Folder *folder, String *name,
+         String *host, int32_t timeout = 0, int32_t interval = 100);
 
     /** Returns true if the Lock is shared, false if the Lock is exclusive.
      */
-    public abstract bool_t
+    public abstract bool
     Shared(Lock *self);
 
     /** Call Request() once per <code>interval</code> until Request() returns
@@ -60,7 +60,7 @@ abstract class Lucy::Store::Lock inherits Lucy::Object::Obj {
      *
      * @return true on success, false on failure (sets Err_error).
      */
-    public bool_t
+    public bool
     Obtain(Lock *self);
 
     /** Make one attempt to acquire the lock.
@@ -74,7 +74,7 @@ abstract class Lucy::Store::Lock inherits Lucy::Object::Obj {
      *
      * @return true on success, false on failure (sets Err_error).
      */
-    public abstract bool_t
+    public abstract bool
     Request(Lock *self);
 
     /** Release the lock.
@@ -87,7 +87,7 @@ abstract class Lucy::Store::Lock inherits Lucy::Object::Obj {
      *
      * @return true if the resource is locked, false otherwise.
      */
-    public abstract bool_t
+    public abstract bool
     Is_Locked(Lock *self);
 
     /** Release all locks that meet the following three conditions: the lock
@@ -97,42 +97,42 @@ abstract class Lucy::Store::Lock inherits Lucy::Object::Obj {
     public abstract void
     Clear_Stale(Lock *self);
 
-    CharBuf*
+    String*
     Get_Name(Lock *self);
 
-    CharBuf*
+    String*
     Get_Host(Lock *self);
 
-    CharBuf*
+    String*
     Get_Lock_Path(Lock *self);
 
     public void
     Destroy(Lock *self);
 }
 
-class Lucy::Store::LockFileLock cnick LFLock
+class Lucy::Store::LockFileLock nickname LFLock
     inherits Lucy::Store::Lock {
 
-    CharBuf *link_path;
+    String *link_path;
 
     inert incremented LockFileLock*
-    new(Folder *folder, const CharBuf *name, const CharBuf *host,
+    new(Folder *folder, String *name, String *host,
         int32_t timeout = 0, int32_t interval = 100);
 
     public inert LockFileLock*
-    init(LockFileLock *self, Folder *folder, const CharBuf *name,
-         const CharBuf *host, int32_t timeout = 0, int32_t interval = 100);
+    init(LockFileLock *self, Folder *folder, String *name,
+         String *host, int32_t timeout = 0, int32_t interval = 100);
 
-    public bool_t
+    public bool
     Shared(LockFileLock *self);
 
-    public bool_t
+    public bool
     Request(LockFileLock *self);
 
     public void
     Release(LockFileLock *self);
 
-    public bool_t
+    public bool
     Is_Locked(LockFileLock *self);
 
     public void
@@ -147,9 +147,9 @@ class Lucy::Store::LockFileLock cnick LFLock
      * process's pid.  If delete_other is false, don't delete lock files which
      * don't match this process's pid.
      */
-    bool_t
-    Maybe_Delete_File(LockFileLock *self, const CharBuf *filepath,
-                      bool_t delete_mine, bool_t delete_other);
+    bool
+    Maybe_Delete_File(LockFileLock *self, String *filepath,
+                      bool delete_mine, bool delete_other);
 
     public void
     Destroy(LockFileLock *self);
@@ -157,19 +157,16 @@ class Lucy::Store::LockFileLock cnick LFLock
 
 /** Lock exception.
  *
- * LockErr is a subclass of L<Err|Lucy::Object::Err> which indicates
+ * LockErr is a subclass of L<Err|Clownfish::Err> which indicates
  * that a file locking problem occurred.
  */
-class Lucy::Store::LockErr inherits Lucy::Object::Err {
+public class Lucy::Store::LockErr inherits Clownfish::Err {
 
     public inert incremented LockErr*
-    new(CharBuf *message);
+    new(String *message);
 
     public inert LockErr*
-    init(LockErr *self, CharBuf *message);
-
-    public incremented LockErr*
-    Make(LockErr *self);
+    init(LockErr *self, String *message);
 }
 
 

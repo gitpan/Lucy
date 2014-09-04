@@ -36,7 +36,7 @@ my @match_docs = map {
         doc_id => $_->[0],
         score  => $_->[1],
         )
-} @docs_and_scores;
+} shuffle(@docs_and_scores);
 
 my @correct_order = sort {
            $b->get_score <=> $a->get_score
@@ -169,8 +169,8 @@ $hit_q = Lucy::Search::HitQueue->new(
 
 for my $doc_id ( shuffle( 1 .. 100 ) ) {
     my $fields = $docs[ $doc_id - 1 ];
-    my $values = Lucy::Object::VArray->new( capacity => 1 );
-    $values->push( Lucy::Object::CharBuf->new( $fields->{number} ) );
+    my $values = Clownfish::VArray->new( capacity => 1 );
+    $values->push( Clownfish::String->new( $fields->{number} ) );
     my $match_doc = Lucy::Search::MatchDoc->new(
         doc_id => $doc_id,
         score  => $doc_id,
@@ -187,15 +187,16 @@ is_deeply( \@got, \@wanted, "sort by value when no reader set" );
 for ( 1 .. 30 ) {
     push @docs_and_scores, [ int( rand(10000) ) + 1, rand(10) ];
 }
-@docs_and_scores = sort { $b->[1] <=> $a->[1] } @docs_and_scores;
-@doc_ids         = map  { $_->[0] } @docs_and_scores;
+@docs_and_scores
+  = sort { $b->[1] <=> $a->[1] || $a->[0] <=> $b->[0] } @docs_and_scores;
+@doc_ids = map  { $_->[0] } @docs_and_scores;
 
 @match_docs = map {
     Lucy::Search::MatchDoc->new(
         doc_id => $_->[0],
         score  => $_->[1],
         )
-} sort { $a->[0] <=> $b->[0] } @docs_and_scores;
+} shuffle(@docs_and_scores);
 
 for my $size ( 0 .. $#match_docs ) {
     $hit_q = Lucy::Search::HitQueue->new( wanted => $size, );

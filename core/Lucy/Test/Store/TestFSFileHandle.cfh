@@ -14,11 +14,16 @@
  * limitations under the License.
  */
 
-parcel Lucy;
+parcel TestLucy;
 
-inert class Lucy::Test::Store::TestFSFileHandle cnick TestFSFH {
-    inert void
-    run_tests();
+class Lucy::Test::Store::TestFSFileHandle nickname TestFSFH
+    inherits Clownfish::TestHarness::TestBatch {
+
+    inert incremented TestFSFileHandle*
+    new();
+
+    void
+    Run(TestFSFileHandle *self, TestBatchRunner *runner);
 }
 
 

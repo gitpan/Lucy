@@ -14,10 +14,12 @@
  * limitations under the License.
  */
 
-#define C_LUCY_TESTQUERYPARSER
+#define C_TESTLUCY_TESTQUERYPARSER
+#define TESTLUCY_USE_SHORT_NAMES
 #include "Lucy/Util/ToolSet.h"
 #include <string.h>
 
+#include "Clownfish/TestHarness/TestUtils.h"
 #include "Lucy/Test/Search/TestQueryParser.h"
 #include "Lucy/Test/TestUtils.h"
 #include "Lucy/Search/TermQuery.h"
@@ -31,46 +33,48 @@ TestQueryParser*
 TestQP_new(const char *query_string, Query *tree, Query *expanded,
            uint32_t num_hits) {
     TestQueryParser *self
-        = (TestQueryParser*)VTable_Make_Obj(TESTQUERYPARSER);
+        = (TestQueryParser*)Class_Make_Obj(TESTQUERYPARSER);
     return TestQP_init(self, query_string, tree, expanded, num_hits);
 }
 
 TestQueryParser*
 TestQP_init(TestQueryParser *self, const char *query_string, Query *tree,
             Query *expanded, uint32_t num_hits) {
-    self->query_string = query_string ? TestUtils_get_cb(query_string) : NULL;
-    self->tree         = tree     ? tree     : NULL;
-    self->expanded     = expanded ? expanded : NULL;
-    self->num_hits     = num_hits;
+    TestQueryParserIVARS *const ivars = TestQP_IVARS(self);
+    ivars->query_string = query_string ? TestUtils_get_str(query_string) : NULL;
+    ivars->tree         = tree     ? tree     : NULL;
+    ivars->expanded     = expanded ? expanded : NULL;
+    ivars->num_hits     = num_hits;
     return self;
 }
 
 void
-TestQP_destroy(TestQueryParser *self) {
-    DECREF(self->query_string);
-    DECREF(self->tree);
-    DECREF(self->expanded);
+TestQP_Destroy_IMP(TestQueryParser *self) {
+    TestQueryParserIVARS *const ivars = TestQP_IVARS(self);
+    DECREF(ivars->query_string);
+    DECREF(ivars->tree);
+    DECREF(ivars->expanded);
     SUPER_DESTROY(self, TESTQUERYPARSER);
 }
 
-CharBuf*
-TestQP_get_query_string(TestQueryParser *self) {
-    return self->query_string;
+String*
+TestQP_Get_Query_String_IMP(TestQueryParser *self) {
+    return TestQP_IVARS(self)->query_string;
 }
 
 Query*
-TestQP_get_tree(TestQueryParser *self) {
-    return self->tree;
+TestQP_Get_Tree_IMP(TestQueryParser *self) {
+    return TestQP_IVARS(self)->tree;
 }
 
 Query*
-TestQP_get_expanded(TestQueryParser *self) {
-    return self->expanded;
+TestQP_Get_Expanded_IMP(TestQueryParser *self) {
+    return TestQP_IVARS(self)->expanded;
 }
 
 uint32_t
-TestQP_get_num_hits(TestQueryParser *self) {
-    return self->num_hits;
+TestQP_Get_Num_Hits_IMP(TestQueryParser *self) {
+    return TestQP_IVARS(self)->num_hits;
 }
 
 

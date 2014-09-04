@@ -18,17 +18,17 @@ parcel Lucy;
 
 class Lucy::Index::SortFieldWriter
     inherits Lucy::Util::SortExternal {
-    CharBuf    *field;
-    Hash       *uniq_vals;
+    String     *field;
     Schema     *schema;
     Snapshot   *snapshot;
     Segment    *segment;
     PolyReader *polyreader;
     FieldType  *type;
     I32Array   *doc_map;
-    MemoryPool *mem_pool;
+    Counter    *counter;
     int32_t     field_num;
     int32_t     null_ord;
+    size_t      mem_per_entry;
     int8_t      prim_id;
     int32_t     count;
     OutStream  *temp_ord_out;
@@ -46,22 +46,21 @@ class Lucy::Index::SortFieldWriter
     int64_t     dat_end;
     int32_t     run_cardinality;
     int32_t     run_max;
-    bool_t      var_width;
+    bool        var_width;
     int32_t    *sorted_ids;
-    int32_t     run_ord;
     int32_t     run_tick;
     int32_t     ord_width;
 
     inert incremented SortFieldWriter*
     new(Schema *schema, Snapshot *snapshot, Segment *segment,
-        PolyReader *polyreader, const CharBuf *field, MemoryPool *memory_pool,
+        PolyReader *polyreader, String *field, Counter *counter,
         size_t mem_thresh, OutStream *temp_ord_out, OutStream *temp_ix_out,
         OutStream *temp_dat_out);
 
     inert SortFieldWriter*
     init(SortFieldWriter *self, Schema *schema, Snapshot *snapshot,
-         Segment *segment, PolyReader *polyreader, const CharBuf *field,
-         MemoryPool *memory_pool, size_t mem_thresh, OutStream *temp_ord_out,
+         Segment *segment, PolyReader *polyreader, String *field,
+         Counter *counter, size_t mem_thresh, OutStream *temp_ord_out,
          OutStream *temp_ix_out, OutStream *temp_dat_out);
 
     void
@@ -86,9 +85,6 @@ class Lucy::Index::SortFieldWriter
     int
     Compare(SortFieldWriter *self, void *va, void *vb);
 
-    void
-    Clear_Cache(SortFieldWriter *self);
-
     int32_t
     Get_Null_Ord(SortFieldWriter *self);
 
@@ -97,6 +93,14 @@ class Lucy::Index::SortFieldWriter
 
     public void
     Destroy(SortFieldWriter *self);
+}
+
+class Lucy::Index::SortFieldWriter::SFWriterElem inherits Clownfish::Obj {
+    int32_t doc_id;
+    Obj *value;
+
+    public void
+    Destroy(SFWriterElem *self);
 }
 
 

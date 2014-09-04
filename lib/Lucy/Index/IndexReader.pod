@@ -117,8 +117,6 @@ IndexReader.
 Return an array with one entry for each segment, corresponding to
 segment doc_id start offset.
 
-
-
 =head1 METHODS
 
 =head2 fetch(api)
@@ -151,7 +149,7 @@ component must implement.
 
 =head1 INHERITANCE
 
-Lucy::Index::IndexReader isa L<Lucy::Index::DataReader> isa L<Lucy::Object::Obj>.
+Lucy::Index::IndexReader isa L<Lucy::Index::DataReader> isa Clownfish::Obj.
 
 
 =cut

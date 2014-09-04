@@ -14,19 +14,24 @@
  * limitations under the License.
  */
 
-#define C_LUCY_TESTDOCWRITER
+#define C_TESTLUCY_TESTDOCWRITER
+#define TESTLUCY_USE_SHORT_NAMES
 #include "Lucy/Util/ToolSet.h"
 
+#include "Clownfish/TestHarness/TestBatchRunner.h"
 #include "Lucy/Test.h"
 #include "Lucy/Test/Index/TestDocWriter.h"
 #include "Lucy/Index/DocWriter.h"
 
+TestDocWriter*
+TestDocWriter_new() {
+    return (TestDocWriter*)Class_Make_Obj(TESTDOCWRITER);
+}
+
 void
-TestDocWriter_run_tests() {
-    TestBatch *batch = TestBatch_new(1);
-    TestBatch_Plan(batch);
-    PASS(batch, "placeholder");
-    DECREF(batch);
+TestDocWriter_Run_IMP(TestDocWriter *self, TestBatchRunner *runner) {
+    TestBatchRunner_Plan(runner, (TestBatch*)self, 1);
+    PASS(runner, "placeholder");
 }
 
 

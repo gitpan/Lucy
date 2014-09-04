@@ -14,31 +14,35 @@
  * limitations under the License.
  */
 
-#define C_LUCY_TESTSCHEMA
+#define C_TESTLUCY_TESTSCHEMA
+#define TESTLUCY_USE_SHORT_NAMES
 #include "Lucy/Util/ToolSet.h"
 
+#include "Clownfish/TestHarness/TestBatchRunner.h"
 #include "Lucy/Test.h"
 #include "Lucy/Test/Plan/TestArchitecture.h"
 #include "Lucy/Test/TestSchema.h"
-#include "Lucy/Analysis/CaseFolder.h"
-#include "Lucy/Analysis/RegexTokenizer.h"
+#include "Lucy/Analysis/StandardTokenizer.h"
 #include "Lucy/Plan/FullTextType.h"
 #include "Lucy/Plan/Architecture.h"
+#include "Lucy/Util/Freezer.h"
 
 TestSchema*
-TestSchema_new() {
-    TestSchema *self = (TestSchema*)VTable_Make_Obj(TESTSCHEMA);
-    return TestSchema_init(self);
+TestSchema_new(bool use_alt_arch) {
+    TestSchema *self = (TestSchema*)Class_Make_Obj(TESTSCHEMA);
+    return TestSchema_init(self, use_alt_arch);
 }
 
 TestSchema*
-TestSchema_init(TestSchema *self) {
-    RegexTokenizer *tokenizer = RegexTokenizer_new(NULL);
+TestSchema_init(TestSchema *self, bool use_alt_arch) {
+    StandardTokenizer *tokenizer = StandardTokenizer_new();
     FullTextType *type = FullTextType_new((Analyzer*)tokenizer);
+
+    TestSchema_IVARS(self)->use_alt_arch = use_alt_arch;
 
     Schema_init((Schema*)self);
     FullTextType_Set_Highlightable(type, true);
-    CharBuf *content = (CharBuf*)ZCB_WRAP_STR("content", 7);
+    String *content = (String*)SSTR_WRAP_UTF8("content", 7);
     TestSchema_Spec_Field(self, content, (FieldType*)type);
     DECREF(type);
     DECREF(tokenizer);
@@ -47,45 +51,50 @@ TestSchema_init(TestSchema *self) {
 }
 
 Architecture*
-TestSchema_architecture(TestSchema *self) {
-    UNUSED_VAR(self);
-    return (Architecture*)TestArch_new();
+TestSchema_Architecture_IMP(TestSchema *self) {
+    if (TestSchema_IVARS(self)->use_alt_arch) {
+        return Arch_new();
+    }
+    else {
+        return (Architecture*)TestArch_new();
+    }
+}
+
+TestBatchSchema*
+TestBatchSchema_new() {
+    return (TestBatchSchema*)Class_Make_Obj(TESTBATCHSCHEMA);
 }
 
 static void
-test_Equals(TestBatch *batch) {
-    TestSchema *schema = TestSchema_new();
-    TestSchema *arch_differs = TestSchema_new();
-    TestSchema *spec_differs = TestSchema_new();
-    CharBuf    *content      = (CharBuf*)ZCB_WRAP_STR("content", 7);
+test_Equals(TestBatchRunner *runner) {
+    TestSchema *schema = TestSchema_new(false);
+    TestSchema *arch_differs = TestSchema_new(true);
+    TestSchema *spec_differs = TestSchema_new(false);
+    String     *content      = (String*)SSTR_WRAP_UTF8("content", 7);
     FullTextType *type = (FullTextType*)TestSchema_Fetch_Type(spec_differs,
                                                               content);
-    CaseFolder *case_folder = CaseFolder_new();
 
-    TEST_TRUE(batch, TestSchema_Equals(schema, (Obj*)schema), "Equals");
+    TEST_TRUE(runner, TestSchema_Equals(schema, (Obj*)schema), "Equals");
 
     FullTextType_Set_Boost(type, 2.0f);
-    TEST_FALSE(batch, TestSchema_Equals(schema, (Obj*)spec_differs),
+    TEST_FALSE(runner, TestSchema_Equals(schema, (Obj*)spec_differs),
                "Equals spoiled by differing FieldType");
 
-    DECREF(arch_differs->arch);
-    arch_differs->arch = Arch_new();
-    TEST_FALSE(batch, TestSchema_Equals(schema, (Obj*)arch_differs),
+    TEST_FALSE(runner, TestSchema_Equals(schema, (Obj*)arch_differs),
                "Equals spoiled by differing Architecture");
 
     DECREF(schema);
     DECREF(arch_differs);
     DECREF(spec_differs);
-    DECREF(case_folder);
 }
 
 static void
-test_Dump_and_Load(TestBatch *batch) {
-    TestSchema *schema = TestSchema_new();
+test_Dump_and_Load(TestBatchRunner *runner) {
+    TestSchema *schema = TestSchema_new(false);
     Obj        *dump   = (Obj*)TestSchema_Dump(schema);
-    TestSchema *loaded = (TestSchema*)Obj_Load(dump, dump);
+    TestSchema *loaded = (TestSchema*)Freezer_load(dump);
 
-    TEST_FALSE(batch, TestSchema_Equals(schema, (Obj*)loaded),
+    TEST_FALSE(runner, TestSchema_Equals(schema, (Obj*)loaded),
                "Dump => Load round trip");
 
     DECREF(schema);
@@ -94,12 +103,10 @@ test_Dump_and_Load(TestBatch *batch) {
 }
 
 void
-TestSchema_run_tests() {
-    TestBatch *batch = TestBatch_new(4);
-    TestBatch_Plan(batch);
-    test_Equals(batch);
-    test_Dump_and_Load(batch);
-    DECREF(batch);
+TestBatchSchema_Run_IMP(TestBatchSchema *self, TestBatchRunner *runner) {
+    TestBatchRunner_Plan(runner, (TestBatch*)self, 4);
+    test_Equals(runner);
+    test_Dump_and_Load(runner);
 }
 
 

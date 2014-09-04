@@ -14,13 +14,16 @@
  * limitations under the License.
  */
 
-parcel Lucy;
+parcel TestLucy;
 
-inert class Lucy::Test::Index::TestHighlightWriter
-    cnick TestHLWriter {
+class Lucy::Test::Index::TestHighlightWriter nickname TestHLWriter
+    inherits Clownfish::TestHarness::TestBatch {
 
-    inert void
-    run_tests();
+    inert incremented TestHighlightWriter*
+    new();
+
+    void
+    Run(TestHighlightWriter *self, TestBatchRunner *runner);
 }
 
 

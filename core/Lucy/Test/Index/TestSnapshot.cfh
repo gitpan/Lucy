@@ -14,11 +14,16 @@
  * limitations under the License.
  */
 
-parcel Lucy;
+parcel TestLucy;
 
-inert class Lucy::Test::Index::TestSnapshot {
-    inert void
-    run_tests();
+class Lucy::Test::Index::TestSnapshot
+    inherits Clownfish::TestHarness::TestBatch {
+
+    inert incremented TestSnapshot*
+    new();
+
+    void
+    Run(TestSnapshot *self, TestBatchRunner *runner);
 }
 
 

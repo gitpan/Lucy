@@ -29,6 +29,7 @@
 #include "Lucy/Plan/Schema.h"
 #include "Lucy/Store/Folder.h"
 #include "Lucy/Store/OutStream.h"
+#include "Lucy/Util/Freezer.h"
 
 static OutStream*
 S_lazy_init(DocWriter *self);
@@ -38,7 +39,7 @@ int32_t DocWriter_current_file_format = 2;
 DocWriter*
 DocWriter_new(Schema *schema, Snapshot *snapshot, Segment *segment,
               PolyReader *polyreader) {
-    DocWriter *self = (DocWriter*)VTable_Make_Obj(DOCWRITER);
+    DocWriter *self = (DocWriter*)Class_Make_Obj(DOCWRITER);
     return DocWriter_init(self, schema, snapshot, segment, polyreader);
 }
 
@@ -50,40 +51,43 @@ DocWriter_init(DocWriter *self, Schema *schema, Snapshot *snapshot,
 }
 
 void
-DocWriter_destroy(DocWriter *self) {
-    DECREF(self->dat_out);
-    DECREF(self->ix_out);
+DocWriter_Destroy_IMP(DocWriter *self) {
+    DocWriterIVARS *const ivars = DocWriter_IVARS(self);
+    DECREF(ivars->dat_out);
+    DECREF(ivars->ix_out);
     SUPER_DESTROY(self, DOCWRITER);
 }
 
 static OutStream*
 S_lazy_init(DocWriter *self) {
-    if (!self->dat_out) {
-        Folder  *folder   = self->folder;
-        CharBuf *seg_name = Seg_Get_Name(self->segment);
+    DocWriterIVARS *const ivars = DocWriter_IVARS(self);
+    if (!ivars->dat_out) {
+        Folder *folder   = ivars->folder;
+        String *seg_name = Seg_Get_Name(ivars->segment);
 
         // Get streams.
-        CharBuf *ix_file = CB_newf("%o/documents.ix", seg_name);
-        self->ix_out = Folder_Open_Out(folder, ix_file);
+        String *ix_file = Str_newf("%o/documents.ix", seg_name);
+        ivars->ix_out = Folder_Open_Out(folder, ix_file);
         DECREF(ix_file);
-        if (!self->ix_out) { RETHROW(INCREF(Err_get_error())); }
-        CharBuf *dat_file = CB_newf("%o/documents.dat", seg_name);
-        self->dat_out = Folder_Open_Out(folder, dat_file);
+        if (!ivars->ix_out) { RETHROW(INCREF(Err_get_error())); }
+        String *dat_file = Str_newf("%o/documents.dat", seg_name);
+        ivars->dat_out = Folder_Open_Out(folder, dat_file);
         DECREF(dat_file);
-        if (!self->dat_out) { RETHROW(INCREF(Err_get_error())); }
+        if (!ivars->dat_out) { RETHROW(INCREF(Err_get_error())); }
 
         // Go past non-doc #0.
-        OutStream_Write_I64(self->ix_out, 0);
+        OutStream_Write_I64(ivars->ix_out, 0);
     }
 
-    return self->dat_out;
+    return ivars->dat_out;
 }
 
 void
-DocWriter_add_inverted_doc(DocWriter *self, Inverter *inverter,
-                           int32_t doc_id) {
+DocWriter_Add_Inverted_Doc_IMP(DocWriter *self, Inverter *inverter,
+                               int32_t doc_id) {
+    DocWriterIVARS *const ivars = DocWriter_IVARS(self);
     OutStream *dat_out    = S_lazy_init(self);
-    OutStream *ix_out     = self->ix_out;
+    OutStream *ix_out     = ivars->ix_out;
     uint32_t   num_stored = 0;
     int64_t    start      = OutStream_Tell(dat_out);
     int64_t    expected   = OutStream_Tell(ix_out) / 8;
@@ -106,10 +110,47 @@ DocWriter_add_inverted_doc(DocWriter *self, Inverter *inverter,
         // Only store fields marked as "stored".
         FieldType *type = Inverter_Get_Type(inverter);
         if (FType_Stored(type)) {
-            CharBuf *field = Inverter_Get_Field_Name(inverter);
+            String *field = Inverter_Get_Field_Name(inverter);
             Obj *value = Inverter_Get_Value(inverter);
-            CB_Serialize(field, dat_out);
-            Obj_Serialize(value, dat_out);
+            Freezer_serialize_string(field, dat_out);
+            switch (FType_Primitive_ID(type) & FType_PRIMITIVE_ID_MASK) {
+                case FType_TEXT: {
+                    const char *buf  = Str_Get_Ptr8((String*)value);
+                    size_t      size = Str_Get_Size((String*)value);
+                    OutStream_Write_C32(dat_out, size);
+                    OutStream_Write_Bytes(dat_out, buf, size);
+                    break;
+                }
+                case FType_BLOB: {
+                    const char *buf  = BB_Get_Buf((ByteBuf*)value);
+                    size_t      size = BB_Get_Size((ByteBuf*)value);
+                    OutStream_Write_C32(dat_out, size);
+                    OutStream_Write_Bytes(dat_out, buf, size);
+                    break;
+                }
+                case FType_INT32: {
+                    int32_t val = Int32_Get_Value((Integer32*)value);
+                    OutStream_Write_C32(dat_out, val);
+                    break;
+                }
+                case FType_INT64: {
+                    int64_t val = Int64_Get_Value((Integer64*)value);
+                    OutStream_Write_C64(dat_out, val);
+                    break;
+                }
+                case FType_FLOAT32: {
+                    float val = Float32_Get_Value((Float32*)value);
+                    OutStream_Write_F32(dat_out, val);
+                    break;
+                }
+                case FType_FLOAT64: {
+                    double val = Float64_Get_Value((Float64*)value);
+                    OutStream_Write_F64(dat_out, val);
+                    break;
+                }
+                default:
+                    THROW(ERR, "Unrecognized type: %o", type);
+            }
         }
     }
 
@@ -118,8 +159,9 @@ DocWriter_add_inverted_doc(DocWriter *self, Inverter *inverter,
 }
 
 void
-DocWriter_add_segment(DocWriter *self, SegReader *reader,
-                      I32Array *doc_map) {
+DocWriter_Add_Segment_IMP(DocWriter *self, SegReader *reader,
+                          I32Array *doc_map) {
+    DocWriterIVARS *const ivars = DocWriter_IVARS(self);
     int32_t doc_max = SegReader_Doc_Max(reader);
 
     if (doc_max == 0) {
@@ -128,11 +170,11 @@ DocWriter_add_segment(DocWriter *self, SegReader *reader,
     }
     else {
         OutStream *const dat_out = S_lazy_init(self);
-        OutStream *const ix_out  = self->ix_out;
+        OutStream *const ix_out  = ivars->ix_out;
         ByteBuf   *const buffer  = BB_new(0);
         DefaultDocReader *const doc_reader
             = (DefaultDocReader*)CERTIFY(
-                  SegReader_Obtain(reader, VTable_Get_Name(DOCREADER)),
+                  SegReader_Obtain(reader, Class_Get_Name(DOCREADER)),
                   DEFAULTDOCREADER);
 
         for (int32_t i = 1, max = SegReader_Doc_Max(reader); i <= max; i++) {
@@ -141,8 +183,8 @@ DocWriter_add_segment(DocWriter *self, SegReader *reader,
 
                 // Copy record over.
                 DefDocReader_Read_Record(doc_reader, buffer, i);
-                char *buf   = BB_Get_Buf(buffer);
-                size_t size = BB_Get_Size(buffer);
+                const char *buf  = BB_Get_Buf(buffer);
+                size_t      size = BB_Get_Size(buffer);
                 OutStream_Write_Bytes(dat_out, buf, size);
 
                 // Write file pointer.
@@ -155,23 +197,24 @@ DocWriter_add_segment(DocWriter *self, SegReader *reader,
 }
 
 void
-DocWriter_finish(DocWriter *self) {
-    if (self->dat_out) {
+DocWriter_Finish_IMP(DocWriter *self) {
+    DocWriterIVARS *const ivars = DocWriter_IVARS(self);
+    if (ivars->dat_out) {
         // Write one final file pointer, so that we can derive the length of
         // the last record.
-        int64_t end = OutStream_Tell(self->dat_out);
-        OutStream_Write_I64(self->ix_out, end);
+        int64_t end = OutStream_Tell(ivars->dat_out);
+        OutStream_Write_I64(ivars->ix_out, end);
 
         // Close down output streams.
-        OutStream_Close(self->dat_out);
-        OutStream_Close(self->ix_out);
-        Seg_Store_Metadata_Str(self->segment, "documents", 9,
-                               (Obj*)DocWriter_Metadata(self));
+        OutStream_Close(ivars->dat_out);
+        OutStream_Close(ivars->ix_out);
+        Seg_Store_Metadata_Utf8(ivars->segment, "documents", 9,
+                                (Obj*)DocWriter_Metadata(self));
     }
 }
 
 int32_t
-DocWriter_format(DocWriter *self) {
+DocWriter_Format_IMP(DocWriter *self) {
     UNUSED_VAR(self);
     return DocWriter_current_file_format;
 }

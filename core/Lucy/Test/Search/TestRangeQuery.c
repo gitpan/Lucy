@@ -14,17 +14,24 @@
  * limitations under the License.
  */
 
-#define C_LUCY_TESTRANGEQUERY
+#define C_TESTLUCY_TESTRANGEQUERY
+#define TESTLUCY_USE_SHORT_NAMES
 #include "Lucy/Util/ToolSet.h"
 #include <math.h>
 
+#include "Clownfish/TestHarness/TestBatchRunner.h"
 #include "Lucy/Test.h"
 #include "Lucy/Test/TestUtils.h"
 #include "Lucy/Test/Search/TestRangeQuery.h"
 #include "Lucy/Search/RangeQuery.h"
 
+TestRangeQuery*
+TestRangeQuery_new() {
+    return (TestRangeQuery*)Class_Make_Obj(TESTRANGEQUERY);
+}
+
 static void
-test_Dump_Load_and_Equals(TestBatch *batch) {
+test_Dump_Load_and_Equals(TestBatchRunner *runner) {
     RangeQuery *query 
         = TestUtils_make_range_query("content", "foo", "phooey", true, true);
     RangeQuery *lo_term_differs 
@@ -38,15 +45,15 @@ test_Dump_Load_and_Equals(TestBatch *batch) {
     Obj        *dump  = (Obj*)RangeQuery_Dump(query);
     RangeQuery *clone = (RangeQuery*)RangeQuery_Load(lo_term_differs, dump);
 
-    TEST_FALSE(batch, RangeQuery_Equals(query, (Obj*)lo_term_differs),
+    TEST_FALSE(runner, RangeQuery_Equals(query, (Obj*)lo_term_differs),
                "Equals() false with different lower term");
-    TEST_FALSE(batch, RangeQuery_Equals(query, (Obj*)hi_term_differs),
+    TEST_FALSE(runner, RangeQuery_Equals(query, (Obj*)hi_term_differs),
                "Equals() false with different upper term");
-    TEST_FALSE(batch, RangeQuery_Equals(query, (Obj*)include_lower_differs),
+    TEST_FALSE(runner, RangeQuery_Equals(query, (Obj*)include_lower_differs),
                "Equals() false with different include_lower");
-    TEST_FALSE(batch, RangeQuery_Equals(query, (Obj*)include_upper_differs),
+    TEST_FALSE(runner, RangeQuery_Equals(query, (Obj*)include_upper_differs),
                "Equals() false with different include_upper");
-    TEST_TRUE(batch, RangeQuery_Equals(query, (Obj*)clone),
+    TEST_TRUE(runner, RangeQuery_Equals(query, (Obj*)clone),
               "Dump => Load round trip");
 
     DECREF(query);
@@ -60,11 +67,9 @@ test_Dump_Load_and_Equals(TestBatch *batch) {
 
 
 void
-TestRangeQuery_run_tests() {
-    TestBatch *batch = TestBatch_new(5);
-    TestBatch_Plan(batch);
-    test_Dump_Load_and_Equals(batch);
-    DECREF(batch);
+TestRangeQuery_Run_IMP(TestRangeQuery *self, TestBatchRunner *runner) {
+    TestBatchRunner_Plan(runner, (TestBatch*)self, 5);
+    test_Dump_Load_and_Equals(runner);
 }
 
 

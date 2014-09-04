@@ -16,12 +16,12 @@
 
 parcel Lucy;
 
-/** A simple analyzer chain
+/** A simple analyzer chain.
  *
  * EasyAnalyzer is an analyzer chain consisting of a
  * L<StandardTokenizer|Lucy::Analysis::StandardTokenizer>, a
  * L<Normalizer|Lucy::Analysis::Normalizer>, and a
- * L<EasyAnalyzer|Lucy::Analysis::EasyAnalyzer>.
+ * L<SnowballStemmer|Lucy::Analysis::SnowballStemmer>.
  *
  * Supported languages:
  *
@@ -41,28 +41,27 @@ parcel Lucy;
  *     sv => Swedish,
  *     tr => Turkish,
  */
-class Lucy::Analysis::EasyAnalyzer
-    inherits Lucy::Analysis::Analyzer : dumpable {
+public class Lucy::Analysis::EasyAnalyzer inherits Lucy::Analysis::Analyzer {
 
-    CharBuf *language;
+    String *language;
     StandardTokenizer *tokenizer;
     Normalizer *normalizer;
     SnowballStemmer *stemmer;
 
     inert incremented EasyAnalyzer*
-    new(const CharBuf *language = NULL);
+    new(String *language = NULL);
 
     /**
      * @param language An ISO code from the list of supported languages.
      */
     public inert EasyAnalyzer*
-    init(EasyAnalyzer *self, const CharBuf *language = NULL);
+    init(EasyAnalyzer *self, String *language = NULL);
 
     public incremented Inversion*
     Transform(EasyAnalyzer *self, Inversion *inversion);
 
     public incremented Inversion*
-    Transform_Text(EasyAnalyzer *self, CharBuf *text);
+    Transform_Text(EasyAnalyzer *self, String *text);
 
     public incremented Hash*
     Dump(EasyAnalyzer *self);
@@ -70,7 +69,7 @@ class Lucy::Analysis::EasyAnalyzer
     public incremented EasyAnalyzer*
     Load(EasyAnalyzer *self, Obj *dump);
 
-    public bool_t
+    public bool
     Equals(EasyAnalyzer *self, Obj *other);
 
     public void

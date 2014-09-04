@@ -47,8 +47,6 @@ Constructor.  Takes no arguments.
 
 
 
-
-
 =head1 METHODS
 
 =head2 list()
@@ -124,7 +122,7 @@ read_file(), write_file(), and set_path().
 
 =head1 INHERITANCE
 
-Lucy::Index::Snapshot isa L<Lucy::Object::Obj>.
+Lucy::Index::Snapshot isa Clownfish::Obj.
 
 
 =cut

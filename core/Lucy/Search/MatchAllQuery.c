@@ -31,7 +31,7 @@
 
 MatchAllQuery*
 MatchAllQuery_new() {
-    MatchAllQuery *self = (MatchAllQuery*)VTable_Make_Obj(MATCHALLQUERY);
+    MatchAllQuery *self = (MatchAllQuery*)Class_Make_Obj(MATCHALLQUERY);
     return MatchAllQuery_init(self);
 }
 
@@ -40,23 +40,24 @@ MatchAllQuery_init(MatchAllQuery *self) {
     return (MatchAllQuery*)Query_init((Query*)self, 0.0f);
 }
 
-bool_t
-MatchAllQuery_equals(MatchAllQuery *self, Obj *other) {
-    MatchAllQuery *twin = (MatchAllQuery*)other;
+bool
+MatchAllQuery_Equals_IMP(MatchAllQuery *self, Obj *other) {
     if (!Obj_Is_A(other, MATCHALLQUERY)) { return false; }
-    if (self->boost != twin->boost)      { return false; }
+    MatchAllQueryIVARS *const ivars = MatchAllQuery_IVARS(self);
+    MatchAllQueryIVARS *const ovars = MatchAllQuery_IVARS((MatchAllQuery*)other);
+    if (ivars->boost != ovars->boost)    { return false; }
     return true;
 }
 
-CharBuf*
-MatchAllQuery_to_string(MatchAllQuery *self) {
+String*
+MatchAllQuery_To_String_IMP(MatchAllQuery *self) {
     UNUSED_VAR(self);
-    return CB_new_from_trusted_utf8("[MATCHALL]", 10);
+    return Str_new_from_trusted_utf8("[MATCHALL]", 10);
 }
 
 Compiler*
-MatchAllQuery_make_compiler(MatchAllQuery *self, Searcher *searcher,
-                            float boost, bool_t subordinate) {
+MatchAllQuery_Make_Compiler_IMP(MatchAllQuery *self, Searcher *searcher,
+                                float boost, bool subordinate) {
     MatchAllCompiler *compiler = MatchAllCompiler_new(self, searcher, boost);
     if (!subordinate) {
         MatchAllCompiler_Normalize(compiler);
@@ -70,7 +71,7 @@ MatchAllCompiler*
 MatchAllCompiler_new(MatchAllQuery *parent, Searcher *searcher,
                      float boost) {
     MatchAllCompiler *self
-        = (MatchAllCompiler*)VTable_Make_Obj(MATCHALLCOMPILER);
+        = (MatchAllCompiler*)Class_Make_Obj(MATCHALLCOMPILER);
     return MatchAllCompiler_init(self, parent, searcher, boost);
 }
 
@@ -81,17 +82,9 @@ MatchAllCompiler_init(MatchAllCompiler *self, MatchAllQuery *parent,
                                             searcher, NULL, boost);
 }
 
-MatchAllCompiler*
-MatchAllCompiler_deserialize(MatchAllCompiler *self, InStream *instream) {
-    self = self
-           ? self
-           : (MatchAllCompiler*)VTable_Make_Obj(MATCHALLCOMPILER);
-    return (MatchAllCompiler*)Compiler_deserialize((Compiler*)self, instream);
-}
-
 Matcher*
-MatchAllCompiler_make_matcher(MatchAllCompiler *self, SegReader *reader,
-                              bool_t need_score) {
+MatchAllCompiler_Make_Matcher_IMP(MatchAllCompiler *self, SegReader *reader,
+                                  bool need_score) {
     float weight = MatchAllCompiler_Get_Weight(self);
     UNUSED_VAR(need_score);
     return (Matcher*)MatchAllMatcher_new(weight, SegReader_Doc_Max(reader));

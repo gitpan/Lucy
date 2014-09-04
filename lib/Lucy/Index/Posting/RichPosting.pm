@@ -15,32 +15,11 @@
 
 package Lucy::Index::Posting::RichPosting;
 use Lucy;
-our $VERSION = '0.003003';
+our $VERSION = '0.004000';
 $VERSION = eval $VERSION;
 
 1;
 
 __END__
-
-__BINDING__
-
-my $synopsis = <<'END_SYNOPSIS';
-    # RichPosting is used indirectly, by specifying in FieldType subclass.
-    package MySchema::Category;
-    use base qw( Lucy::Plan::FullTextType );
-    sub posting {
-        my $self = shift;
-        return Lucy::Index::Posting::RichPosting->new(@_);
-    }
-END_SYNOPSIS
-
-Clownfish::CFC::Binding::Perl::Class->register(
-    parcel            => "Lucy",
-    class_name        => "Lucy::Index::Posting::RichPosting",
-    bind_constructors => ["new"],
-#    make_pod => {
-#        synopsis => $synopsis,
-#    }
-);
 
 

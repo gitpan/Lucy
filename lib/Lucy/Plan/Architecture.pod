@@ -85,8 +85,6 @@ Constructor.  Takes no arguments.
 
 
 
-
-
 =head1 METHODS
 
 =head2 register_doc_writer(writer)
@@ -118,7 +116,7 @@ B<reader> - A SegReader.
 
 =head1 INHERITANCE
 
-Lucy::Plan::Architecture isa L<Lucy::Object::Obj>.
+Lucy::Plan::Architecture isa Clownfish::Obj.
 
 
 =cut

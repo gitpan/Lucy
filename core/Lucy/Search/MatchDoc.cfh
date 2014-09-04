@@ -19,7 +19,7 @@ parcel Lucy;
 /** Representation of a document being evaluated as a hit.
  */
 
-class Lucy::Search::MatchDoc inherits Lucy::Object::Obj {
+class Lucy::Search::MatchDoc inherits Clownfish::Obj {
 
     int32_t  doc_id;
     float    score;
@@ -35,7 +35,7 @@ class Lucy::Search::MatchDoc inherits Lucy::Object::Obj {
     Serialize(MatchDoc *self, OutStream *outstream);
 
     public incremented MatchDoc*
-    Deserialize(MatchDoc *self, InStream *instream);
+    Deserialize(decremented MatchDoc *self, InStream *instream);
 
     int32_t
     Get_Doc_ID(MatchDoc *self);

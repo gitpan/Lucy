@@ -75,8 +75,6 @@ B<target> - The term to match.  If undef, the iterator will be empty.
 
 =back
 
-
-
 =head1 METHODS
 
 =head2 advance(target)
@@ -101,7 +99,7 @@ Returns: A positive doc id, or 0 once the iterator is exhausted.
 
 =head1 INHERITANCE
 
-Lucy::Index::PostingList isa L<Lucy::Search::Matcher> isa L<Lucy::Object::Obj>.
+Lucy::Index::PostingList isa L<Lucy::Search::Matcher> isa Clownfish::Obj.
 
 
 =cut

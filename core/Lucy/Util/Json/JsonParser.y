@@ -24,16 +24,18 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-#include "Lucy/Object/Hash.h"
-#include "Lucy/Object/VArray.h"
-#include "Lucy/Object/CharBuf.h"
-#include "Lucy/Object/Err.h"
+#include "Clownfish/Hash.h"
+#include "Clownfish/VArray.h"
+#include "Clownfish/String.h"
+#include "Clownfish/Err.h"
 #include "Lucy/Util/Json.h"
 }
 
 %extra_argument { lucy_JsonParserState *state }
 
 %syntax_error {
+    (void)yymajor;
+    (void)yyminor;
     state->errors = true;
 }
 
@@ -49,7 +51,7 @@ result ::= top_level_value(A).
 top_level_value(A) ::= value(B).  { A = B; }
 
 /* Values */
-%type STRING { cfish_CharBuf* }
+%type STRING { cfish_String* }
 
 value(A) ::= FALSE(B).   { A = B; }
 value(A) ::= NULL(B).    { A = B; }
@@ -83,28 +85,28 @@ empty_object(A) ::= LEFT_CURLY_BRACKET RIGHT_CURLY_BRACKET.
 single_pair_object(A) ::= LEFT_CURLY_BRACKET STRING(B) COLON value(C) RIGHT_CURLY_BRACKET.
 {
     A = cfish_Hash_new(1);
-    Cfish_Hash_Store(A, (cfish_Obj*)B, C);
+    CFISH_Hash_Store(A, (cfish_Obj*)B, C);
     CFISH_DECREF(B);
 }
 
 multi_pair_object(A) ::= LEFT_CURLY_BRACKET key_value_pair_list(B) STRING(C) COLON value(D) RIGHT_CURLY_BRACKET.
 {
     A = B;
-    Cfish_Hash_Store(A, (cfish_Obj*)C, D);
+    CFISH_Hash_Store(A, (cfish_Obj*)C, D);
     CFISH_DECREF(C);
 }
 
 key_value_pair_list(A) ::= key_value_pair_list(B) STRING(C) COLON value(D) COMMA.
 { 
     A = B; 
-    Cfish_Hash_Store(A, (cfish_Obj*)C, D);
+    CFISH_Hash_Store(A, (cfish_Obj*)C, D);
     CFISH_DECREF(C);
 }
 
 key_value_pair_list(A) ::= STRING(B) COLON value(C) COMMA.
 {
     A = cfish_Hash_new(0);
-    Cfish_Hash_Store(A, (cfish_Obj*)B, C);
+    CFISH_Hash_Store(A, (cfish_Obj*)B, C);
     CFISH_DECREF(B);
 }
 
@@ -131,24 +133,24 @@ empty_array(A) ::= LEFT_SQUARE_BRACKET RIGHT_SQUARE_BRACKET.
 single_elem_array(A) ::= LEFT_SQUARE_BRACKET value(B) RIGHT_SQUARE_BRACKET.
 {
     A = cfish_VA_new(1);
-    Cfish_VA_Push(A, B);
+    CFISH_VA_Push(A, B);
 }
 
 multi_elem_array(A) ::= LEFT_SQUARE_BRACKET array_elem_list(B) value(C) RIGHT_SQUARE_BRACKET.
 {
     A = B;
-    Cfish_VA_Push(A, C);
+    CFISH_VA_Push(A, C);
 }
 
 array_elem_list(A) ::= array_elem_list(B) value(C) COMMA. 
 { 
     A = B; 
-    Cfish_VA_Push(A, C);
+    CFISH_VA_Push(A, C);
 }
 
 array_elem_list(A) ::= value(B) COMMA.
 {
     A = cfish_VA_new(1);
-    Cfish_VA_Push(A, B);
+    CFISH_VA_Push(A, B);
 }
 

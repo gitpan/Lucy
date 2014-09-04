@@ -18,7 +18,7 @@ use warnings;
 
 package LucyX::Remote::ClusterSearcher;
 BEGIN { our @ISA = qw( Lucy::Search::Searcher ) }
-our $VERSION = '0.003003';
+our $VERSION = '0.004000';
 $VERSION = eval $VERSION;
 use Carp;
 use Storable qw( nfreeze thaw );
@@ -267,7 +267,10 @@ sub top_docs {
     my $compiler
         = $query->isa("Lucy::Search::Compiler")
         ? $query
-        : $query->make_compiler( searcher => $self );
+        : $query->make_compiler(
+            searcher => $self,
+            boost    => $query->get_boost,
+          );
 
     # Create HitQueue.
     my $hit_q;

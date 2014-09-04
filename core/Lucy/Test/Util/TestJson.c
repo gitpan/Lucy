@@ -15,37 +15,44 @@
  */
 
 #include <string.h>
+#define TESTLUCY_USE_SHORT_NAMES
 #include "Lucy/Util/ToolSet.h"
 
+#include "Clownfish/TestHarness/TestBatchRunner.h"
 #include "Lucy/Test.h"
 #include "Lucy/Test/Util/TestJson.h"
 #include "Lucy/Util/Json.h"
 #include "Lucy/Store/FileHandle.h"
 #include "Lucy/Store/RAMFolder.h"
 
+TestJson*
+TestJson_new() {
+    return (TestJson*)Class_Make_Obj(TESTJSON);
+}
+
 // Create a test data structure including at least one each of Hash, VArray,
-// and CharBuf.
+// and String.
 static Obj*
 S_make_dump() {
     Hash *dump = Hash_new(0);
-    Hash_Store_Str(dump, "foo", 3, (Obj*)CB_newf("foo"));
-    Hash_Store_Str(dump, "stuff", 5, (Obj*)VA_new(0));
+    Hash_Store_Utf8(dump, "foo", 3, (Obj*)Str_newf("foo"));
+    Hash_Store_Utf8(dump, "stuff", 5, (Obj*)VA_new(0));
     return (Obj*)dump;
 }
 
 static void
-test_tolerance(TestBatch *batch) {
-    CharBuf *foo = CB_newf("foo");
-    CharBuf *not_json = Json_to_json((Obj*)foo);
-    TEST_TRUE(batch, not_json == NULL,
+test_tolerance(TestBatchRunner *runner) {
+    String *foo = Str_newf("foo");
+    String *not_json = Json_to_json((Obj*)foo);
+    TEST_TRUE(runner, not_json == NULL,
               "to_json returns NULL when fed invalid data type");
-    TEST_TRUE(batch, Err_get_error() != NULL,
+    TEST_TRUE(runner, Err_get_error() != NULL,
               "to_json sets Err_error when fed invalid data type");
     DECREF(foo);
 }
 
 // Test escapes for control characters ASCII 0-31.
-static char* control_escapes[] = {
+static const char* control_escapes[] = {
     "\\u0000",
     "\\u0001",
     "\\u0002",
@@ -82,7 +89,7 @@ static char* control_escapes[] = {
 };
 
 // Test quote and backslash escape in isolation, then in context.
-static char* quote_escapes_source[] = {
+static const char* quote_escapes_source[] = {
     "\"",
     "\\",
     "abc\"",
@@ -93,7 +100,7 @@ static char* quote_escapes_source[] = {
     "\"\\",
     NULL
 };
-static char* quote_escapes_json[] = {
+static const char* quote_escapes_json[] = {
     "\\\"",
     "\\\\",
     "abc\\\"",
@@ -106,71 +113,71 @@ static char* quote_escapes_json[] = {
 };
 
 static void
-test_escapes(TestBatch *batch) {
-    CharBuf *string      = CB_new(10);
-    CharBuf *json_wanted = CB_new(10);
-
+test_escapes(TestBatchRunner *runner) {
     for (int i = 0; control_escapes[i] != NULL; i++) {
-        CB_Truncate(string, 0);
-        CB_Cat_Char(string, i);
-        char    *escaped = control_escapes[i];
-        CharBuf *json    = Json_to_json((Obj*)string);
-        CharBuf *decoded = (CharBuf*)Json_from_json(json);
+        String     *string  = Str_new_from_char(i);
+        const char *escaped = control_escapes[i];
+        String     *json    = Json_to_json((Obj*)string);
+        String     *trimmed = Str_Trim(json);
+        String     *decoded = (String*)Json_from_json(json);
 
-        CB_setf(json_wanted, "\"%s\"", escaped);
-        CB_Trim(json);
-        TEST_TRUE(batch, json != NULL && CB_Equals(json_wanted, (Obj*)json),
+        String *json_wanted = Str_newf("\"%s\"", escaped);
+        TEST_TRUE(runner, Str_Equals(json_wanted, (Obj*)trimmed),
                   "encode control escape: %s", escaped);
 
-        TEST_TRUE(batch, decoded != NULL && CB_Equals(string, (Obj*)decoded),
+        TEST_TRUE(runner, decoded != NULL && Str_Equals(string, (Obj*)decoded),
                   "decode control escape: %s", escaped);
 
+        DECREF(string);
         DECREF(json);
+        DECREF(trimmed);
         DECREF(decoded);
+        DECREF(json_wanted);
     }
 
     for (int i = 0; quote_escapes_source[i] != NULL; i++) {
-        char *source  = quote_escapes_source[i];
-        char *escaped = quote_escapes_json[i];
-        CB_setf(string, source, strlen(source));
-        CharBuf *json    = Json_to_json((Obj*)string);
-        CharBuf *decoded = (CharBuf*)Json_from_json(json);
+        const char *source  = quote_escapes_source[i];
+        const char *escaped = quote_escapes_json[i];
+        String *string  = Str_new_from_utf8(source, strlen(source));
+        String *json    = Json_to_json((Obj*)string);
+        String *trimmed = Str_Trim(json);
+        String *decoded = (String*)Json_from_json(json);
 
-        CB_setf(json_wanted, "\"%s\"", escaped);
-        CB_Trim(json);
-        TEST_TRUE(batch, json != NULL && CB_Equals(json_wanted, (Obj*)json),
+        String *json_wanted = Str_newf("\"%s\"", escaped);
+        TEST_TRUE(runner, Str_Equals(json_wanted, (Obj*)trimmed),
                   "encode quote/backslash escapes: %s", source);
 
-        TEST_TRUE(batch, decoded != NULL && CB_Equals(string, (Obj*)decoded),
+        TEST_TRUE(runner, decoded != NULL && Str_Equals(string, (Obj*)decoded),
                   "decode quote/backslash escapes: %s", source);
 
+        DECREF(string);
         DECREF(json);
+        DECREF(trimmed);
         DECREF(decoded);
+        DECREF(json_wanted);
     }
-
-    DECREF(json_wanted);
-    DECREF(string);
 }
 
 static void
-test_numbers(TestBatch *batch) {
-    Integer64 *i64  = Int64_new(33);
-    CharBuf   *json = Json_to_json((Obj*)i64);
-    CB_Trim(json);
-    TEST_TRUE(batch, json && CB_Equals_Str(json, "33", 2), "Integer");
+test_numbers(TestBatchRunner *runner) {
+    Integer64 *i64     = Int64_new(33);
+    String    *json    = Json_to_json((Obj*)i64);
+    String    *trimmed = Str_Trim(json);
+    TEST_TRUE(runner, Str_Equals_Utf8(trimmed, "33", 2), "Integer");
     DECREF(json);
+    DECREF(trimmed);
 
     Float64 *f64 = Float64_new(33.33);
     json = Json_to_json((Obj*)f64);
     if (json) {
-        double value = CB_To_F64(json);
+        double value = Str_To_F64(json);
         double diff = 33.33 - value;
         if (diff < 0.0) { diff = 0.0 - diff; }
-        TEST_TRUE(batch, diff < 0.0001, "Float");
+        TEST_TRUE(runner, diff < 0.0001, "Float");
         DECREF(json);
     }
     else {
-        FAIL(batch, "Float conversion to  json  failed.");
+        FAIL(runner, "Float conversion to  json  failed.");
     }
 
     DECREF(i64);
@@ -178,11 +185,11 @@ test_numbers(TestBatch *batch) {
 }
 
 static void
-test_to_and_from(TestBatch *batch) {
+test_to_and_from(TestBatchRunner *runner) {
     Obj *dump = S_make_dump();
-    CharBuf *json = Json_to_json(dump);
+    String *json = Json_to_json(dump);
     Obj *got = Json_from_json(json);
-    TEST_TRUE(batch, got != NULL && Obj_Equals(dump, got),
+    TEST_TRUE(runner, got != NULL && Obj_Equals(dump, got),
               "Round trip through to_json and from_json");
     DECREF(dump);
     DECREF(json);
@@ -190,36 +197,36 @@ test_to_and_from(TestBatch *batch) {
 }
 
 static void
-test_spew_and_slurp(TestBatch *batch) {
+test_spew_and_slurp(TestBatchRunner *runner) {
     Obj *dump = S_make_dump();
     Folder *folder = (Folder*)RAMFolder_new(NULL);
 
-    CharBuf *foo = (CharBuf*)ZCB_WRAP_STR("foo", 3);
-    bool_t result = Json_spew_json(dump, folder, foo);
-    TEST_TRUE(batch, result, "spew_json returns true on success");
-    TEST_TRUE(batch, Folder_Exists(folder, foo),
+    String *foo = (String*)SSTR_WRAP_UTF8("foo", 3);
+    bool result = Json_spew_json(dump, folder, foo);
+    TEST_TRUE(runner, result, "spew_json returns true on success");
+    TEST_TRUE(runner, Folder_Exists(folder, foo),
               "spew_json wrote file");
 
     Obj *got = Json_slurp_json(folder, foo);
-    TEST_TRUE(batch, got && Obj_Equals(dump, got),
+    TEST_TRUE(runner, got && Obj_Equals(dump, got),
               "Round trip through spew_json and slurp_json");
     DECREF(got);
 
     Err_set_error(NULL);
     result = Json_spew_json(dump, folder, foo);
-    TEST_FALSE(batch, result, "Can't spew_json when file exists");
-    TEST_TRUE(batch, Err_get_error() != NULL,
+    TEST_FALSE(runner, result, "Can't spew_json when file exists");
+    TEST_TRUE(runner, Err_get_error() != NULL,
               "Failed spew_json sets Err_error");
 
     Err_set_error(NULL);
-    CharBuf *bar = (CharBuf*)ZCB_WRAP_STR("bar", 3);
+    String *bar = (String*)SSTR_WRAP_UTF8("bar", 3);
     got = Json_slurp_json(folder, bar);
-    TEST_TRUE(batch, got == NULL,
+    TEST_TRUE(runner, got == NULL,
               "slurp_json returns NULL when file doesn't exist");
-    TEST_TRUE(batch, Err_get_error() != NULL,
+    TEST_TRUE(runner, Err_get_error() != NULL,
               "Failed slurp_json sets Err_error");
 
-    CharBuf *boffo = (CharBuf*)ZCB_WRAP_STR("boffo", 5);
+    String *boffo = (String*)SSTR_WRAP_UTF8("boffo", 5);
 
     FileHandle *fh
         = Folder_Open_FileHandle(folder, boffo, FH_CREATE | FH_WRITE_ONLY);
@@ -228,9 +235,9 @@ test_spew_and_slurp(TestBatch *batch) {
 
     Err_set_error(NULL);
     got = Json_slurp_json(folder, boffo);
-    TEST_TRUE(batch, got == NULL,
+    TEST_TRUE(runner, got == NULL,
               "slurp_json returns NULL when file doesn't contain valid JSON");
-    TEST_TRUE(batch, Err_get_error() != NULL,
+    TEST_TRUE(runner, Err_get_error() != NULL,
               "Failed slurp_json sets Err_error");
     DECREF(got);
 
@@ -239,44 +246,44 @@ test_spew_and_slurp(TestBatch *batch) {
 }
 
 static void
-S_verify_bad_syntax(TestBatch *batch, const char *bad, const char *mess) {
-    ZombieCharBuf *has_errors = ZCB_WRAP_STR(bad, strlen(bad));
+S_verify_bad_syntax(TestBatchRunner *runner, const char *bad, const char *mess) {
+    StackString *has_errors = SSTR_WRAP_UTF8(bad, strlen(bad));
     Err_set_error(NULL);
-    Obj *not_json = Json_from_json((CharBuf*)has_errors);
-    TEST_TRUE(batch, not_json == NULL, "from_json returns NULL: %s", mess);
-    TEST_TRUE(batch, Err_get_error() != NULL, "from_json sets Err_error: %s",
+    Obj *not_json = Json_from_json((String*)has_errors);
+    TEST_TRUE(runner, not_json == NULL, "from_json returns NULL: %s", mess);
+    TEST_TRUE(runner, Err_get_error() != NULL, "from_json sets Err_error: %s",
               mess);
 }
 
 static void
-test_syntax_errors(TestBatch *batch) {
-    S_verify_bad_syntax(batch, "[", "unclosed left bracket");
-    S_verify_bad_syntax(batch, "]", "unopened right bracket");
-    S_verify_bad_syntax(batch, "{", "unclosed left curly");
-    S_verify_bad_syntax(batch, "}", "unopened right curly");
-    S_verify_bad_syntax(batch, "{}[]", "two top-level objects");
-    S_verify_bad_syntax(batch, "[1 \"foo\"]", "missing comma in array");
-    S_verify_bad_syntax(batch, "[1, \"foo\",]", "extra comma in array");
-    S_verify_bad_syntax(batch, "{\"1\":1 \"2\":2}", "missing comma in hash");
-    S_verify_bad_syntax(batch, "{\"1\":1,\"2\":2,}", "extra comma in hash");
-    S_verify_bad_syntax(batch, "\"1", "unterminated string");
+test_syntax_errors(TestBatchRunner *runner) {
+    S_verify_bad_syntax(runner, "[", "unclosed left bracket");
+    S_verify_bad_syntax(runner, "]", "unopened right bracket");
+    S_verify_bad_syntax(runner, "{", "unclosed left curly");
+    S_verify_bad_syntax(runner, "}", "unopened right curly");
+    S_verify_bad_syntax(runner, "{}[]", "two top-level objects");
+    S_verify_bad_syntax(runner, "[1 \"foo\"]", "missing comma in array");
+    S_verify_bad_syntax(runner, "[1, \"foo\",]", "extra comma in array");
+    S_verify_bad_syntax(runner, "{\"1\":1 \"2\":2}", "missing comma in hash");
+    S_verify_bad_syntax(runner, "{\"1\":1,\"2\":2,}", "extra comma in hash");
+    S_verify_bad_syntax(runner, "\"1", "unterminated string");
     // Tolerated by strtod().
-    // S_verify_bad_syntax(batch, "1. ", "float missing fraction");
-    // S_verify_bad_syntax(batch, "-.3 ", "Number missing integral part");
-    S_verify_bad_syntax(batch, "-. ", "Number missing any digits");
-    S_verify_bad_syntax(batch, "+1.0 ", "float with prepended plus");
-    S_verify_bad_syntax(batch, "\"\\g\"", "invalid char escape");
-    S_verify_bad_syntax(batch, "\"\\uAAAZ\"", "invalid \\u escape");
+    // S_verify_bad_syntax(runner, "1. ", "float missing fraction");
+    // S_verify_bad_syntax(runner, "-.3 ", "Number missing integral part");
+    S_verify_bad_syntax(runner, "-. ", "Number missing any digits");
+    S_verify_bad_syntax(runner, "+1.0 ", "float with prepended plus");
+    S_verify_bad_syntax(runner, "\"\\g\"", "invalid char escape");
+    S_verify_bad_syntax(runner, "\"\\uAAAZ\"", "invalid \\u escape");
 }
 
 static void
-S_round_trip_integer(TestBatch *batch, int64_t value) {
+S_round_trip_integer(TestBatchRunner *runner, int64_t value) {
     Integer64 *num = Int64_new(value);
     VArray *array = VA_new(1);
     VA_Store(array, 0, (Obj*)num);
-    CharBuf *json = Json_to_json((Obj*)array);
+    String *json = Json_to_json((Obj*)array);
     Obj *dump = Json_from_json(json);
-    TEST_TRUE(batch, VA_Equals(array, dump), "Round trip integer %ld",
+    TEST_TRUE(runner, VA_Equals(array, dump), "Round trip integer %ld",
               (long)value);
     DECREF(dump);
     DECREF(json);
@@ -284,93 +291,90 @@ S_round_trip_integer(TestBatch *batch, int64_t value) {
 }
 
 static void
-test_integers(TestBatch *batch) {
-    S_round_trip_integer(batch, 0);
-    S_round_trip_integer(batch, -1);
-    S_round_trip_integer(batch, -1000000);
-    S_round_trip_integer(batch, 1000000);
+test_integers(TestBatchRunner *runner) {
+    S_round_trip_integer(runner, 0);
+    S_round_trip_integer(runner, -1);
+    S_round_trip_integer(runner, -1000000);
+    S_round_trip_integer(runner, 1000000);
 }
 
 static void
-S_round_trip_float(TestBatch *batch, double value, double max_diff) {
+S_round_trip_float(TestBatchRunner *runner, double value, double max_diff) {
     Float64 *num = Float64_new(value);
     VArray *array = VA_new(1);
     VA_Store(array, 0, (Obj*)num);
-    CharBuf *json = Json_to_json((Obj*)array);
+    String *json = Json_to_json((Obj*)array);
     Obj *dump = CERTIFY(Json_from_json(json), VARRAY);
     Float64 *got = (Float64*)CERTIFY(VA_Fetch((VArray*)dump, 0), FLOAT64);
     double diff = Float64_Get_Value(num) - Float64_Get_Value(got);
     if (diff < 0) { diff = 0 - diff; }
-    TEST_TRUE(batch, diff <= max_diff, "Round trip float %f", value);
+    TEST_TRUE(runner, diff <= max_diff, "Round trip float %f", value);
     DECREF(dump);
     DECREF(json);
     DECREF(array);
 }
 
 static void
-test_floats(TestBatch *batch) {
-    S_round_trip_float(batch, 0.0, 0.0);
-    S_round_trip_float(batch, 0.1, 0.00001);
-    S_round_trip_float(batch, -0.1, 0.00001);
-    S_round_trip_float(batch, 1000000.5, 1.0);
-    S_round_trip_float(batch, -1000000.5, 1.0);
+test_floats(TestBatchRunner *runner) {
+    S_round_trip_float(runner, 0.0, 0.0);
+    S_round_trip_float(runner, 0.1, 0.00001);
+    S_round_trip_float(runner, -0.1, 0.00001);
+    S_round_trip_float(runner, 1000000.5, 1.0);
+    S_round_trip_float(runner, -1000000.5, 1.0);
 }
 
 static void
-test_max_depth(TestBatch *batch) {
+test_max_depth(TestBatchRunner *runner) {
     Hash *circular = Hash_new(0);
-    Hash_Store_Str(circular, "circular", 8, INCREF(circular));
+    Hash_Store_Utf8(circular, "circular", 8, INCREF(circular));
     Err_set_error(NULL);
-    CharBuf *not_json = Json_to_json((Obj*)circular);
-    TEST_TRUE(batch, not_json == NULL,
+    String *not_json = Json_to_json((Obj*)circular);
+    TEST_TRUE(runner, not_json == NULL,
               "to_json returns NULL when fed recursing data");
-    TEST_TRUE(batch, Err_get_error() != NULL,
+    TEST_TRUE(runner, Err_get_error() != NULL,
               "to_json sets Err_error when fed recursing data");
-    DECREF(Hash_Delete_Str(circular, "circular", 8));
+    DECREF(Hash_Delete_Utf8(circular, "circular", 8));
     DECREF(circular);
 }
 
 static void
-test_illegal_keys(TestBatch *batch) {
+test_illegal_keys(TestBatchRunner *runner) {
     Hash *hash = Hash_new(0);
     Float64 *key = Float64_new(1.1);
-    Hash_Store(hash, (Obj*)key, (Obj*)CB_newf("blah"));
+    Hash_Store(hash, (Obj*)key, (Obj*)Str_newf("blah"));
     Err_set_error(NULL);
-    CharBuf *not_json = Json_to_json((Obj*)hash);
-    TEST_TRUE(batch, not_json == NULL,
+    String *not_json = Json_to_json((Obj*)hash);
+    TEST_TRUE(runner, not_json == NULL,
               "to_json returns NULL when fed an illegal key");
-    TEST_TRUE(batch, Err_get_error() != NULL,
+    TEST_TRUE(runner, Err_get_error() != NULL,
               "to_json sets Err_error when fed an illegal key");
     DECREF(key);
     DECREF(hash);
 }
 
 void
-TestJson_run_tests() {
-    int num_tests = 107;
+TestJson_Run_IMP(TestJson *self, TestBatchRunner *runner) {
+    uint32_t num_tests = 107;
 #ifndef LUCY_VALGRIND
     num_tests += 28; // FIXME: syntax errors leak memory.
 #endif
-    TestBatch *batch = TestBatch_new(num_tests);
-    TestBatch_Plan(batch);
+    TestBatchRunner_Plan(runner, (TestBatch*)self, num_tests);
 
     // Test tolerance, then liberalize for testing.
-    test_tolerance(batch);
+    test_tolerance(runner);
     Json_set_tolerant(true);
 
-    test_to_and_from(batch);
-    test_escapes(batch);
-    test_numbers(batch);
-    test_spew_and_slurp(batch);
-    test_integers(batch);
-    test_floats(batch);
-    test_max_depth(batch);
-    test_illegal_keys(batch);
+    test_to_and_from(runner);
+    test_escapes(runner);
+    test_numbers(runner);
+    test_spew_and_slurp(runner);
+    test_integers(runner);
+    test_floats(runner);
+    test_max_depth(runner);
+    test_illegal_keys(runner);
 
 #ifndef LUCY_VALGRIND
-    test_syntax_errors(batch);
+    test_syntax_errors(runner);
 #endif
-
-    DECREF(batch);
 }
 

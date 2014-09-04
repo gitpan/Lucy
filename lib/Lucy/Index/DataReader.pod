@@ -91,8 +91,6 @@ B<offsets> - Doc id start offsets for each reader.
 
 =back
 
-
-
 =head1 METHODS
 
 =head2 get_schema()
@@ -123,7 +121,7 @@ Accessor for "seg_tick" member var.
 
 =head1 INHERITANCE
 
-Lucy::Index::DataReader isa L<Lucy::Object::Obj>.
+Lucy::Index::DataReader isa Clownfish::Obj.
 
 
 =cut

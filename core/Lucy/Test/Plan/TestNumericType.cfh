@@ -14,11 +14,16 @@
  * limitations under the License.
  */
 
-parcel Lucy;
+parcel TestLucy;
 
-inert class Lucy::Test::Plan::TestNumericType {
-    inert void
-    run_tests();
+class Lucy::Test::Plan::TestNumericType
+    inherits Clownfish::TestHarness::TestBatch {
+
+    inert incremented TestNumericType*
+    new();
+
+    void
+    Run(TestNumericType *self, TestBatchRunner *runner);
 }
 
 

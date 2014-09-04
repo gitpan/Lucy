@@ -14,17 +14,24 @@
  * limitations under the License.
  */
 
+#define TESTLUCY_USE_SHORT_NAMES
 #include "Lucy/Util/ToolSet.h"
 
+#include "Clownfish/TestHarness/TestBatchRunner.h"
 #include "Lucy/Test.h"
 #include "Lucy/Test/TestUtils.h"
 #include "Lucy/Test/Analysis/TestAnalyzer.h"
 #include "Lucy/Analysis/Analyzer.h"
 #include "Lucy/Analysis/Inversion.h"
 
+TestAnalyzer*
+TestAnalyzer_new() {
+    return (TestAnalyzer*)Class_Make_Obj(TESTANALYZER);
+}
+
 DummyAnalyzer*
 DummyAnalyzer_new() {
-    DummyAnalyzer *self = (DummyAnalyzer*)VTable_Make_Obj(DUMMYANALYZER);
+    DummyAnalyzer *self = (DummyAnalyzer*)Class_Make_Obj(DUMMYANALYZER);
     return DummyAnalyzer_init(self);
 }
 
@@ -34,18 +41,18 @@ DummyAnalyzer_init(DummyAnalyzer *self) {
 }
 
 Inversion*
-DummyAnalyzer_transform(DummyAnalyzer *self, Inversion *inversion) {
+DummyAnalyzer_Transform_IMP(DummyAnalyzer *self, Inversion *inversion) {
     UNUSED_VAR(self);
     return (Inversion*)INCREF(inversion);
 }
 
 static void
-test_analysis(TestBatch *batch) {
+test_analysis(TestBatchRunner *runner) {
     DummyAnalyzer *analyzer = DummyAnalyzer_new();
-    CharBuf *source = CB_newf("foo bar baz");
+    String *source = Str_newf("foo bar baz");
     VArray *wanted = VA_new(1);
-    VA_Push(wanted, (Obj*)CB_newf("foo bar baz"));
-    TestUtils_test_analyzer(batch, (Analyzer*)analyzer, source, wanted,
+    VA_Push(wanted, (Obj*)Str_newf("foo bar baz"));
+    TestUtils_test_analyzer(runner, (Analyzer*)analyzer, source, wanted,
                             "test basic analysis");
     DECREF(wanted);
     DECREF(source);
@@ -53,14 +60,9 @@ test_analysis(TestBatch *batch) {
 }
 
 void
-TestAnalyzer_run_tests() {
-    TestBatch *batch = TestBatch_new(3);
-
-    TestBatch_Plan(batch);
-
-    test_analysis(batch);
-
-    DECREF(batch);
+TestAnalyzer_Run_IMP(TestAnalyzer *self, TestBatchRunner *runner) {
+    TestBatchRunner_Plan(runner, (TestBatch*)self, 3);
+    test_analysis(runner);
 }
 
 

@@ -21,8 +21,8 @@ parcel Lucy;
  * BitVector is a growable array of bits.  All bits are initially zero.
  */
 
-class Lucy::Object::BitVector cnick BitVec
-    inherits Lucy::Object::Obj {
+public class Lucy::Object::BitVector nickname BitVec
+    inherits Clownfish::Obj {
 
     uint32_t  cap;
     uint8_t  *bits;
@@ -43,7 +43,7 @@ class Lucy::Object::BitVector cnick BitVec
      *
      * @param tick The requested bit.
      */
-    public bool_t
+    public bool
     Get(BitVector *self, uint32_t tick);
 
     /** Set the bit at <code>tick</code> to 1.

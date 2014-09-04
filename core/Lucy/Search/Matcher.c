@@ -15,12 +15,11 @@
  */
 
 #define C_LUCY_MATCHER
+#define CFISH_USE_SHORT_NAMES
 #define LUCY_USE_SHORT_NAMES
-#define CHY_USE_SHORT_NAMES
 
 #include "Lucy/Search/Matcher.h"
-#include "Lucy/Object/Err.h"
-#include "Lucy/Object/VTable.h"
+#include "Clownfish/Err.h"
 #include "Lucy/Search/Collector.h"
 
 Matcher*
@@ -30,7 +29,7 @@ Matcher_init(Matcher *self) {
 }
 
 int32_t
-Matcher_advance(Matcher *self, int32_t target) {
+Matcher_Advance_IMP(Matcher *self, int32_t target) {
     while (1) {
         int32_t doc_id = Matcher_Next(self);
         if (doc_id == 0 || doc_id >= target) {
@@ -40,9 +39,9 @@ Matcher_advance(Matcher *self, int32_t target) {
 }
 
 void
-Matcher_collect(Matcher *self, Collector *collector, Matcher *deletions) {
+Matcher_Collect_IMP(Matcher *self, Collector *collector, Matcher *deletions) {
     int32_t doc_id        = 0;
-    int32_t next_deletion = deletions ? 0 : I32_MAX;
+    int32_t next_deletion = deletions ? 0 : INT32_MAX;
 
     Coll_Set_Matcher(collector, self);
 
@@ -50,7 +49,7 @@ Matcher_collect(Matcher *self, Collector *collector, Matcher *deletions) {
     while (1) {
         if (doc_id > next_deletion) {
             next_deletion = Matcher_Advance(deletions, doc_id);
-            if (next_deletion == 0) { next_deletion = I32_MAX; }
+            if (next_deletion == 0) { next_deletion = INT32_MAX; }
             continue;
         }
         else if (doc_id == next_deletion) {
@@ -60,7 +59,7 @@ Matcher_collect(Matcher *self, Collector *collector, Matcher *deletions) {
                 while (doc_id == next_deletion) {
                     doc_id++;
                     next_deletion = Matcher_Advance(deletions, doc_id);
-                    if (next_deletion == 0) { next_deletion = I32_MAX; }
+                    if (next_deletion == 0) { next_deletion = INT32_MAX; }
                 }
                 // Verify that the artificial advance actually worked.
                 doc_id = Matcher_Advance(self, doc_id);

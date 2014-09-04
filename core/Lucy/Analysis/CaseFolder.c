@@ -18,48 +18,60 @@
 #include "Lucy/Util/ToolSet.h"
 
 #include "Lucy/Analysis/CaseFolder.h"
-#include "Lucy/Analysis/Token.h"
+#include "Lucy/Analysis/Normalizer.h"
 #include "Lucy/Analysis/Inversion.h"
 
 CaseFolder*
 CaseFolder_new() {
-    CaseFolder *self = (CaseFolder*)VTable_Make_Obj(CASEFOLDER);
+    CaseFolder *self = (CaseFolder*)Class_Make_Obj(CASEFOLDER);
     return CaseFolder_init(self);
 }
 
 CaseFolder*
 CaseFolder_init(CaseFolder *self) {
     Analyzer_init((Analyzer*)self);
-    self->work_buf = BB_new(0);
+    CaseFolderIVARS *const ivars = CaseFolder_IVARS(self);
+    ivars->normalizer = Normalizer_new(NULL, true, false);
     return self;
 }
 
 void
-CaseFolder_destroy(CaseFolder *self) {
-    DECREF(self->work_buf);
+CaseFolder_Destroy_IMP(CaseFolder *self) {
+    CaseFolderIVARS *const ivars = CaseFolder_IVARS(self);
+    DECREF(ivars->normalizer);
     SUPER_DESTROY(self, CASEFOLDER);
 }
 
-bool_t
-CaseFolder_equals(CaseFolder *self, Obj *other) {
-    CaseFolder *const twin = (CaseFolder*)other;
-    if (twin == self)                 { return true; }
-    UNUSED_VAR(self);
+Inversion*
+CaseFolder_Transform_IMP(CaseFolder *self, Inversion *inversion) {
+    CaseFolderIVARS *const ivars = CaseFolder_IVARS(self);
+    return Normalizer_Transform(ivars->normalizer, inversion);
+}
+
+Inversion*
+CaseFolder_Transform_Text_IMP(CaseFolder *self, String *text) {
+    CaseFolderIVARS *const ivars = CaseFolder_IVARS(self);
+    return Normalizer_Transform_Text(ivars->normalizer, text);
+}
+
+bool
+CaseFolder_Equals_IMP(CaseFolder *self, Obj *other) {
+    if ((CaseFolder*)other == self)   { return true; }
     if (!Obj_Is_A(other, CASEFOLDER)) { return false; }
     return true;
 }
 
 Hash*
-CaseFolder_dump(CaseFolder *self) {
-    CaseFolder_dump_t super_dump
-        = (CaseFolder_dump_t)SUPER_METHOD(CASEFOLDER, CaseFolder, Dump);
+CaseFolder_Dump_IMP(CaseFolder *self) {
+    CaseFolder_Dump_t super_dump
+        = SUPER_METHOD_PTR(CASEFOLDER, LUCY_CaseFolder_Dump);
     return super_dump(self);
 }
 
 CaseFolder*
-CaseFolder_load(CaseFolder *self, Obj *dump) {
-    CaseFolder_load_t super_load
-        = (CaseFolder_load_t)SUPER_METHOD(CASEFOLDER, CaseFolder, Load);
+CaseFolder_Load_IMP(CaseFolder *self, Obj *dump) {
+    CaseFolder_Load_t super_load
+        = SUPER_METHOD_PTR(CASEFOLDER, LUCY_CaseFolder_Load);
     CaseFolder *loaded = super_load(self, dump);
     return CaseFolder_init(loaded);
 }

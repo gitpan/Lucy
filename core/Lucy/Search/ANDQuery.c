@@ -19,6 +19,8 @@
 #include "Lucy/Util/ToolSet.h"
 
 #include "Lucy/Search/ANDQuery.h"
+
+#include "Clownfish/CharBuf.h"
 #include "Lucy/Index/DocVector.h"
 #include "Lucy/Index/SegReader.h"
 #include "Lucy/Index/Similarity.h"
@@ -32,7 +34,7 @@
 
 ANDQuery*
 ANDQuery_new(VArray *children) {
-    ANDQuery *self = (ANDQuery*)VTable_Make_Obj(ANDQUERY);
+    ANDQuery *self = (ANDQuery*)Class_Make_Obj(ANDQUERY);
     return ANDQuery_init(self, children);
 }
 
@@ -41,39 +43,43 @@ ANDQuery_init(ANDQuery *self, VArray *children) {
     return (ANDQuery*)PolyQuery_init((PolyQuery*)self, children);
 }
 
-CharBuf*
-ANDQuery_to_string(ANDQuery *self) {
-    uint32_t num_kids = VA_Get_Size(self->children);
-    if (!num_kids) { return CB_new_from_trusted_utf8("()", 2); }
+String*
+ANDQuery_To_String_IMP(ANDQuery *self) {
+    ANDQueryIVARS *const ivars = ANDQuery_IVARS(self);
+    uint32_t num_kids = VA_Get_Size(ivars->children);
+    if (!num_kids) { return Str_new_from_trusted_utf8("()", 2); }
     else {
-        CharBuf *retval = CB_new_from_trusted_utf8("(", 1);
-        uint32_t i;
-        for (i = 0; i < num_kids; i++) {
-            CharBuf *kid_string = Obj_To_String(VA_Fetch(self->children, i));
-            CB_Cat(retval, kid_string);
+        CharBuf *buf = CB_new_from_trusted_utf8("(", 1);
+        for (uint32_t i = 0; i < num_kids; i++) {
+            String *kid_string = Obj_To_String(VA_Fetch(ivars->children, i));
+            CB_Cat(buf, kid_string);
             DECREF(kid_string);
             if (i == num_kids - 1) {
-                CB_Cat_Trusted_Str(retval, ")", 1);
+                CB_Cat_Trusted_Utf8(buf, ")", 1);
             }
             else {
-                CB_Cat_Trusted_Str(retval, " AND ", 5);
+                CB_Cat_Trusted_Utf8(buf, " AND ", 5);
             }
         }
+        String *retval = CB_Yield_String(buf);
+        DECREF(buf);
         return retval;
     }
 }
 
 
-bool_t
-ANDQuery_equals(ANDQuery *self, Obj *other) {
+bool
+ANDQuery_Equals_IMP(ANDQuery *self, Obj *other) {
     if ((ANDQuery*)other == self)   { return true; }
     if (!Obj_Is_A(other, ANDQUERY)) { return false; }
-    return PolyQuery_equals((PolyQuery*)self, other);
+    ANDQuery_Equals_t super_equals
+        = (ANDQuery_Equals_t)SUPER_METHOD_PTR(ANDQUERY, LUCY_ANDQuery_Equals);
+    return super_equals(self, other);
 }
 
 Compiler*
-ANDQuery_make_compiler(ANDQuery *self, Searcher *searcher, float boost,
-                       bool_t subordinate) {
+ANDQuery_Make_Compiler_IMP(ANDQuery *self, Searcher *searcher, float boost,
+                           bool subordinate) {
     ANDCompiler *compiler = ANDCompiler_new(self, searcher, boost);
     if (!subordinate) {
         ANDCompiler_Normalize(compiler);
@@ -85,7 +91,7 @@ ANDQuery_make_compiler(ANDQuery *self, Searcher *searcher, float boost,
 
 ANDCompiler*
 ANDCompiler_new(ANDQuery *parent, Searcher *searcher, float boost) {
-    ANDCompiler *self = (ANDCompiler*)VTable_Make_Obj(ANDCOMPILER);
+    ANDCompiler *self = (ANDCompiler*)Class_Make_Obj(ANDCOMPILER);
     return ANDCompiler_init(self, parent, searcher, boost);
 }
 
@@ -98,21 +104,21 @@ ANDCompiler_init(ANDCompiler *self, ANDQuery *parent, Searcher *searcher,
 }
 
 Matcher*
-ANDCompiler_make_matcher(ANDCompiler *self, SegReader *reader,
-                         bool_t need_score) {
-    uint32_t num_kids = VA_Get_Size(self->children);
+ANDCompiler_Make_Matcher_IMP(ANDCompiler *self, SegReader *reader,
+                             bool need_score) {
+    ANDCompilerIVARS *const ivars = ANDCompiler_IVARS(self);
+    uint32_t num_kids = VA_Get_Size(ivars->children);
 
     if (num_kids == 1) {
-        Compiler *only_child = (Compiler*)VA_Fetch(self->children, 0);
+        Compiler *only_child = (Compiler*)VA_Fetch(ivars->children, 0);
         return Compiler_Make_Matcher(only_child, reader, need_score);
     }
     else {
-        uint32_t i;
         VArray *child_matchers = VA_new(num_kids);
 
         // Add child matchers one by one.
-        for (i = 0; i < num_kids; i++) {
-            Compiler *child = (Compiler*)VA_Fetch(self->children, i);
+        for (uint32_t i = 0; i < num_kids; i++) {
+            Compiler *child = (Compiler*)VA_Fetch(ivars->children, i);
             Matcher *child_matcher
                 = Compiler_Make_Matcher(child, reader, need_score);
 

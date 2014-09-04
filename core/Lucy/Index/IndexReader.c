@@ -52,62 +52,66 @@ IxReader_init(IndexReader *self, Schema *schema, Folder *folder,
     DataReader_init((DataReader*)self, schema, folder, snapshot, segments,
                     seg_tick);
     DECREF(snapshot);
-    self->components     = Hash_new(0);
-    self->read_lock      = NULL;
-    self->deletion_lock  = NULL;
+    IndexReaderIVARS *const ivars = IxReader_IVARS(self);
+    ivars->components     = Hash_new(0);
+    ivars->read_lock      = NULL;
+    ivars->deletion_lock  = NULL;
     if (manager) {
-        self->manager = (IndexManager*)INCREF(manager);
-        IxManager_Set_Folder(self->manager, self->folder);
+        ivars->manager = (IndexManager*)INCREF(manager);
+        IxManager_Set_Folder(ivars->manager, ivars->folder);
     }
     else {
-        self->manager = NULL;
+        ivars->manager = NULL;
     }
     return self;
 }
 
 void
-IxReader_close(IndexReader *self) {
-    if (self->components) {
-        CharBuf *key;
+IxReader_Close_IMP(IndexReader *self) {
+    IndexReaderIVARS *const ivars = IxReader_IVARS(self);
+    if (ivars->components) {
+        String *key;
         DataReader *component;
-        Hash_Iterate(self->components);
-        while (Hash_Next(self->components, (Obj**)&key,
+        Hash_Iterate(ivars->components);
+        while (Hash_Next(ivars->components, (Obj**)&key,
                          (Obj**)&component)
               ) {
             if (Obj_Is_A((Obj*)component, DATAREADER)) {
                 DataReader_Close(component);
             }
         }
-        Hash_Clear(self->components);
+        Hash_Clear(ivars->components);
     }
-    if (self->read_lock) {
-        Lock_Release(self->read_lock);
-        DECREF(self->read_lock);
-        self->read_lock = NULL;
+    if (ivars->read_lock) {
+        Lock_Release(ivars->read_lock);
+        DECREF(ivars->read_lock);
+        ivars->read_lock = NULL;
     }
 }
 
 void
-IxReader_destroy(IndexReader *self) {
-    DECREF(self->components);
-    if (self->read_lock) {
-        Lock_Release(self->read_lock);
-        DECREF(self->read_lock);
+IxReader_Destroy_IMP(IndexReader *self) {
+    IndexReaderIVARS *const ivars = IxReader_IVARS(self);
+    DECREF(ivars->components);
+    if (ivars->read_lock) {
+        Lock_Release(ivars->read_lock);
+        DECREF(ivars->read_lock);
     }
-    DECREF(self->manager);
-    DECREF(self->deletion_lock);
+    DECREF(ivars->manager);
+    DECREF(ivars->deletion_lock);
     SUPER_DESTROY(self, INDEXREADER);
 }
 
 Hash*
-IxReader_get_components(IndexReader *self) {
-    return self->components;
+IxReader_Get_Components_IMP(IndexReader *self) {
+    return IxReader_IVARS(self)->components;
 }
 
 DataReader*
-IxReader_obtain(IndexReader *self, const CharBuf *api) {
+IxReader_Obtain_IMP(IndexReader *self, String *api) {
+    IndexReaderIVARS *const ivars = IxReader_IVARS(self);
     DataReader *component
-        = (DataReader*)Hash_Fetch(self->components, (Obj*)api);
+        = (DataReader*)Hash_Fetch(ivars->components, (Obj*)api);
     if (!component) {
         THROW(ERR, "No component registered for '%o'", api);
     }
@@ -115,8 +119,9 @@ IxReader_obtain(IndexReader *self, const CharBuf *api) {
 }
 
 DataReader*
-IxReader_fetch(IndexReader *self, const CharBuf *api) {
-    return (DataReader*)Hash_Fetch(self->components, (Obj*)api);
+IxReader_Fetch_IMP(IndexReader *self, String *api) {
+    IndexReaderIVARS *const ivars = IxReader_IVARS(self);
+    return (DataReader*)Hash_Fetch(ivars->components, (Obj*)api);
 }
 
 

@@ -58,11 +58,9 @@ Return the number of documents where the specified term is present.
 
 
 
-
-
 =head1 INHERITANCE
 
-Lucy::Index::LexiconReader isa L<Lucy::Index::DataReader> isa L<Lucy::Object::Obj>.
+Lucy::Index::LexiconReader isa L<Lucy::Index::DataReader> isa Clownfish::Obj.
 
 
 =cut

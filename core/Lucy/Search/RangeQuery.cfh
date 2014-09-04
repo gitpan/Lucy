@@ -22,18 +22,17 @@ parcel Lucy;
  * within a given range.
  */
 
-class Lucy::Search::RangeQuery inherits Lucy::Search::Query
-    : dumpable {
+public class Lucy::Search::RangeQuery inherits Lucy::Search::Query {
 
-    CharBuf  *field;
+    String   *field;
     Obj      *lower_term;
     Obj      *upper_term;
-    bool_t    include_lower;
-    bool_t    include_upper;
+    bool      include_lower;
+    bool      include_upper;
 
     inert incremented RangeQuery*
-    new(const CharBuf *field, Obj *lower_term = NULL, Obj *upper_term = NULL,
-        bool_t include_lower = true, bool_t include_upper = true);
+    new(String *field, Obj *lower_term = NULL, Obj *upper_term = NULL,
+        bool include_lower = true, bool include_upper = true);
 
     /** Takes 5 parameters; <code>field</code> is required, as
      * is at least one of either <code>lower_term</code> or
@@ -50,25 +49,31 @@ class Lucy::Search::RangeQuery inherits Lucy::Search::Query
      * <code>upper_term</code> should be included in the results.
      */
     public inert RangeQuery*
-    init(RangeQuery *self, const CharBuf *field,
+    init(RangeQuery *self, String *field,
          Obj *lower_term = NULL, Obj *upper_term = NULL,
-         bool_t include_lower = true, bool_t include_upper = true);
+         bool include_lower = true, bool include_upper = true);
 
-    public bool_t
+    public bool
     Equals(RangeQuery *self, Obj *other);
 
-    public incremented CharBuf*
+    public incremented String*
     To_String(RangeQuery *self);
 
     public incremented RangeCompiler*
     Make_Compiler(RangeQuery *self, Searcher *searcher, float boost,
-                  bool_t subordinate = false);
+                  bool subordinate = false);
 
     public void
     Serialize(RangeQuery *self, OutStream *outstream);
 
     public incremented RangeQuery*
-    Deserialize(RangeQuery *self, InStream *instream);
+    Deserialize(decremented RangeQuery *self, InStream *instream);
+
+    public incremented Obj*
+    Dump(RangeQuery *self);
+
+    public incremented Obj*
+    Load(RangeQuery *self, Obj *dump);
 
     public void
     Destroy(RangeQuery *self);
@@ -84,10 +89,7 @@ class Lucy::Search::RangeCompiler inherits Lucy::Search::Compiler {
          float boost);
 
     public incremented nullable Matcher*
-    Make_Matcher(RangeCompiler *self, SegReader *reader, bool_t need_score);
-
-    public incremented RangeCompiler*
-    Deserialize(RangeCompiler *self, InStream *instream);
+    Make_Matcher(RangeCompiler *self, SegReader *reader, bool need_score);
 }
 
 

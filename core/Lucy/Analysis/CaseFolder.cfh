@@ -18,14 +18,16 @@ parcel Lucy;
 
 /** Normalize case, facilitating case-insensitive search.
  *
+ * CaseFolder is DEPRECATED. Use L<Normalizer|Lucy::Analysis::Normalizer>
+ * instead.
+ *
  * CaseFolder normalizes text according to Unicode case-folding rules, so that
  * searches will be case-insensitive.
  */
 
-class Lucy::Analysis::CaseFolder
-    inherits Lucy::Analysis::Analyzer : dumpable {
+public class Lucy::Analysis::CaseFolder inherits Lucy::Analysis::Analyzer {
 
-    ByteBuf *work_buf;
+    Normalizer *normalizer;
 
     inert incremented CaseFolder*
     new();
@@ -39,9 +41,9 @@ class Lucy::Analysis::CaseFolder
     Transform(CaseFolder *self, Inversion *inversion);
 
     public incremented Inversion*
-    Transform_Text(CaseFolder *self, CharBuf *text);
+    Transform_Text(CaseFolder *self, String *text);
 
-    public bool_t
+    public bool
     Equals(CaseFolder *self, Obj *other);
 
     public incremented Hash*

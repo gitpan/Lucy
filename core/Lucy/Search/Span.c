@@ -21,65 +21,69 @@
 
 Span*
 Span_new(int32_t offset, int32_t length, float weight) {
-    Span *self = (Span*)VTable_Make_Obj(SPAN);
+    Span *self = (Span*)Class_Make_Obj(SPAN);
     return Span_init(self, offset, length, weight);
 }
 
 Span*
 Span_init(Span *self, int32_t offset, int32_t length,
           float weight) {
-    self->offset   = offset;
-    self->length   = length;
-    self->weight   = weight;
+    SpanIVARS *const ivars = Span_IVARS(self);
+    ivars->offset   = offset;
+    ivars->length   = length;
+    ivars->weight   = weight;
     return self;
 }
 
 int32_t
-Span_get_offset(Span *self) {
-    return self->offset;
+Span_Get_Offset_IMP(Span *self) {
+    return Span_IVARS(self)->offset;
 }
 
 int32_t
-Span_get_length(Span *self) {
-    return self->length;
+Span_Get_Length_IMP(Span *self) {
+    return Span_IVARS(self)->length;
 }
 
 float
-Span_get_weight(Span *self) {
-    return self->weight;
+Span_Get_Weight_IMP(Span *self) {
+    return Span_IVARS(self)->weight;
 }
 
 void
-Span_set_offset(Span *self, int32_t offset) {
-    self->offset = offset;
+Span_Set_Offset_IMP(Span *self, int32_t offset) {
+    Span_IVARS(self)->offset = offset;
 }
 
 void
-Span_set_length(Span *self, int32_t length) {
-    self->length = length;
+Span_Set_Length_IMP(Span *self, int32_t length) {
+    Span_IVARS(self)->length = length;
 }
 
 void
-Span_set_weight(Span *self, float weight) {
-    self->weight = weight;
+Span_Set_Weight_IMP(Span *self, float weight) {
+    Span_IVARS(self)->weight = weight;
 }
 
-bool_t
-Span_equals(Span *self, Obj *other) {
-    Span *twin = (Span*)other;
-    if (self == twin)                 { return true; }
+bool
+Span_Equals_IMP(Span *self, Obj *other) {
+    if (self == (Span*)other)         { return true; }
     if (!Obj_Is_A(other, SPAN))       { return false; }
-    if (self->offset != twin->offset) { return false; }
-    if (self->length != twin->length) { return false; }
-    if (self->weight != twin->weight) { return false; }
+    SpanIVARS *const ivars = Span_IVARS(self);
+    SpanIVARS *const ovars = Span_IVARS((Span*)other);
+    if (ivars->offset != ovars->offset) { return false; }
+    if (ivars->length != ovars->length) { return false; }
+    if (ivars->weight != ovars->weight) { return false; }
     return true;
 }
 
 int32_t
-Span_compare_to(Span *self, Obj *other) {
-    Span *competitor = (Span*)CERTIFY(other, SPAN);
-    int32_t comparison = self->offset - competitor->offset;
-    if (comparison == 0) { comparison = self->length - competitor->length; }
+Span_Compare_To_IMP(Span *self, Obj *other) {
+    CERTIFY(other, SPAN);
+    SpanIVARS *const ivars = Span_IVARS(self);
+    SpanIVARS *const ovars = Span_IVARS((Span*)other);
+    int32_t comparison = ivars->offset - ovars->offset;
+    if (comparison == 0) { comparison = ivars->length - ovars->length; }
     return comparison;
 }
 

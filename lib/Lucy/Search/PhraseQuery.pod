@@ -52,8 +52,6 @@ B<terms> - The ordered array of terms that must match.
 
 
 
-
-
 =head1 METHODS
 
 =head2 get_field()
@@ -68,7 +66,7 @@ Accessor for object's array of terms.
 
 =head1 INHERITANCE
 
-Lucy::Search::PhraseQuery isa L<Lucy::Search::Query> isa L<Lucy::Object::Obj>.
+Lucy::Search::PhraseQuery isa L<Lucy::Search::Query> isa Clownfish::Obj.
 
 
 =cut

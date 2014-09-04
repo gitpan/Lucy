@@ -21,10 +21,11 @@
 #include "Lucy/Analysis/Analyzer.h"
 #include "Lucy/Index/Posting/ScorePosting.h"
 #include "Lucy/Index/Similarity.h"
+#include "Lucy/Util/Freezer.h"
 
 FullTextType*
 FullTextType_new(Analyzer *analyzer) {
-    FullTextType *self = (FullTextType*)VTable_Make_Obj(FULLTEXTTYPE);
+    FullTextType *self = (FullTextType*)Class_Make_Obj(FULLTEXTTYPE);
     return FullTextType_init(self, analyzer);
 }
 
@@ -35,105 +36,113 @@ FullTextType_init(FullTextType *self, Analyzer *analyzer) {
 
 FullTextType*
 FullTextType_init2(FullTextType *self, Analyzer *analyzer, float boost,
-                   bool_t indexed, bool_t stored, bool_t sortable,
-                   bool_t highlightable) {
+                   bool indexed, bool stored, bool sortable,
+                   bool highlightable) {
     FType_init((FieldType*)self);
+    FullTextTypeIVARS *const ivars = FullTextType_IVARS(self);
 
     /* Assign */
-    self->boost         = boost;
-    self->indexed       = indexed;
-    self->stored        = stored;
-    self->sortable      = sortable;
-    self->highlightable = highlightable;
-    self->analyzer      = (Analyzer*)INCREF(analyzer);
+    ivars->boost         = boost;
+    ivars->indexed       = indexed;
+    ivars->stored        = stored;
+    ivars->sortable      = sortable;
+    ivars->highlightable = highlightable;
+    ivars->analyzer      = (Analyzer*)INCREF(analyzer);
 
     return self;
 }
 
 void
-FullTextType_destroy(FullTextType *self) {
-    DECREF(self->analyzer);
+FullTextType_Destroy_IMP(FullTextType *self) {
+    FullTextTypeIVARS *const ivars = FullTextType_IVARS(self);
+    DECREF(ivars->analyzer);
     SUPER_DESTROY(self, FULLTEXTTYPE);
 }
 
-bool_t
-FullTextType_equals(FullTextType *self, Obj *other) {
-    FullTextType *twin = (FullTextType*)other;
-    if (twin == self)                                   { return true; }
-    if (!Obj_Is_A(other, FULLTEXTTYPE))                 { return false; }
-    if (!FType_equals((FieldType*)self, other))         { return false; }
-    if (!!self->sortable != !!twin->sortable)           { return false; }
-    if (!!self->highlightable != !!twin->highlightable) { return false; }
-    if (!Analyzer_Equals(self->analyzer, (Obj*)twin->analyzer)) {
+bool
+FullTextType_Equals_IMP(FullTextType *self, Obj *other) {
+    if ((FullTextType*)other == self)                     { return true; }
+    if (!Obj_Is_A(other, FULLTEXTTYPE))                   { return false; }
+    FullTextTypeIVARS *const ivars = FullTextType_IVARS(self);
+    FullTextTypeIVARS *const ovars = FullTextType_IVARS((FullTextType*)other);
+    FullTextType_Equals_t super_equals
+        = (FullTextType_Equals_t)SUPER_METHOD_PTR(FULLTEXTTYPE,
+                                                  LUCY_FullTextType_Equals);
+    if (!super_equals(self, other))                       { return false; }
+    if (!!ivars->sortable      != !!ovars->sortable)      { return false; }
+    if (!!ivars->highlightable != !!ovars->highlightable) { return false; }
+    if (!Analyzer_Equals(ivars->analyzer, (Obj*)ovars->analyzer)) {
         return false;
     }
     return true;
 }
 
 Hash*
-FullTextType_dump_for_schema(FullTextType *self) {
+FullTextType_Dump_For_Schema_IMP(FullTextType *self) {
+    FullTextTypeIVARS *const ivars = FullTextType_IVARS(self);
     Hash *dump = Hash_new(0);
-    Hash_Store_Str(dump, "type", 4, (Obj*)CB_newf("fulltext"));
+    Hash_Store_Utf8(dump, "type", 4, (Obj*)Str_newf("fulltext"));
 
     // Store attributes that override the defaults.
-    if (self->boost != 1.0) {
-        Hash_Store_Str(dump, "boost", 5, (Obj*)CB_newf("%f64", self->boost));
+    if (ivars->boost != 1.0) {
+        Hash_Store_Utf8(dump, "boost", 5, (Obj*)Str_newf("%f64", ivars->boost));
     }
-    if (!self->indexed) {
-        Hash_Store_Str(dump, "indexed", 7, (Obj*)CFISH_FALSE);
+    if (!ivars->indexed) {
+        Hash_Store_Utf8(dump, "indexed", 7, (Obj*)CFISH_FALSE);
     }
-    if (!self->stored) {
-        Hash_Store_Str(dump, "stored", 6, (Obj*)CFISH_FALSE);
+    if (!ivars->stored) {
+        Hash_Store_Utf8(dump, "stored", 6, (Obj*)CFISH_FALSE);
     }
-    if (self->sortable) {
-        Hash_Store_Str(dump, "sortable", 8, (Obj*)CFISH_TRUE);
+    if (ivars->sortable) {
+        Hash_Store_Utf8(dump, "sortable", 8, (Obj*)CFISH_TRUE);
     }
-    if (self->highlightable) {
-        Hash_Store_Str(dump, "highlightable", 13, (Obj*)CFISH_TRUE);
+    if (ivars->highlightable) {
+        Hash_Store_Utf8(dump, "highlightable", 13, (Obj*)CFISH_TRUE);
     }
 
     return dump;
 }
 
 Hash*
-FullTextType_dump(FullTextType *self) {
+FullTextType_Dump_IMP(FullTextType *self) {
+    FullTextTypeIVARS *const ivars = FullTextType_IVARS(self);
     Hash *dump = FullTextType_Dump_For_Schema(self);
-    Hash_Store_Str(dump, "_class", 6,
-                   (Obj*)CB_Clone(FullTextType_Get_Class_Name(self)));
-    Hash_Store_Str(dump, "analyzer", 8,
-                   (Obj*)Analyzer_Dump(self->analyzer));
-    DECREF(Hash_Delete_Str(dump, "type", 4));
+    Hash_Store_Utf8(dump, "_class", 6,
+                    (Obj*)Str_Clone(FullTextType_Get_Class_Name(self)));
+    Hash_Store_Utf8(dump, "analyzer", 8,
+                    (Obj*)Analyzer_Dump(ivars->analyzer));
+    DECREF(Hash_Delete_Utf8(dump, "type", 4));
 
     return dump;
 }
 
 FullTextType*
-FullTextType_load(FullTextType *self, Obj *dump) {
+FullTextType_Load_IMP(FullTextType *self, Obj *dump) {
     UNUSED_VAR(self);
     Hash *source = (Hash*)CERTIFY(dump, HASH);
-    CharBuf *class_name = (CharBuf*)Hash_Fetch_Str(source, "_class", 6);
-    VTable *vtable
-        = (class_name != NULL && Obj_Is_A((Obj*)class_name, CHARBUF))
-          ? VTable_singleton(class_name, NULL)
+    String *class_name = (String*)Hash_Fetch_Utf8(source, "_class", 6);
+    Class *klass
+        = (class_name != NULL && Obj_Is_A((Obj*)class_name, STRING))
+          ? Class_singleton(class_name, NULL)
           : FULLTEXTTYPE;
-    FullTextType *loaded = (FullTextType*)VTable_Make_Obj(vtable);
+    FullTextType *loaded = (FullTextType*)Class_Make_Obj(klass);
 
     // Extract boost.
-    Obj *boost_dump = Hash_Fetch_Str(source, "boost", 5);
+    Obj *boost_dump = Hash_Fetch_Utf8(source, "boost", 5);
     float boost = boost_dump ? (float)Obj_To_F64(boost_dump) : 1.0f;
 
     // Find boolean properties.
-    Obj *indexed_dump = Hash_Fetch_Str(source, "indexed", 7);
-    Obj *stored_dump  = Hash_Fetch_Str(source, "stored", 6);
-    Obj *sort_dump    = Hash_Fetch_Str(source, "sortable", 8);
-    Obj *hl_dump      = Hash_Fetch_Str(source, "highlightable", 13);
-    bool_t indexed  = indexed_dump ? Obj_To_Bool(indexed_dump) : true;
-    bool_t stored   = stored_dump  ? Obj_To_Bool(stored_dump)  : true;
-    bool_t sortable = sort_dump    ? Obj_To_Bool(sort_dump)    : false;
-    bool_t hl       = hl_dump      ? Obj_To_Bool(hl_dump)      : false;
+    Obj *indexed_dump = Hash_Fetch_Utf8(source, "indexed", 7);
+    Obj *stored_dump  = Hash_Fetch_Utf8(source, "stored", 6);
+    Obj *sort_dump    = Hash_Fetch_Utf8(source, "sortable", 8);
+    Obj *hl_dump      = Hash_Fetch_Utf8(source, "highlightable", 13);
+    bool indexed  = indexed_dump ? Obj_To_Bool(indexed_dump) : true;
+    bool stored   = stored_dump  ? Obj_To_Bool(stored_dump)  : true;
+    bool sortable = sort_dump    ? Obj_To_Bool(sort_dump)    : false;
+    bool hl       = hl_dump      ? Obj_To_Bool(hl_dump)      : false;
 
     // Extract an Analyzer.
-    Obj *analyzer_dump = Hash_Fetch_Str(source, "analyzer", 8);
+    Obj *analyzer_dump = Hash_Fetch_Utf8(source, "analyzer", 8);
     Analyzer *analyzer = NULL;
     if (analyzer_dump) {
         if (Obj_Is_A(analyzer_dump, ANALYZER)) {
@@ -141,39 +150,34 @@ FullTextType_load(FullTextType *self, Obj *dump) {
             analyzer = (Analyzer*)INCREF(analyzer_dump);
         }
         else if (Obj_Is_A((Obj*)analyzer_dump, HASH)) {
-            analyzer = (Analyzer*)Obj_Load(analyzer_dump, analyzer_dump);
+            analyzer = (Analyzer*)Freezer_load(analyzer_dump);
         }
     }
     CERTIFY(analyzer, ANALYZER);
 
-    FullTextType_init(loaded, analyzer);
+    FullTextType_init2(loaded, analyzer, boost, indexed, stored,
+                       sortable, hl);
     DECREF(analyzer);
-    if (boost_dump)   { loaded->boost         = boost;    }
-    if (indexed_dump) { loaded->indexed       = indexed;  }
-    if (stored_dump)  { loaded->stored        = stored;   }
-    if (sort_dump)    { loaded->sortable      = sortable; }
-    if (hl_dump)      { loaded->highlightable = hl;       }
-
     return loaded;
 }
 
 void
-FullTextType_set_highlightable(FullTextType *self, bool_t highlightable) {
-    self->highlightable = highlightable;
+FullTextType_Set_Highlightable_IMP(FullTextType *self, bool highlightable) {
+    FullTextType_IVARS(self)->highlightable = highlightable;
 }
 
 Analyzer*
-FullTextType_get_analyzer(FullTextType *self) {
-    return self->analyzer;
+FullTextType_Get_Analyzer_IMP(FullTextType *self) {
+    return FullTextType_IVARS(self)->analyzer;
 }
 
-bool_t
-FullTextType_highlightable(FullTextType *self) {
-    return self->highlightable;
+bool
+FullTextType_Highlightable_IMP(FullTextType *self) {
+    return FullTextType_IVARS(self)->highlightable;
 }
 
 Similarity*
-FullTextType_make_similarity(FullTextType *self) {
+FullTextType_Make_Similarity_IMP(FullTextType *self) {
     UNUSED_VAR(self);
     return Sim_new();
 }

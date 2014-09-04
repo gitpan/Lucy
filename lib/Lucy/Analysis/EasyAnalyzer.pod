@@ -17,12 +17,7 @@
 
 =head1 NAME
 
-Lucy::Analysis::EasyAnalyzer - A simple analyzer chain
-
-EasyAnalyzer is an analyzer chain consisting of a
-L<StandardTokenizer|Lucy::Analysis::StandardTokenizer>, a
-L<Normalizer|Lucy::Analysis::Normalizer>, and a
-L<EasyAnalyzer|Lucy::Analysis::EasyAnalyzer>.
+Lucy::Analysis::EasyAnalyzer - A simple analyzer chain.
 
 =head1 SYNOPSIS
 
@@ -39,6 +34,11 @@ L<EasyAnalyzer|Lucy::Analysis::EasyAnalyzer>.
 
 
 =head1 DESCRIPTION
+
+EasyAnalyzer is an analyzer chain consisting of a
+L<StandardTokenizer|Lucy::Analysis::StandardTokenizer>, a
+L<Normalizer|Lucy::Analysis::Normalizer>, and a
+L<SnowballStemmer|Lucy::Analysis::SnowballStemmer>.
 
 Supported languages:
 
@@ -78,11 +78,9 @@ B<language> - An ISO code from the list of supported languages.
 
 
 
-
-
 =head1 INHERITANCE
 
-Lucy::Analysis::EasyAnalyzer isa L<Lucy::Analysis::Analyzer> isa L<Lucy::Object::Obj>.
+Lucy::Analysis::EasyAnalyzer isa L<Lucy::Analysis::Analyzer> isa Clownfish::Obj.
 
 
 =cut

@@ -69,8 +69,6 @@ B<weight> - A floating point weight.
 
 
 
-
-
 =head1 METHODS
 
 =head2 set_offset(offset)
@@ -101,7 +99,7 @@ Accessor for C<< weight >> attribute.
 
 =head1 INHERITANCE
 
-Lucy::Search::Span isa L<Lucy::Object::Obj>.
+Lucy::Search::Span isa Clownfish::Obj.
 
 
 =cut

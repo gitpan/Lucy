@@ -26,6 +26,9 @@ parcel Lucy;
  * L<RegexTokenizer|Lucy::Analysis::RegexTokenizer>, and a
  * L<SnowballStemmer|Lucy::Analysis::SnowballStemmer> will be generated for you.
  *
+ * The language parameter is DEPRECATED. Use
+ * L<EasyAnalyzer|Lucy::Analysis::EasyAnalyzer> instead.
+ *
  * Supported languages:
  *
  *     en => English,
@@ -44,25 +47,25 @@ parcel Lucy;
  *     sv => Swedish,
  *     tr => Turkish,
  */
-class Lucy::Analysis::PolyAnalyzer
-    inherits Lucy::Analysis::Analyzer : dumpable {
+public class Lucy::Analysis::PolyAnalyzer inherits Lucy::Analysis::Analyzer {
 
     VArray  *analyzers;
 
     inert incremented PolyAnalyzer*
-    new(const CharBuf *language = NULL, VArray *analyzers = NULL);
+    new(String *language = NULL, VArray *analyzers = NULL);
 
     /**
      * @param language An ISO code from the list of supported languages.
+     * DEPRECATED, use L<EasyAnalyzer|Lucy::Analysis::EasyAnalyzer> instead.
      * @param analyzers An array of Analyzers.  The order of the analyzers
      * matters.  Don't put a SnowballStemmer before a RegexTokenizer (can't stem whole
      * documents or paragraphs -- just individual words), or a SnowballStopFilter
      * after a SnowballStemmer (stemmed words, e.g. "themselv", will not appear in a
-     * stoplist).  In general, the sequence should be: normalize, tokenize,
+     * stoplist).  In general, the sequence should be: tokenize, normalize,
      * stopalize, stem.
      */
     public inert PolyAnalyzer*
-    init(PolyAnalyzer *self, const CharBuf *language = NULL,
+    init(PolyAnalyzer *self, String *language = NULL,
          VArray *analyzers = NULL);
 
     /** Getter for "analyzers" member.
@@ -74,10 +77,13 @@ class Lucy::Analysis::PolyAnalyzer
     Transform(PolyAnalyzer *self, Inversion *inversion);
 
     public incremented Inversion*
-    Transform_Text(PolyAnalyzer *self, CharBuf *text);
+    Transform_Text(PolyAnalyzer *self, String *text);
 
-    public bool_t
+    public bool
     Equals(PolyAnalyzer *self, Obj *other);
+
+    public incremented Obj*
+    Dump(PolyAnalyzer *self);
 
     public incremented PolyAnalyzer*
     Load(PolyAnalyzer *self, Obj *dump);

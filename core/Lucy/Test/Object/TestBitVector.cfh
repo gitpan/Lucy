@@ -14,11 +14,16 @@
  * limitations under the License.
  */
 
-parcel Lucy;
+parcel TestLucy;
 
-inert class Lucy::Test::Object::TestBitVector {
-    inert void
-    run_tests();
+class Lucy::Test::Object::TestBitVector
+    inherits Clownfish::TestHarness::TestBatch {
+
+    inert incremented TestBitVector*
+    new();
+
+    void
+    Run(TestBitVector *self, TestBatchRunner *runner);
 }
 
 
